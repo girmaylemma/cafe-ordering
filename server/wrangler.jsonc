@@ -6,11 +6,16 @@
   "durable_objects": {
     "bindings": [
       // One CafeDO per café; its name is the venue ID.
-      { "name": "CAFE", "class_name": "CafeDO" }
+      { "name": "CAFE", "class_name": "CafeDO" },
+      // One DirectoryDO for the whole system (name "directory"): lookups that don't know their café.
+      { "name": "DIRECTORY", "class_name": "DirectoryDO" }
     ]
   },
   "migrations": [
     // SQLite-backed Durable Objects are the only kind allowed on the Workers Free plan.
-    { "tag": "v1", "new_sqlite_classes": ["CafeDO"] }
+    { "tag": "v1", "new_sqlite_classes": ["CafeDO"] },
+    { "tag": "v2", "new_sqlite_classes": ["DirectoryDO"] }
   ]
+  // Secrets (never in this file): SERVER_SECRET. Set with `npx wrangler secret put SERVER_SECRET`.
+  // For local dev, copy .dev.vars.example to .dev.vars.
 }

@@ -1,39 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { actorFor, identityFromHeaders, recipientsFor, tagsFor } from "../src/cafe/connection";
+import { actorFor, liveIdentityFromHeaders, recipientsFor, tagsFor } from "../src/cafe/connection";
 import type { WireEvent } from "../src/cafe/protocol";
 
 const headers = (values: Record<string, string>) => new Headers(values);
 
-describe("identityFromHeaders", () => {
-  it("reads a station connection", () => {
-    const id = identityFromHeaders(
-      headers({ "X-Cafe-Venue": "v1", "X-Cafe-Role": "station", "X-Cafe-Device": "d1", "X-Cafe-Station": "kitchen" }),
-    );
-    expect(id).toEqual({ role: "station", venueId: "v1", deviceId: "d1", stationId: "kitchen" });
-  });
-
-  it("reads a staff (waiter) connection", () => {
-    const id = identityFromHeaders(
-      headers({ "X-Cafe-Venue": "v1", "X-Cafe-Role": "staff", "X-Cafe-Device": "d2", "X-Cafe-User": "hana" }),
-    );
-    expect(id).toEqual({ role: "staff", venueId: "v1", deviceId: "d2", userId: "hana" });
-  });
-
+describe("liveIdentityFromHeaders (internal callers only)", () => {
   it("reads a live (dashboard) connection", () => {
-    const id = identityFromHeaders(headers({ "X-Cafe-Venue": "v1", "X-Cafe-Role": "live", "X-Cafe-User": "owner-1" }));
+    const id = liveIdentityFromHeaders(headers({ "X-Cafe-Venue": "v1", "X-Cafe-Role": "live", "X-Cafe-User": "owner-1" }));
     expect(id).toEqual({ role: "live", venueId: "v1", userId: "owner-1" });
   });
 
   it.each([
     ["no headers", {}],
-    ["no venue", { "X-Cafe-Role": "station", "X-Cafe-Device": "d1", "X-Cafe-Station": "kitchen" }],
-    ["an unknown role", { "X-Cafe-Venue": "v1", "X-Cafe-Role": "admin", "X-Cafe-User": "x" }],
-    ["a station without a station id", { "X-Cafe-Venue": "v1", "X-Cafe-Role": "station", "X-Cafe-Device": "d1" }],
-    ["a staff connection without a user", { "X-Cafe-Venue": "v1", "X-Cafe-Role": "staff", "X-Cafe-Device": "d1" }],
-    ["a staff connection without a device", { "X-Cafe-Venue": "v1", "X-Cafe-Role": "staff", "X-Cafe-User": "hana" }],
+    ["no venue", { "X-Cafe-Role": "live", "X-Cafe-User": "owner-1" }],
+    ["no user", { "X-Cafe-Venue": "v1", "X-Cafe-Role": "live" }],
+    ["a station role (stations must use a device token)", { "X-Cafe-Venue": "v1", "X-Cafe-Role": "station", "X-Cafe-Device": "d1", "X-Cafe-Station": "kitchen" }],
+    ["a staff role (waiters must use a token and a PIN session)", { "X-Cafe-Venue": "v1", "X-Cafe-Role": "staff", "X-Cafe-Device": "d1", "X-Cafe-User": "hana" }],
     ["an over-long value", { "X-Cafe-Venue": "v".repeat(101), "X-Cafe-Role": "live", "X-Cafe-User": "x" }],
   ])("returns null for %s", (_label, values) => {
-    expect(identityFromHeaders(headers(values))).toBeNull();
+    expect(liveIdentityFromHeaders(headers(values))).toBeNull();
   });
 });
 
@@ -42,9 +27,9 @@ describe("tags, actors and recipients", () => {
   const staff = { role: "staff", venueId: "v1", deviceId: "d2", userId: "hana" } as const;
   const live = { role: "live", venueId: "v1", userId: "owner-1" } as const;
 
-  it("tags each connection by what it should receive", () => {
-    expect(tagsFor(station)).toEqual(["station:kitchen"]);
-    expect(tagsFor(staff)).toEqual(["waiter:hana"]);
+  it("tags each connection by what it should receive, and by device so it can be closed on revoke", () => {
+    expect(tagsFor(station)).toEqual(["station:kitchen", "device:d1"]);
+    expect(tagsFor(staff)).toEqual(["waiter:hana", "device:d2"]);
     expect(tagsFor(live)).toEqual(["live"]);
   });
 

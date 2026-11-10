@@ -183,6 +183,10 @@ export function sendOrder(
   );
 
   const actor = staff(waiterId);
+  // Shown on the kitchen ticket (K-01); null only if the staff row is missing.
+  const waiterName =
+    sql.exec<{ name: string }>("SELECT name FROM staff WHERE id = ? AND venue_id = ?", waiterId, venueId).toArray()[0]
+      ?.name ?? null;
   const items: SentItem[] = [];
   const events: WireEvent[] = [];
   for (const line of message.items) {
@@ -207,6 +211,7 @@ export function sendOrder(
       tableId: table.id,
       tableName: table.name,
       waiterId,
+      waiterName,
       round,
       name: m.name,
       qty: line.qty,

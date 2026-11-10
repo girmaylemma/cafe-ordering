@@ -1,4 +1,5 @@
 import { runInDurableObject } from "cloudflare:test";
+import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import worker from "../src/index";
 import { VENUE, connect, liveHeaders, newCafe, seedItem, staffHeaders, stationHeaders } from "./helpers";
@@ -183,11 +184,18 @@ describe("CafeDO WebSocket", () => {
     expect(await kitchen.next()).toMatchObject({ type: "ack", result: { ok: true } });
   });
 
-  it("refuses a WebSocket upgrade without identity headers", async () => {
+  it("refuses a WebSocket upgrade without credentials", async () => {
     const cafe = newCafe();
     const response = await cafe.fetch("https://cafe/ws", { headers: { Upgrade: "websocket" } });
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(401);
     expect(response.webSocket).toBeNull();
+  });
+
+  it("no longer trusts station or staff identity headers: only tokens identify tablets", async () => {
+    const cafe = newCafe();
+    const forged = { "X-Cafe-Venue": VENUE, "X-Cafe-Role": "station", "X-Cafe-Device": "d1", "X-Cafe-Station": "kitchen" };
+    const response = await cafe.fetch("https://cafe/ws", { headers: { Upgrade: "websocket", ...forged } });
+    expect(response.status).toBe(401);
   });
 
   it("refuses a plain HTTP request to the café", async () => {
@@ -196,9 +204,9 @@ describe("CafeDO WebSocket", () => {
     expect(response.status).toBe(426);
   });
 
-  it("the public Worker still answers 404 to everything (no route until slice 4 adds auth)", async () => {
+  it("the public Worker strips forged X-Cafe-* headers: claiming to be the live view gets 401", async () => {
     const request = new Request("https://api.example/ws", { headers: { Upgrade: "websocket", ...liveHeaders } });
-    const response = await worker.fetch(request);
-    expect(response.status).toBe(404);
+    const response = await worker.fetch(request, env);
+    expect(response.status).toBe(401);
   });
 });

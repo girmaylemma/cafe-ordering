@@ -27,6 +27,44 @@ export const SCHEMA: readonly string[] = [
      active    INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1))
    ) STRICT`,
 
+  // ---------- people and devices (slice 4a) ----------
+  // PINs are stored only as HMAC(SERVER_SECRET-derived key, salt:pin) (D-51).
+  `CREATE TABLE IF NOT EXISTS staff (
+     id                   TEXT PRIMARY KEY,
+     venue_id             TEXT NOT NULL,
+     name                 TEXT NOT NULL,
+     role                 TEXT NOT NULL CHECK (role IN ('waiter', 'manager', 'owner')),
+     pin_salt             TEXT NOT NULL,
+     pin_hash             TEXT NOT NULL,
+     failed_pin_attempts  INTEGER NOT NULL DEFAULT 0,
+     locked_until         INTEGER,
+     active               INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1))
+   ) STRICT`,
+
+  // token_hash is SHA-256 of the device token; NULL until paired and after revoke.
+  `CREATE TABLE IF NOT EXISTS devices (
+     id          TEXT PRIMARY KEY,
+     venue_id    TEXT NOT NULL,
+     name        TEXT NOT NULL,
+     kind        TEXT NOT NULL CHECK (kind IN ('waiter', 'station')),
+     station_id  TEXT,
+     token_hash  TEXT UNIQUE,
+     paired_at   INTEGER,
+     revoked_at  INTEGER,
+     CHECK ((kind = 'station') = (station_id IS NOT NULL))
+   ) STRICT`,
+
+  // A waiter signed in with a PIN on one device. Only the SHA-256 of the session token is stored.
+  `CREATE TABLE IF NOT EXISTS staff_sessions (
+     token_hash  TEXT PRIMARY KEY,
+     venue_id    TEXT NOT NULL,
+     user_id     TEXT NOT NULL,
+     device_id   TEXT NOT NULL,
+     created_at  INTEGER NOT NULL,
+     expires_at  INTEGER NOT NULL,
+     ended_at    INTEGER
+   ) STRICT`,
+
   // ---------- service ----------
   // A table visit. waiter_id is the CURRENT waiter (changes on hand-over, slice 3c).
   `CREATE TABLE IF NOT EXISTS table_sessions (

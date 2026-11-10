@@ -328,7 +328,8 @@ describe("sessions and orders", () => {
     hana.send({ type: "session.close", idempotencyKey: uid("key"), sessionId });
     await hana.ack();
 
-    expect(await sql(cafe, "SELECT type, session_id FROM order_events ORDER BY seq")).toEqual([
+    // (The log also holds the waiter's auth.signed_in event, tested in auth.test.ts.)
+    expect(await sql(cafe, "SELECT type, session_id FROM order_events WHERE type LIKE 'session.%' ORDER BY seq")).toEqual([
       { type: "session.opened", session_id: sessionId },
       { type: "session.closed", session_id: sessionId },
     ]);

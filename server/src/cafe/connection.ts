@@ -1,10 +1,9 @@
 /**
  * Who is on a WebSocket, what they may do, and what they should receive.
  *
- * SECURITY: the identity comes from X-Cafe-* headers set by trusted internal code.
- * Until slice 4, nothing public routes to the café (the Worker answers 404).
- * In slice 4 the Worker MUST delete any X-Cafe-* headers sent by the client and set
- * its own, only after checking the device token. Otherwise anyone could claim any identity.
+ * SECURITY: station and staff identities come ONLY from a device token (and, for waiters, a PIN
+ * session), checked by CafeDO. X-Cafe-* headers are trusted only for the internal live view, and
+ * the public Worker deletes every X-Cafe-* header a client sends (D-40, tested in worker.test.ts).
  */
 import type { Actor } from "../domain/itemState";
 import { isId, type WireEvent } from "./protocol";
@@ -17,48 +16,30 @@ export type ConnectionIdentity =
   /** The manager/owner live view in the dashboard. Read-only. */
   | { role: "live"; venueId: string; userId: string };
 
-export const IDENTITY_HEADERS = {
-  venue: "X-Cafe-Venue",
-  role: "X-Cafe-Role",
-  device: "X-Cafe-Device",
-  station: "X-Cafe-Station",
-  user: "X-Cafe-User",
-} as const;
+/** Prefix of internal headers; the public Worker strips every header starting with it. */
+export const INTERNAL_HEADER_PREFIX = "x-cafe-";
 
-export function identityFromHeaders(headers: Headers): ConnectionIdentity | null {
-  const read = (name: string): string | null => {
-    const value = headers.get(name);
-    return isId(value) ? value : null;
-  };
-  const venueId = read(IDENTITY_HEADERS.venue);
-  if (venueId === null) return null;
-  const deviceId = read(IDENTITY_HEADERS.device);
-
-  switch (headers.get(IDENTITY_HEADERS.role)) {
-    case "station": {
-      const stationId = read(IDENTITY_HEADERS.station);
-      return deviceId !== null && stationId !== null ? { role: "station", venueId, deviceId, stationId } : null;
-    }
-    case "staff": {
-      const userId = read(IDENTITY_HEADERS.user);
-      return deviceId !== null && userId !== null ? { role: "staff", venueId, deviceId, userId } : null;
-    }
-    case "live": {
-      const userId = read(IDENTITY_HEADERS.user);
-      return userId !== null ? { role: "live", venueId, userId } : null;
-    }
-    default:
-      return null;
-  }
+/**
+ * The internal live view (dashboard). It has no public route until Cloudflare Access is added,
+ * so only internal code can send these headers. Station and staff roles are never read from headers.
+ */
+export function liveIdentityFromHeaders(headers: Headers): ConnectionIdentity | null {
+  if (headers.get("X-Cafe-Role") !== "live") return null;
+  const venueId = headers.get("X-Cafe-Venue");
+  const userId = headers.get("X-Cafe-User");
+  return isId(venueId) && isId(userId) ? { role: "live", venueId, userId } : null;
 }
 
-/** Hibernation tags: pushes are sent to every socket carrying a tag. */
+/**
+ * Hibernation tags: pushes are sent to every socket carrying a tag. The device tag lets
+ * revoke/deactivate find and close a device's sockets at once (D-13).
+ */
 export function tagsFor(identity: ConnectionIdentity): string[] {
   switch (identity.role) {
     case "station":
-      return [`station:${identity.stationId}`];
+      return [`station:${identity.stationId}`, `device:${identity.deviceId}`];
     case "staff":
-      return [`waiter:${identity.userId}`];
+      return [`waiter:${identity.userId}`, `device:${identity.deviceId}`];
     case "live":
       return ["live"];
   }

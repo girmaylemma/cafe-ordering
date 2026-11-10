@@ -1,0 +1,4 @@
+# Copy to .dev.vars for local development (.dev.vars is gitignored, never commit it).
+# In production set it with:  npx wrangler secret put SERVER_SECRET
+# Use a long random value, e.g. from:  node -e "console.log(crypto.randomBytes(32).toString('base64url'))"
+SERVER_SECRET=dev-only-not-secret

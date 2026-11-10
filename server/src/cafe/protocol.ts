@@ -90,7 +90,9 @@ export type ProtocolError =
   | "INVALID_MESSAGE"
   | "MESSAGE_TOO_LARGE"
   /** This kind of connection may not send this message (e.g. a live dashboard sending a command). */
-  | "NOT_ALLOWED_FOR_CONNECTION";
+  | "NOT_ALLOWED_FOR_CONNECTION"
+  /** The PIN session or device was ended, expired or revoked; the socket is closed after this. */
+  | "SESSION_ENDED";
 
 export type ServerMessage =
   | { type: "ack"; idempotencyKey: string; result: CommandResult }
