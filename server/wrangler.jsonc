@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cafe-ordering",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "durable_objects": {
+    "bindings": [
+      // One CafeDO per café; its name is the venue ID.
+      { "name": "CAFE", "class_name": "CafeDO" }
+    ]
+  },
+  "migrations": [
+    // SQLite-backed Durable Objects are the only kind allowed on the Workers Free plan.
+    { "tag": "v1", "new_sqlite_classes": ["CafeDO"] }
+  ]
+}

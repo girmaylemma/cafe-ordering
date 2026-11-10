@@ -116,3 +116,5 @@ Decisions and their reasons: `docs/decisions.md`.
 - Install: `npm ci`
 - Test: `npm test` (watch mode: `npm run test:watch`)
 - Type check: `npm run typecheck`
+- Regenerate `worker-configuration.d.ts` after changing `wrangler.jsonc`: `npm run types`
+- Tests run inside Cloudflare's runtime (workerd) via `@cloudflare/vitest-plugin`; no Cloudflare account needed.

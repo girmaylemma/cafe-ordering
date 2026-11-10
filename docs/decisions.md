@@ -40,6 +40,10 @@ To change one, add a new entry that replaces it. Don't edit the old entry.
 | D-33 | A waiter can mark Delivered straight from accepted; the event records `skippedReady`. | The kitchen sometimes forgets to tap Ready; items must not get stuck on screens during a rush. | Requiring Ready first. |
 | D-34 | Server tests use Vitest; TypeScript and Vitest are pinned to exact versions. | Cloudflare's Durable Object test tool is built on Vitest, so we won't switch runners later. Exact pins give the same results on every machine. | Node's built-in `node:test`. |
 | D-35 | A repeated command returns `ALREADY_IN_STATE`, which the server treats as already done. | Double taps and resends after a reconnect are normal and must not show errors. | Rejecting duplicates as errors. |
+| D-36 | Durable Object tests use `@cloudflare/vitest-plugin` and run inside Cloudflare's real runtime. | It's the maintained successor of `@cloudflare/vitest-pool-workers`, which is deprecated and only supported Vitest 4. Testing in the real runtime catches SQLite and transaction differences that fakes would miss. | The deprecated pool package with Vitest 4; fake storage in Node. |
+| D-37 | Each command runs in one synchronous SQLite transaction (`transactionSync`, no `await` inside). | No other command can run in between (makes D-07 true), and a failed write rolls back the whole command. | Async storage calls with manual locking. |
+| D-38 | `handleItemCommand` never throws: unexpected failures are logged and answered with `INTERNAL_ERROR`, which is not saved under the idempotency key. | A thrown error is reported by the runtime as uncaught, and the tablet still needs an answer. Since nothing was saved, retrying the same tap is safe. | Letting exceptions reach the caller. |
+| D-39 | Refusals from the state machine are saved under the idempotency key; `ITEM_NOT_FOUND` is not. | A resent tap must get the same answer even if the item changed since. A missing item may simply not have arrived yet, so it is checked again on retry. | Saving every answer; saving only successes. |
 
 ## Open questions
 
