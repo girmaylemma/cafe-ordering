@@ -36,6 +36,10 @@ To change one, add a new entry that replaces it. Don't edit the old entry.
 | D-29 | Personal phones are allowed (work profile recommended). | Cheaper for cafés. **Risk accepted:** no kiosk mode, no full wipe, and the app works off-site. Mitigation: revoke the token; work profile. | Café-owned devices only. |
 | D-30 | Sentry free tier, with staff names and PINs scrubbed. | Crashes on café tablets are otherwise invisible. | Crashlytics; none. |
 | D-31 | Usage alerts at 50% and 80% of free limits; Workers Paid ready to switch on. | Hitting a limit stops ordering until 03:00 Addis time. | Paid plan from day 1. |
+| D-32 | Voids are allowed only from accepted or ready, never after delivered. | Keeps delivered sales final. **Risk accepted:** food sent back after delivery still counts in total sales, so reports can slightly overstate takings. | Void after delivery with manager PIN. |
+| D-33 | A waiter can mark Delivered straight from accepted; the event records `skippedReady`. | The kitchen sometimes forgets to tap Ready; items must not get stuck on screens during a rush. | Requiring Ready first. |
+| D-34 | Server tests use Vitest; TypeScript and Vitest are pinned to exact versions. | Cloudflare's Durable Object test tool is built on Vitest, so we won't switch runners later. Exact pins give the same results on every machine. | Node's built-in `node:test`. |
+| D-35 | A repeated command returns `ALREADY_IN_STATE`, which the server treats as already done. | Double taps and resends after a reconnect are normal and must not show errors. | Rejecting duplicates as errors. |
 
 ## Open questions
 

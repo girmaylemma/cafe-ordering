@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+
+# Build and tool output
+dist/
+coverage/
+.wrangler/
+
+# Local secrets (never commit)
+.dev.vars
+.env
+.env.*

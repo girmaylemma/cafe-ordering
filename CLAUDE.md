@@ -111,3 +111,8 @@ Decisions and their reasons: `docs/decisions.md`.
 
 ## Commands
 (Fill in as the project is set up: install, run, test, deploy for each folder.)
+
+### server/ (run inside `server/`)
+- Install: `npm ci`
+- Test: `npm test` (watch mode: `npm run test:watch`)
+- Type check: `npm run typecheck`
