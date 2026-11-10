@@ -1,9 +1,10 @@
 // Worker entry point. Cloudflare needs the Durable Object class exported from here.
-// Routing tablets to their café (WebSocket) comes in slice 2; until then every request is 404.
+// Every request is 404 on purpose: routing tablets to their café needs device-token
+// auth first (slice 4). See the SECURITY note in src/cafe/connection.ts.
 export { CafeDO } from "./cafe/CafeDO";
 
 export default {
-  async fetch(): Promise<Response> {
+  async fetch(_request: Request): Promise<Response> {
     return new Response("Not found", { status: 404 });
   },
 } satisfies ExportedHandler<Env>;
