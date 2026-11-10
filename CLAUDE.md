@@ -120,6 +120,11 @@ Decisions and their reasons: `docs/decisions.md`.
 - Type check: `npm run typecheck`
 - Regenerate `worker-configuration.d.ts` after changing `wrangler.jsonc`: `npm run types`
 - Tests run inside Cloudflare's runtime (workerd) via `@cloudflare/vitest-plugin`; no Cloudflare account needed.
-- Secrets: `SERVER_SECRET` (PIN hashing key + token signing key). Local dev: copy `.dev.vars.example`
+- Secrets: `SERVER_SECRET` (PIN hashing key + token signing key) and `INSTALLER_SECRET` (creating cafés). Local dev: copy `.dev.vars.example`
   to `.dev.vars` (gitignored). Production: `npx wrangler secret put SERVER_SECRET` with a long random
   value. Changing it later invalidates every PIN and device token, so set it once and back it up safely.
+- Cloudflare Access config: `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` in `wrangler.jsonc` vars (placeholders
+  until the domain exists; the admin API refuses everything until they are real).
+- Create a café (installer): set `$env:INSTALLER_SECRET`, then
+  `npm run new-cafe -- --api <url> --name "<café>" --owner-name "<name>" --owner-email <email>`.
+- Run locally: `npx wrangler dev` (uses `.dev.vars`).

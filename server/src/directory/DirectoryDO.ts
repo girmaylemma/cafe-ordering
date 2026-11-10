@@ -40,7 +40,22 @@ const SCHEMA_V1 = [
 
 export const DIRECTORY_MIGRATIONS: readonly Migration[] = [
   { version: 1, description: "pairing codes and rate limits", statements: SCHEMA_V1 },
+  {
+    version: 2,
+    description: "dashboard emails",
+    statements: [
+      // Which café and staff member a Cloudflare Access email belongs to (D-09). One café per email for now.
+      `CREATE TABLE dashboard_users (
+         email       TEXT PRIMARY KEY,
+         venue_id    TEXT NOT NULL,
+         user_id     TEXT NOT NULL,
+         created_at  INTEGER NOT NULL
+       ) STRICT`,
+    ],
+  },
 ];
+
+export type RegisterEmailResult = { ok: true } | { ok: false; error: "EMAIL_TAKEN" };
 
 export class DirectoryDO extends DurableObject<Env> {
   constructor(ctx: DurableObjectState, env: Env) {
@@ -62,6 +77,35 @@ export class DirectoryDO extends DurableObject<Env> {
     console.log("directory cleanup", removed);
     await this.ctx.storage.setAlarm(now + CLEANUP_INTERVAL_MS);
   }
+
+  // ---------- dashboard emails ----------
+
+  /** Claim an email for one staff member. Idempotent for the same person; refused for anyone else. */
+  registerDashboardUser(email: string, venueId: string, userId: string): RegisterEmailResult {
+    const sql = this.ctx.storage.sql;
+    const existing = sql
+      .exec<{ venue_id: string; user_id: string }>("SELECT venue_id, user_id FROM dashboard_users WHERE email = ?", email)
+      .toArray()[0];
+    if (existing !== undefined) {
+      return existing.venue_id === venueId && existing.user_id === userId ? { ok: true } : { ok: false, error: "EMAIL_TAKEN" };
+    }
+    sql.exec("INSERT INTO dashboard_users (email, venue_id, user_id, created_at) VALUES (?, ?, ?, ?)", email, venueId, userId, Date.now());
+    return { ok: true };
+  }
+
+  /** Undo a registration (used when creating the staff member then fails). Only the owner of the row can remove it. */
+  unregisterDashboardUser(email: string, venueId: string, userId: string): void {
+    this.ctx.storage.sql.exec("DELETE FROM dashboard_users WHERE email = ? AND venue_id = ? AND user_id = ?", email, venueId, userId);
+  }
+
+  lookupDashboardUser(email: string): { venueId: string; userId: string } | null {
+    const row = this.ctx.storage.sql
+      .exec<{ venue_id: string; user_id: string }>("SELECT venue_id, user_id FROM dashboard_users WHERE email = ?", email)
+      .toArray()[0];
+    return row === undefined ? null : { venueId: row.venue_id, userId: row.user_id };
+  }
+
+  // ---------- pairing codes ----------
 
   /** A new code for one device; any older code for that device stops working. */
   createPairingCode(venueId: string, deviceId: string): { code: string; expiresAt: number } {

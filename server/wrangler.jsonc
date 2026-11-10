@@ -11,11 +11,18 @@
       { "name": "DIRECTORY", "class_name": "DirectoryDO" }
     ]
   },
+  // Cloudflare Access (dashboard login, D-12). Fill in from Zero Trust > Access > Applications
+  // once the domain exists. Until then the admin API refuses every request (no valid tokens).
+  "vars": {
+    "ACCESS_TEAM_DOMAIN": "https://CHANGE-ME.cloudflareaccess.com",
+    "ACCESS_AUD": "CHANGE-ME"
+  },
   "migrations": [
     // SQLite-backed Durable Objects are the only kind allowed on the Workers Free plan.
     { "tag": "v1", "new_sqlite_classes": ["CafeDO"] },
     { "tag": "v2", "new_sqlite_classes": ["DirectoryDO"] }
   ]
-  // Secrets (never in this file): SERVER_SECRET. Set with `npx wrangler secret put SERVER_SECRET`.
+  // Secrets (never in this file): SERVER_SECRET, INSTALLER_SECRET.
+  // Set each with `npx wrangler secret put <NAME>`.
   // For local dev, copy .dev.vars.example to .dev.vars.
 }

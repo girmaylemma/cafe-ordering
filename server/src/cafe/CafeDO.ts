@@ -10,6 +10,21 @@ import {
   type SignInResult,
   type StaffRole,
 } from "./auth";
+import {
+  audit,
+  canManage,
+  deviceVenue,
+  fail,
+  findAdmin,
+  findStaff,
+  listDevices,
+  listStaff,
+  normalizeEmail,
+  type AdminActor,
+  type AdminError,
+  type AdminResult,
+  type StaffRow,
+} from "./admin";
 import { actorFor, liveIdentityFromHeaders, recipientsFor, tagsFor, type ConnectionIdentity } from "./connection";
 import { EVENT_COLUMNS, rowToWireEvent, type EventRow, type Handled } from "./events";
 import { handleItemCommand, type ItemCommandInput, type ItemCommandResult } from "./items";
@@ -106,28 +121,195 @@ export class CafeDO extends DurableObject<Env> {
     name: string;
     role: StaffRole;
     pin: string;
-  }): Promise<{ ok: true } | Fail<"INVALID_INPUT" | "INVALID_PIN" | "STAFF_EXISTS">> {
+    /** Dashboard login (managers/owners). Registered in the Directory, unique in the whole system. */
+    email?: string | null;
+  }): Promise<{ ok: true } | Fail<"INVALID_INPUT" | "INVALID_PIN" | "STAFF_EXISTS" | "EMAIL_TAKEN">> {
     const { venueId, id, name, role, pin } = input;
     if (!isValidVenueId(venueId) || !isId(id) || !isName(name) || !["waiter", "manager", "owner"].includes(role)) {
       return { ok: false, error: "INVALID_INPUT" };
     }
+    const email = input.email === undefined || input.email === null ? null : normalizeEmail(input.email);
+    if (input.email !== undefined && input.email !== null && email === null) return { ok: false, error: "INVALID_INPUT" };
     if (!isValidPin(role, pin)) return { ok: false, error: "INVALID_PIN" };
 
     const salt = randomSecret(16);
     const hash = await pinHash(this.env.SERVER_SECRET, salt, pin);
+    // Claim the email system-wide first; undone below if the staff row can't be created.
+    if (email !== null && !(await this.#directory().registerDashboardUser(email, venueId, id)).ok) {
+      return { ok: false, error: "EMAIL_TAKEN" };
+    }
+
     // From here on synchronous: nothing can run between the check and the insert.
     const sql = this.ctx.storage.sql;
-    if (sql.exec("SELECT 1 FROM staff WHERE id = ?", id).toArray().length > 0) return { ok: false, error: "STAFF_EXISTS" };
+    if (sql.exec("SELECT 1 FROM staff WHERE id = ?", id).toArray().length > 0) {
+      if (email !== null) await this.#directory().unregisterDashboardUser(email, venueId, id);
+      return { ok: false, error: "STAFF_EXISTS" };
+    }
     sql.exec(
-      "INSERT INTO staff (id, venue_id, name, role, pin_salt, pin_hash) VALUES (?, ?, ?, ?, ?, ?)",
+      "INSERT INTO staff (id, venue_id, name, role, pin_salt, pin_hash, email) VALUES (?, ?, ?, ?, ?, ?, ?)",
       id,
       venueId,
       name,
       role,
       salt,
       hash,
+      email,
     );
     return { ok: true };
+  }
+
+  // ---------- RPC: installer and dashboard (called by the Worker after authentication) ----------
+
+  /** Installer only (POST /installer/venues): name the café and create its owner. */
+  async bootstrapVenue(input: {
+    venueId: string;
+    name: string;
+    owner: { id: string; name: string; email: string; pin: string };
+  }): Promise<AdminResult> {
+    if (!isName(input.name)) return fail("INVALID_INPUT");
+    if (this.ctx.storage.sql.exec("SELECT 1 FROM venue").toArray().length > 0) return fail("VENUE_EXISTS");
+    const created = await this.createStaff({ venueId: input.venueId, role: "owner", ...input.owner });
+    if (!created.ok) return fail(created.error === "STAFF_EXISTS" ? "INVALID_INPUT" : created.error);
+    this.ctx.storage.sql.exec("INSERT INTO venue (id, name, created_at) VALUES (?, ?, ?)", input.venueId, input.name.trim(), Date.now());
+    return { ok: true };
+  }
+
+  adminMe(actorId: string): AdminResult<{ user: { id: string; name: string; role: string; email: string | null }; venue: { id: string; name: string | null } }> {
+    const actor = findAdmin(this.ctx.storage.sql, actorId);
+    if (actor === null) return fail("FORBIDDEN");
+    const name = this.ctx.storage.sql.exec<{ name: string }>("SELECT name FROM venue WHERE id = ?", actor.venue_id).toArray()[0]?.name ?? null;
+    return { ok: true, user: { id: actor.id, name: actor.name, role: actor.role, email: actor.email }, venue: { id: actor.venue_id, name } };
+  }
+
+  adminListStaff(actorId: string): AdminResult<{ staff: ReturnType<typeof listStaff> }> {
+    const actor = findAdmin(this.ctx.storage.sql, actorId);
+    return actor === null ? fail("FORBIDDEN") : { ok: true, staff: listStaff(this.ctx.storage.sql, actor.venue_id) };
+  }
+
+  async adminCreateStaff(
+    actorId: string,
+    input: { name: unknown; role: unknown; pin: unknown; email?: unknown },
+  ): Promise<AdminResult<{ staff: { id: string; name: string; role: StaffRole; email: string | null; active: boolean } }>> {
+    const actor = findAdmin(this.ctx.storage.sql, actorId);
+    if (actor === null) return fail("FORBIDDEN");
+    const { name, role, pin } = input;
+    if (typeof name !== "string" || typeof pin !== "string" || !isRole(role)) return fail("INVALID_INPUT");
+    if (input.email !== undefined && input.email !== null && typeof input.email !== "string") return fail("INVALID_INPUT");
+    if (!canManage(actor.role, role)) return fail("FORBIDDEN");
+
+    const id = crypto.randomUUID();
+    const email = (input.email as string | null | undefined) ?? null;
+    const created = await this.createStaff({ venueId: actor.venue_id, id, name: name.trim(), role, pin, email });
+    if (!created.ok) return fail(created.error === "STAFF_EXISTS" ? "INVALID_INPUT" : created.error);
+    audit(this.ctx.storage.sql, actor, "staff.created", { staffId: id, role });
+    const staffEmail = email === null ? null : normalizeEmail(email);
+    return { ok: true, staff: { id, name: name.trim(), role, email: staffEmail, active: true } };
+  }
+
+  adminDeactivateStaff(actorId: string, targetId: string): AdminResult {
+    const sql = this.ctx.storage.sql;
+    const actor = findAdmin(sql, actorId);
+    if (actor === null) return fail("FORBIDDEN");
+    const target = findStaff(sql, actor.venue_id, targetId);
+    if (target === null) return fail("NOT_FOUND");
+    if (target.id === actor.id) return fail("CANNOT_DEACTIVATE_SELF");
+    if (!canManage(actor.role, target.role)) return fail("FORBIDDEN");
+    this.deactivateStaff(target.id);
+    audit(sql, actor, "staff.deactivated", { staffId: target.id });
+    return { ok: true };
+  }
+
+  /** New PIN; also clears a lockout (the usual reason for a reset). */
+  async adminResetPin(actorId: string, targetId: string, pin: unknown): Promise<AdminResult> {
+    const before = this.#manageableStaff(actorId, targetId);
+    if (!before.ok) return before;
+    if (typeof pin !== "string" || !isValidPin(before.target.role, pin)) return fail("INVALID_PIN");
+    const salt = randomSecret(16);
+    const hash = await pinHash(this.env.SERVER_SECRET, salt, pin);
+
+    const after = this.#manageableStaff(actorId, targetId); // re-check after the await
+    if (!after.ok) return after;
+    this.ctx.storage.sql.exec(
+      "UPDATE staff SET pin_salt = ?, pin_hash = ?, failed_pin_attempts = 0, locked_until = NULL WHERE id = ?",
+      salt,
+      hash,
+      targetId,
+    );
+    audit(this.ctx.storage.sql, after.actor, "staff.pin_reset", { staffId: targetId });
+    return { ok: true };
+  }
+
+  adminListDevices(actorId: string): AdminResult<{ devices: ReturnType<typeof listDevices> }> {
+    const actor = findAdmin(this.ctx.storage.sql, actorId);
+    return actor === null ? fail("FORBIDDEN") : { ok: true, devices: listDevices(this.ctx.storage.sql, actor.venue_id) };
+  }
+
+  async adminCreateDevice(
+    actorId: string,
+    input: { name: unknown; kind: unknown; stationId: unknown },
+  ): Promise<AdminResult<{ device: ReturnType<typeof listDevices>[number]; pairingCode: { code: string; expiresAt: number } }>> {
+    const actor = findAdmin(this.ctx.storage.sql, actorId);
+    if (actor === null) return fail("FORBIDDEN");
+    const { name, kind, stationId } = input;
+    if (typeof name !== "string" || (kind !== "waiter" && kind !== "station") || (stationId !== null && typeof stationId !== "string")) {
+      return fail("INVALID_INPUT");
+    }
+    const id = crypto.randomUUID();
+    const created = this.createDevice({ venueId: actor.venue_id, id, name: name.trim(), kind, stationId });
+    if (!created.ok) return fail("INVALID_INPUT");
+    const code = await this.createPairingCode(id);
+    if (!code.ok) return fail("NOT_FOUND"); // can't happen for a device created just above
+    audit(this.ctx.storage.sql, actor, "device.created", { deviceId: id, kind, stationId });
+    return {
+      ok: true,
+      device: { id, name: name.trim(), kind, stationId, status: "unpaired" },
+      pairingCode: { code: code.code, expiresAt: code.expiresAt },
+    };
+  }
+
+  async adminNewPairingCode(actorId: string, deviceId: string): Promise<AdminResult<{ code: string; expiresAt: number }>> {
+    const actor = findAdmin(this.ctx.storage.sql, actorId);
+    if (actor === null) return fail("FORBIDDEN");
+    if (deviceVenue(this.ctx.storage.sql, deviceId) !== actor.venue_id) return fail("NOT_FOUND");
+    const code = await this.createPairingCode(deviceId);
+    if (!code.ok) return fail(code.error === "DEVICE_NOT_FOUND" ? "NOT_FOUND" : code.error);
+    audit(this.ctx.storage.sql, actor, "device.pairing_code", { deviceId });
+    return { ok: true, code: code.code, expiresAt: code.expiresAt };
+  }
+
+  adminRevokeDevice(actorId: string, deviceId: string): AdminResult {
+    const sql = this.ctx.storage.sql;
+    const actor = findAdmin(sql, actorId);
+    if (actor === null) return fail("FORBIDDEN");
+    if (deviceVenue(sql, deviceId) !== actor.venue_id) return fail("NOT_FOUND");
+    this.revokeDevice(deviceId);
+    audit(sql, actor, "device.revoked", { deviceId });
+    return { ok: true };
+  }
+
+  /** The newest audit-log entries (dashboard history; also used by tests). */
+  auditLog(limit: number): Array<{ seq: number; type: string; actor: Actor; at: number; details: unknown }> {
+    return this.ctx.storage.sql
+      .exec<{ seq: number; type: string; actor: string; at: number; details: string | null }>(
+        "SELECT seq, type, actor, at, details FROM order_events ORDER BY seq DESC LIMIT ?",
+        Math.min(Math.max(1, Math.floor(limit)), 500),
+      )
+      .toArray()
+      .map((e) => ({ seq: e.seq, type: e.type, actor: JSON.parse(e.actor) as Actor, at: e.at, details: e.details === null ? null : JSON.parse(e.details) }));
+  }
+
+  #manageableStaff(actorId: string, targetId: string): { ok: true; actor: AdminActor; target: StaffRow } | { ok: false; error: AdminError } {
+    const sql = this.ctx.storage.sql;
+    const actor = findAdmin(sql, actorId);
+    if (actor === null) return fail("FORBIDDEN");
+    const target = findStaff(sql, actor.venue_id, targetId);
+    if (target === null) return fail("NOT_FOUND");
+    if (!canManage(actor.role, target.role)) return fail("FORBIDDEN");
+    return { ok: true, actor, target };
+  }
+
+  #directory() {
+    return this.env.DIRECTORY.get(this.env.DIRECTORY.idFromName("directory"));
   }
 
   /** A-04: deactivate at once. Ends all their PIN sessions and closes their sockets. */
@@ -163,8 +345,7 @@ export class CafeDO extends DurableObject<Env> {
   ): Promise<{ ok: true; code: string; expiresAt: number } | Fail<"DEVICE_NOT_FOUND" | "ALREADY_PAIRED" | "DEVICE_REVOKED">> {
     const device = this.#unpairedDevice(deviceId);
     if (!device.ok) return device;
-    const directory = this.env.DIRECTORY.get(this.env.DIRECTORY.idFromName("directory"));
-    return { ok: true, ...(await directory.createPairingCode(device.venueId, deviceId)) };
+    return { ok: true, ...(await this.#directory().createPairingCode(device.venueId, deviceId)) };
   }
 
   /** Called after the Directory accepted a pairing code: issue the device token. */
@@ -581,6 +762,10 @@ function itemFingerprint(itemId: string, command: unknown, actor: Actor, approve
 function bearerToken(header: string | null): string | null {
   const match = header?.match(/^Bearer ([A-Za-z0-9._-]{1,300})$/);
   return match?.[1] ?? null;
+}
+
+function isRole(value: unknown): value is StaffRole {
+  return value === "waiter" || value === "manager" || value === "owner";
 }
 
 function isName(value: unknown): value is string {

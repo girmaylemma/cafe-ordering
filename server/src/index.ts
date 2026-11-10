@@ -8,20 +8,24 @@
  *   POST /auth/pin        Bearer device       -> { sessionToken, user, expiresAt }
  *   POST /auth/sign-out   Bearer device + X-Staff-Session -> 204
  *   GET  /ws              Bearer device (+ X-Staff-Session for waiters), Upgrade: websocket
+ *   /admin/api/*          dashboard API behind Cloudflare Access (src/admin/routes.ts)
+ *   POST /installer/venues  Bearer INSTALLER_SECRET: create a café and its owner
  */
 import { venueOfDeviceToken } from "./auth/crypto";
-import { stripInternalHeaders } from "./http";
+import { handleAdmin, handleInstaller } from "./admin/routes";
+import { json, readJson, stripInternalHeaders } from "./http";
 
 export { CafeDO } from "./cafe/CafeDO";
 export { DirectoryDO } from "./directory/DirectoryDO";
-
-const MAX_BODY_BYTES = 1024;
 
 export default {
   async fetch(incoming: Request, env: Env): Promise<Response> {
     const request = stripInternalHeaders(incoming);
     const url = new URL(request.url);
     const route = `${request.method} ${url.pathname}`;
+
+    if (url.pathname.startsWith("/admin/api/")) return handleAdmin(request, env);
+    if (route === "POST /installer/venues") return handleInstaller(request, env);
 
     switch (route) {
       case "POST /devices/pair":
@@ -96,20 +100,4 @@ async function pairDevice(request: Request, env: Env): Promise<Response> {
   const paired = await cafe.completePairing(redeemed.deviceId);
   if (!paired.ok) return json(409, { error: paired.error });
   return json(200, { token: paired.token, device: paired.device });
-}
-
-/** A small JSON object body, or null if missing, too large or not an object. */
-async function readJson(request: Request): Promise<Record<string, unknown> | null> {
-  const text = await request.text();
-  if (text.length === 0 || new TextEncoder().encode(text).byteLength > MAX_BODY_BYTES) return null;
-  try {
-    const value: unknown = JSON.parse(text);
-    return typeof value === "object" && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
-  } catch {
-    return null;
-  }
-}
-
-function json(status: number, body: unknown): Response {
-  return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
