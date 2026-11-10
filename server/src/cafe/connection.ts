@@ -76,7 +76,13 @@ export function actorFor(identity: ConnectionIdentity): Actor | null {
   }
 }
 
-/** Which tags receive an item event. Waiter alerts are added in slice 3 (needs table sessions). */
-export function recipientsFor(event: WireEvent): string[] {
-  return [`station:${event.stationId}`, "live"];
+/**
+ * Which tags receive an item event: its station, the live view, and the table's CURRENT
+ * waiter (not necessarily who placed the round, D-06). `currentWaiterId` is null for an
+ * item that has no table session.
+ */
+export function recipientsFor(event: WireEvent, currentWaiterId: string | null): string[] {
+  const tags = [`station:${event.stationId}`, "live"];
+  if (currentWaiterId !== null) tags.push(`waiter:${currentWaiterId}`);
+  return tags;
 }

@@ -64,6 +64,74 @@ describe("parseClientMessage", () => {
     expect(parseClientMessage(raw)).toEqual({ ok: false, error: "INVALID_MESSAGE" });
   });
 
+  // ---------- sessions and orders (slice 3a) ----------
+  const line = (overrides: Record<string, unknown> = {}) => ({
+    id: "oi-1",
+    menuItemId: "menu-shiro",
+    qty: 2,
+    note: "no onion",
+    ...overrides,
+  });
+  const order = (overrides: Record<string, unknown> = {}) => ({
+    type: "order.send",
+    orderId: "order-1",
+    sessionId: "s-1",
+    tableId: "table-7",
+    createdAt: 1_700_000_000_000,
+    queuedOffline: false,
+    items: [line()],
+    ...overrides,
+  });
+
+  it("accepts session.open with or without a guest count, and session.close", () => {
+    for (const guests of [4, null]) {
+      const raw = json({ type: "session.open", idempotencyKey: "k", sessionId: "s-1", tableId: "table-7", guests });
+      expect(parseClientMessage(raw)).toEqual({
+        ok: true,
+        message: { type: "session.open", idempotencyKey: "k", sessionId: "s-1", tableId: "table-7", guests },
+      });
+    }
+    expect(parseClientMessage(json({ type: "session.close", idempotencyKey: "k", sessionId: "s-1" }))).toEqual({
+      ok: true,
+      message: { type: "session.close", idempotencyKey: "k", sessionId: "s-1" },
+    });
+  });
+
+  it("accepts order.send and drops any price the tablet sends", () => {
+    const parsed = parseClientMessage(json(order({ items: [line({ priceSantim: 1 }), line({ id: "oi-2", note: null })] })));
+    expect(parsed).toEqual({
+      ok: true,
+      message: {
+        type: "order.send",
+        orderId: "order-1",
+        sessionId: "s-1",
+        tableId: "table-7",
+        createdAt: 1_700_000_000_000,
+        queuedOffline: false,
+        items: [
+          { id: "oi-1", menuItemId: "menu-shiro", qty: 2, note: "no onion" },
+          { id: "oi-2", menuItemId: "menu-shiro", qty: 2, note: null },
+        ],
+      },
+    });
+  });
+
+  it.each([
+    ["guests 0", json({ type: "session.open", idempotencyKey: "k", sessionId: "s", tableId: "t", guests: 0 })],
+    ["guests 100", json({ type: "session.open", idempotencyKey: "k", sessionId: "s", tableId: "t", guests: 100 })],
+    ["no items", json(order({ items: [] }))],
+    ["51 items", json(order({ items: Array.from({ length: 51 }, (_, i) => line({ id: `oi-${i}` })) }))],
+    ["qty 0", json(order({ items: [line({ qty: 0 })] }))],
+    ["qty 100", json(order({ items: [line({ qty: 100 })] }))],
+    ["qty 1.5", json(order({ items: [line({ qty: 1.5 })] }))],
+    ["a 201-character note", json(order({ items: [line({ note: "x".repeat(201) })] }))],
+    ["the same item id twice", json(order({ items: [line(), line()] }))],
+    ["a missing createdAt", json(order({ createdAt: undefined }))],
+    ["queuedOffline as a string", json(order({ queuedOffline: "yes" }))],
+  ])("rejects %s as INVALID_MESSAGE", (_label, raw) => {
+    expect(parseClientMessage(raw)).toEqual({ ok: false, error: "INVALID_MESSAGE" });
+  });
+
   it("rejects binary messages", () => {
     expect(parseClientMessage(new ArrayBuffer(4))).toEqual({ ok: false, error: "INVALID_MESSAGE" });
   });

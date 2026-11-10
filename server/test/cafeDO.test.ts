@@ -20,8 +20,8 @@ type Cafe = ReturnType<typeof newCafe>;
 async function seedItem(cafe: Cafe, id = "item-1", venueId = VENUE) {
   await runInDurableObject(cafe, (_instance, state) => {
     state.storage.sql.exec(
-      `INSERT INTO order_items (id, venue_id, order_id, station_id, name, price_santim, qty, state)
-       VALUES (?, ?, 'order-1', 'kitchen', 'Shiro', 18000, 1, 'sent')`,
+      `INSERT INTO order_items (id, venue_id, order_id, menu_item_id, station_id, name, price_santim, qty, state)
+       VALUES (?, ?, 'order-1', 'menu-shiro', 'kitchen', 'Shiro', 18000, 1, 'sent')`,
       id,
       venueId,
     );

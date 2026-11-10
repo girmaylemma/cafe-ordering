@@ -54,7 +54,7 @@ describe("tags, actors and recipients", () => {
     expect(actorFor(live)).toBeNull();
   });
 
-  it("pushes an item event to its station and the live view (waiters come in slice 3)", () => {
+  it("pushes an item event to its station, the live view, and the table's current waiter", () => {
     const event: WireEvent = {
       seq: 1,
       orderId: "o1",
@@ -66,6 +66,8 @@ describe("tags, actors and recipients", () => {
       actor: { kind: "station", stationId: "bar", deviceId: "d9" },
       at: 0,
     };
-    expect(recipientsFor(event)).toEqual(["station:bar", "live"]);
+    expect(recipientsFor(event, "hana")).toEqual(["station:bar", "live", "waiter:hana"]);
+    // An item with no table session (no current waiter) goes to the station and live view only.
+    expect(recipientsFor(event, null)).toEqual(["station:bar", "live"]);
   });
 });
