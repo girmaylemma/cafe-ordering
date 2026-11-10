@@ -10,3 +10,6 @@ coverage/
 .dev.vars
 .env
 .env.*
+
+# Dashboard build output (admin/ builds into server/public/admin)
+server/public/admin/

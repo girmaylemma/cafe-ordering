@@ -1,0 +1,140 @@
+/* Plain CSS, no inline styles anywhere (the Content-Security-Policy forbids them). */
+:root {
+  --ink: #1f2328;
+  --muted: #59636e;
+  --line: #d1d9e0;
+  --accent: #0b6e4f;
+  --danger: #b42318;
+  --bg: #f6f8fa;
+  font-family: system-ui, "Noto Sans Ethiopic", sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 12px 24px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+}
+.topbar h1 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+.who {
+  color: var(--muted);
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 24px 0;
+}
+.tab {
+  border: 1px solid transparent;
+  border-bottom: none;
+  background: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+.tab.active {
+  background: #fff;
+  border-color: var(--line);
+  border-radius: 6px 6px 0 0;
+  font-weight: 600;
+}
+
+main {
+  padding: 16px 24px;
+  max-width: 960px;
+}
+.centered {
+  margin: 20vh auto;
+  text-align: center;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  margin-bottom: 24px;
+}
+th,
+td {
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+}
+tr.inactive td {
+  color: var(--muted);
+}
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+  display: grid;
+  gap: 6px;
+  max-width: 420px;
+}
+.card h3 {
+  margin: 0 0 8px;
+}
+.hint {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+input,
+select,
+button {
+  font: inherit;
+  padding: 6px 10px;
+}
+button {
+  cursor: pointer;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+}
+button[type="submit"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+button.danger {
+  color: var(--danger);
+}
+
+[role="alert"] {
+  color: var(--danger);
+}
+[role="status"] {
+  color: var(--accent);
+}
+
+.pairing {
+  max-width: none;
+  text-align: center;
+}
+.pairing .code {
+  font-size: 3rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  margin: 8px 0;
+  font-variant-numeric: tabular-nums;
+}

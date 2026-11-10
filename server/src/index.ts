@@ -15,6 +15,7 @@
  */
 import { venueOfDeviceToken } from "./auth/crypto";
 import { handleAdmin, handleInstaller } from "./admin/routes";
+import { serveDashboard } from "./dashboard";
 import { json, readJson, stripInternalHeaders } from "./http";
 
 export { CafeDO } from "./cafe/CafeDO";
@@ -27,6 +28,8 @@ export default {
     const route = `${request.method} ${url.pathname}`;
 
     if (url.pathname.startsWith("/admin/api/")) return handleAdmin(request, env);
+    // Everything else under /admin is the dashboard's files (Cloudflare Access protects /admin).
+    if (url.pathname === "/admin" || url.pathname.startsWith("/admin/")) return serveDashboard(request, env.ASSETS);
     if (route === "POST /installer/venues") return handleInstaller(request, env);
 
     switch (route) {
