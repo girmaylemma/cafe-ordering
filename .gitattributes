@@ -1,0 +1,7 @@
+# Store text files with LF line endings in the repo and in every working copy,
+# no matter the OS or the local core.autocrlf setting.
+* text=auto eol=lf
+
+# Windows batch scripts (e.g. Flutter's gradlew.bat) must keep CRLF to run correctly.
+*.bat text eol=crlf
+*.cmd text eol=crlf
