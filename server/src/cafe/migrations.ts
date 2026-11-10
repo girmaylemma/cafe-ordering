@@ -22,4 +22,29 @@ export const CAFE_MIGRATIONS: readonly Migration[] = [
       "CREATE UNIQUE INDEX staff_email ON staff (email) WHERE email IS NOT NULL",
     ],
   },
+  {
+    version: 3,
+    description: "menu categories, Amharic names, fasting tag, table details",
+    statements: [
+      // English name is required, Amharic optional (D-67).
+      `CREATE TABLE categories (
+         id          TEXT PRIMARY KEY,
+         venue_id    TEXT NOT NULL,
+         name_en     TEXT NOT NULL,
+         name_am     TEXT,
+         sort_order  INTEGER NOT NULL DEFAULT 0,
+         active      INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1))
+       ) STRICT`,
+      // menu_items.name stays the English name (columns are never renamed, D-60).
+      "ALTER TABLE menu_items ADD COLUMN category_id TEXT",
+      "ALTER TABLE menu_items ADD COLUMN name_am TEXT",
+      "ALTER TABLE menu_items ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0",
+      "ALTER TABLE menu_items ADD COLUMN fasting INTEGER NOT NULL DEFAULT 0 CHECK (fasting IN (0, 1))",
+      // Orders copy both names when sent (D-69).
+      "ALTER TABLE order_items ADD COLUMN name_am TEXT",
+      "ALTER TABLE tables ADD COLUMN area TEXT",
+      "ALTER TABLE tables ADD COLUMN seats INTEGER CHECK (seats BETWEEN 1 AND 99)",
+      "ALTER TABLE tables ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0",
+    ],
+  },
 ];

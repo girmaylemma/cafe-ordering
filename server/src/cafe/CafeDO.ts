@@ -26,6 +26,20 @@ import {
   type StaffRow,
 } from "./admin";
 import { actorFor, liveIdentityFromHeaders, recipientsFor, tagsFor, type ConnectionIdentity } from "./connection";
+import {
+  createCategory,
+  createMenuItem,
+  createTable,
+  isStation,
+  listCategories,
+  listMenuItems,
+  listTables,
+  tabletMenu,
+  tabletTables,
+  updateCategory,
+  updateMenuItem,
+  updateTable,
+} from "./menu";
 import { EVENT_COLUMNS, rowToWireEvent, type EventRow, type Handled } from "./events";
 import { handleItemCommand, type ItemCommandInput, type ItemCommandResult } from "./items";
 import { closeSession, openSession, sendOrder } from "./orders";
@@ -251,7 +265,8 @@ export class CafeDO extends DurableObject<Env> {
     const actor = findAdmin(this.ctx.storage.sql, actorId);
     if (actor === null) return fail("FORBIDDEN");
     const { name, kind, stationId } = input;
-    if (typeof name !== "string" || (kind !== "waiter" && kind !== "station") || (stationId !== null && typeof stationId !== "string")) {
+    // A kitchen/bar tablet must belong to one of the real stations (D-68).
+    if (typeof name !== "string" || (kind !== "waiter" && kind !== "station") || (stationId !== null && !isStation(stationId))) {
       return fail("INVALID_INPUT");
     }
     const id = crypto.randomUUID();
@@ -287,15 +302,67 @@ export class CafeDO extends DurableObject<Env> {
     return { ok: true };
   }
 
+  // ---------- RPC: menu and tables (D1b) ----------
+
+  adminListCategories(actorId: string) {
+    return this.#asAdmin(actorId, (sql, actor) => listCategories(sql, actor));
+  }
+  adminCreateCategory(actorId: string, body: Record<string, unknown>) {
+    return this.#asAdmin(actorId, (sql, actor) => createCategory(sql, actor, body));
+  }
+  adminUpdateCategory(actorId: string, id: string, body: Record<string, unknown>) {
+    return this.#asAdmin(actorId, (sql, actor) => updateCategory(sql, actor, id, body));
+  }
+  adminListMenuItems(actorId: string) {
+    return this.#asAdmin(actorId, (sql, actor) => listMenuItems(sql, actor));
+  }
+  adminCreateMenuItem(actorId: string, body: Record<string, unknown>) {
+    return this.#asAdmin(actorId, (sql, actor) => createMenuItem(sql, actor, body));
+  }
+  adminUpdateMenuItem(actorId: string, id: string, body: Record<string, unknown>) {
+    return this.#asAdmin(actorId, (sql, actor) => updateMenuItem(sql, actor, id, body));
+  }
+  adminListTables(actorId: string) {
+    return this.#asAdmin(actorId, (sql, actor) => listTables(sql, actor));
+  }
+  adminCreateTable(actorId: string, body: Record<string, unknown>) {
+    return this.#asAdmin(actorId, (sql, actor) => createTable(sql, actor, body));
+  }
+  adminUpdateTable(actorId: string, id: string, body: Record<string, unknown>) {
+    return this.#asAdmin(actorId, (sql, actor) => updateTable(sql, actor, id, body));
+  }
+
+  /** GET /menu for a paired tablet (any kind). */
+  async tabletMenu(deviceToken: string): Promise<({ ok: true } & ReturnType<typeof tabletMenu>) | Fail<"UNAUTHORIZED_DEVICE">> {
+    const device = findPairedDevice(this.ctx.storage.sql, await sha256Hex(deviceToken));
+    return device === null ? { ok: false, error: "UNAUTHORIZED_DEVICE" } : { ok: true, ...tabletMenu(this.ctx.storage.sql, device.venue_id) };
+  }
+
+  /** GET /tables for a paired tablet (any kind). */
+  async tabletTables(deviceToken: string): Promise<{ ok: true; tables: ReturnType<typeof tabletTables> } | Fail<"UNAUTHORIZED_DEVICE">> {
+    const device = findPairedDevice(this.ctx.storage.sql, await sha256Hex(deviceToken));
+    return device === null ? { ok: false, error: "UNAUTHORIZED_DEVICE" } : { ok: true, tables: tabletTables(this.ctx.storage.sql, device.venue_id) };
+  }
+
+  /** Run a dashboard action as `actorId`, who must be an active manager or owner here. One synchronous step. */
+  #asAdmin<T extends object>(actorId: string, action: (sql: SqlStorage, actor: AdminActor) => AdminResult<T>): AdminResult<T> {
+    const sql = this.ctx.storage.sql;
+    return this.ctx.storage.transactionSync(() => {
+      const actor = findAdmin(sql, actorId);
+      return actor === null ? fail("FORBIDDEN") : action(sql, actor);
+    });
+  }
+
   /** The newest audit-log entries (dashboard history; also used by tests). */
-  auditLog(limit: number): Array<{ seq: number; type: string; actor: Actor; at: number; details: unknown }> {
+  /** `details` stays JSON text: an `unknown` field can't be typed as serializable for RPC. */
+  auditLog(limit: number): Array<{ seq: number; type: string; actor: Actor; at: number; details: string | null }> {
     return this.ctx.storage.sql
       .exec<{ seq: number; type: string; actor: string; at: number; details: string | null }>(
         "SELECT seq, type, actor, at, details FROM order_events ORDER BY seq DESC LIMIT ?",
         Math.min(Math.max(1, Math.floor(limit)), 500),
       )
       .toArray()
-      .map((e) => ({ seq: e.seq, type: e.type, actor: JSON.parse(e.actor) as Actor, at: e.at, details: e.details === null ? null : JSON.parse(e.details) }));
+      .map((e) => ({ seq: e.seq, type: e.type, actor: JSON.parse(e.actor) as Actor, at: e.at, details: e.details }));
   }
 
   #manageableStaff(actorId: string, targetId: string): { ok: true; actor: AdminActor; target: StaffRow } | { ok: false; error: AdminError } {

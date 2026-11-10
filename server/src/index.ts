@@ -4,6 +4,8 @@
  * their device token, which also says which café to route to (D-50).
  *
  *   POST /devices/pair    { code }            -> { token, device }   pair a tablet with a one-time code
+ *   GET  /menu            Bearer device       -> { categories, items }  active menu, both names
+ *   GET  /tables          Bearer device       -> { tables }          active tables with free/open state
  *   GET  /staff           Bearer device       -> { staff }           names for the PIN screen
  *   POST /auth/pin        Bearer device       -> { sessionToken, user, expiresAt }
  *   POST /auth/sign-out   Bearer device + X-Staff-Session -> 204
@@ -30,6 +32,16 @@ export default {
     switch (route) {
       case "POST /devices/pair":
         return pairDevice(request, env);
+      case "GET /menu":
+        return withCafe(request, env, async (cafe, token) => {
+          const result = await cafe.tabletMenu(token);
+          return result.ok ? json(200, { categories: result.categories, items: result.items }) : json(401, { error: result.error });
+        });
+      case "GET /tables":
+        return withCafe(request, env, async (cafe, token) => {
+          const result = await cafe.tabletTables(token);
+          return result.ok ? json(200, { tables: result.tables }) : json(401, { error: result.error });
+        });
       case "GET /staff":
         return withCafe(request, env, async (cafe, token) => {
           const result = await cafe.listStaff(token);

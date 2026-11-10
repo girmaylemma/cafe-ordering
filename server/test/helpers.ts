@@ -46,11 +46,12 @@ export async function seedMenu(cafe: Cafe) {
   for (const [id, name, price, station, soldOut, active] of items) {
     await sql(
       cafe,
-      `INSERT INTO menu_items (id, venue_id, name, price_santim, station_id, sold_out, active)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO menu_items (id, venue_id, name, name_am, price_santim, station_id, sold_out, active)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
       VENUE,
       name,
+      id === "menu-shiro" ? "ሽሮ" : null, // only Shiro has an Amharic name (English is required, D-67)
       price,
       station,
       soldOut,

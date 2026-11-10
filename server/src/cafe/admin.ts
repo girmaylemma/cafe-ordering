@@ -14,7 +14,8 @@ export type AdminError =
   | "CANNOT_DEACTIVATE_SELF"
   | "ALREADY_PAIRED"
   | "DEVICE_REVOKED"
-  | "VENUE_EXISTS";
+  | "VENUE_EXISTS"
+  | "TABLE_IN_USE";
 
 export type AdminResult<T extends object = object> = ({ ok: true } & T) | { ok: false; error: AdminError };
 

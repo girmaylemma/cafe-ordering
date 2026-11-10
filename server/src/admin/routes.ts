@@ -21,6 +21,7 @@ const STATUS: Record<AdminError, number> = {
   ALREADY_PAIRED: 409,
   DEVICE_REVOKED: 409,
   VENUE_EXISTS: 409,
+  TABLE_IN_USE: 409,
 };
 
 /** Turn a café admin result into a response: `ok` fields as the body, errors as status codes. */
@@ -63,10 +64,12 @@ export async function handleAdmin(request: Request, env: Env): Promise<Response>
 
   // (4) Route; the café checks role and permissions for every call.
   const path = url.pathname.slice("/admin/api".length);
-  const route = `${request.method} ${path.replace(/^\/(staff|devices)\/[^/]+\//, "/$1/:id/")}`;
+  // "/staff/abc/pin" -> "/staff/:id/pin", "/tables/abc" -> "/tables/:id"
+  const route = `${request.method} ${path.replace(/^\/(staff|devices|categories|menu-items|tables)\/[^/]+(?=\/|$)/, "/$1/:id")}`;
   const id = decodeURIComponent(path.split("/")[2] ?? "");
-  const body = request.method === "POST" ? await readJson(request, 2048) : null;
-  if (request.method === "POST" && body === null) return json(400, { error: "INVALID_REQUEST" });
+  const hasBody = request.method === "POST" || request.method === "PATCH";
+  const body = hasBody ? await readJson(request, 2048) : null;
+  if (hasBody && body === null) return json(400, { error: "INVALID_REQUEST" });
   const b = body ?? {};
 
   switch (route) {
@@ -88,6 +91,24 @@ export async function handleAdmin(request: Request, env: Env): Promise<Response>
       return respond(await cafe.adminNewPairingCode(me, id));
     case "POST /devices/:id/revoke":
       return respond(await cafe.adminRevokeDevice(me, id));
+    case "GET /categories":
+      return respond(await cafe.adminListCategories(me));
+    case "POST /categories":
+      return respond(await cafe.adminCreateCategory(me, b), 201);
+    case "PATCH /categories/:id":
+      return respond(await cafe.adminUpdateCategory(me, id, b));
+    case "GET /menu-items":
+      return respond(await cafe.adminListMenuItems(me));
+    case "POST /menu-items":
+      return respond(await cafe.adminCreateMenuItem(me, b), 201);
+    case "PATCH /menu-items/:id":
+      return respond(await cafe.adminUpdateMenuItem(me, id, b));
+    case "GET /tables":
+      return respond(await cafe.adminListTables(me));
+    case "POST /tables":
+      return respond(await cafe.adminCreateTable(me, b), 201);
+    case "PATCH /tables/:id":
+      return respond(await cafe.adminUpdateTable(me, id, b));
     default:
       return json(404, { error: "NOT_FOUND" });
   }

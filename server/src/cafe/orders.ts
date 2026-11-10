@@ -36,6 +36,8 @@ export interface SentItem {
   id: string;
   menuItemId: string;
   name: string;
+  /** Amharic name, copied with the English one (D-69); null if the menu has none. */
+  nameAm: string | null;
   priceSantim: number;
   qty: number;
   note: string | null;
@@ -193,14 +195,15 @@ export function sendOrder(
     const m = menu.get(line.menuItemId)!; // filled in step 1
     const flag = m.active === 0 ? "unavailable" : m.sold_out === 1 ? "sold_out" : null;
     sql.exec(
-      `INSERT INTO order_items (id, venue_id, order_id, menu_item_id, station_id, name, price_santim, qty, note, flag, state)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent')`,
+      `INSERT INTO order_items (id, venue_id, order_id, menu_item_id, station_id, name, name_am, price_santim, qty, note, flag, state)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent')`,
       line.id,
       venueId,
       message.orderId,
       m.id,
       m.station_id,
       m.name,
+      m.name_am,
       m.price_santim,
       line.qty,
       line.note,
@@ -214,6 +217,7 @@ export function sendOrder(
       waiterName,
       round,
       name: m.name,
+      nameAm: m.name_am,
       qty: line.qty,
       note: line.note,
       flag,
@@ -234,6 +238,7 @@ export function sendOrder(
       id: line.id,
       menuItemId: m.id,
       name: m.name,
+      nameAm: m.name_am,
       priceSantim: m.price_santim,
       qty: line.qty,
       note: line.note,
@@ -294,7 +299,7 @@ function resolveSession(
 
 // ---------- shared ----------
 
-type MenuRow = { id: string; name: string; price_santim: number; station_id: string; sold_out: number; active: number };
+type MenuRow = { id: string; name: string; name_am: string | null; price_santim: number; station_id: string; sold_out: number; active: number };
 type TableRow = { id: string; name: string };
 type SessionRow = { id: string; table_id: string; waiter_id: string; status: string };
 
@@ -304,7 +309,7 @@ function findMenuItem(sql: SqlStorage, venueId: string, id: string): MenuRow | n
   return (
     sql
       .exec<MenuRow>(
-        "SELECT id, name, price_santim, station_id, sold_out, active FROM menu_items WHERE id = ? AND venue_id = ?",
+        "SELECT id, name, name_am, price_santim, station_id, sold_out, active FROM menu_items WHERE id = ? AND venue_id = ?",
         id,
         venueId,
       )
