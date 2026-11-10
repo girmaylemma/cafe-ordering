@@ -17,12 +17,16 @@ export type ItemCommandError =
   | "ITEM_NOT_FOUND"
   | "IDEMPOTENCY_KEY_REUSED"
   /** Something unexpected failed; nothing was saved, so the tablet may retry with the same key. */
-  | "INTERNAL_ERROR";
+  | "INTERNAL_ERROR"
+  /** Void approval (D-57): wrong/unknown manager PIN, or no PIN and the user isn't a manager. */
+  | "MANAGER_PIN_INVALID"
+  | "MANAGER_APPROVAL_REQUIRED";
 
 export type ItemCommandResult =
   /** `seq` is the new event's number, or null when nothing changed (`alreadyDone`). */
   | { ok: true; alreadyDone: boolean; item: Item; seq: number | null }
-  | { ok: false; error: ItemCommandError };
+  | { ok: false; error: ItemCommandError }
+  | { ok: false; error: "MANAGER_LOCKED"; retryAfterMs: number };
 
 export function handleItemCommand(sql: SqlStorage, input: ItemCommandInput, now: number): Handled {
   const row = sql

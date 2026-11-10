@@ -59,8 +59,18 @@ export interface OrderSendMessage {
   items: OrderLine[];
 }
 
+/** A manager's PIN typed on the tablet to approve a void (D-57). Never stored. */
+export interface ManagerApproval {
+  managerId: string;
+  managerPin: string;
+}
+
 export type ClientMessage =
-  | { type: "item.command"; idempotencyKey: string; itemId: string; command: Command }
+  /**
+   * For a void, `command.approvedBy` is always null here: only the server sets it, after checking
+   * `approval` or the signed-in manager (D-57). `approval` is null for every other command.
+   */
+  | { type: "item.command"; idempotencyKey: string; itemId: string; command: Command; approval: ManagerApproval | null }
   | SessionOpenMessage
   | SessionCloseMessage
   | OrderSendMessage
@@ -126,9 +136,9 @@ function parseMessage(data: Record<string, unknown>): ClientMessage | null {
   switch (data.type) {
     case "item.command": {
       const { idempotencyKey, itemId } = data;
-      const command = parseCommand(data.command);
-      if (!isId(idempotencyKey) || !isId(itemId) || command === null) return null;
-      return { type: "item.command", idempotencyKey, itemId, command };
+      const parsed = parseCommand(data.command);
+      if (!isId(idempotencyKey) || !isId(itemId) || parsed === null) return null;
+      return { type: "item.command", idempotencyKey, itemId, command: parsed.command, approval: parsed.approval };
     }
     case "session.open": {
       const { idempotencyKey, sessionId, tableId, guests } = data;
@@ -182,14 +192,20 @@ const isSimpleCommand = (value: unknown): value is SimpleCommand =>
   (SIMPLE_COMMANDS as readonly unknown[]).includes(value);
 
 /** Build a fresh Command from known fields only. */
-function parseCommand(value: unknown): Command | null {
+function parseCommand(value: unknown): { command: Command; approval: ManagerApproval | null } | null {
   if (!isRecord(value)) return null;
-  if (isSimpleCommand(value.type)) return { type: value.type };
+  if (isSimpleCommand(value.type)) return { command: { type: value.type }, approval: null };
   if (value.type === "void") {
-    const { reason, approvedBy } = value;
+    const { reason, managerId, managerPin } = value;
     if (typeof reason !== "string" || reason.length > MAX_REASON_LENGTH) return null;
-    if (approvedBy !== null && !isId(approvedBy)) return null;
-    return { type: "void", reason, approvedBy };
+    // Refused loudly rather than dropped: an old or tampered tablet must not think it approved a void.
+    if ("approvedBy" in value) return null;
+    let approval: ManagerApproval | null = null;
+    if (managerId !== undefined || managerPin !== undefined) {
+      if (!isId(managerId) || typeof managerPin !== "string" || !/^\d{6}$/.test(managerPin)) return null;
+      approval = { managerId, managerPin };
+    }
+    return { command: { type: "void", reason, approvedBy: null }, approval };
   }
   return null;
 }

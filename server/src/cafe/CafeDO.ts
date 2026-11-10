@@ -2,6 +2,7 @@ import { DurableObject } from "cloudflare:workers";
 import { isValidVenueId, makeDeviceToken, pinHash, randomSecret, sha256Hex } from "../auth/crypto";
 import type { Actor } from "../domain/itemState";
 import {
+  approveVoid,
   completeSignIn,
   findLiveSession,
   findPairedDevice,
@@ -18,6 +19,7 @@ import {
   MAX_CATCH_UP_EVENTS,
   parseClientMessage,
   type ClientMessage,
+  type ManagerApproval,
   type ServerMessage,
   type WireEvent,
 } from "./protocol";
@@ -71,10 +73,11 @@ export class CafeDO extends DurableObject<Env> {
   // ---------- RPC: item commands (internal callers and tests) ----------
 
   handleItemCommand(input: ItemCommandInput): ItemCommandResult {
+    // Trusted internal callers only: here `approvedBy` is taken as given (tablets can't reach this).
     const handled = this.#run(
       input.venueId,
       input.idempotencyKey,
-      itemFingerprint(input.itemId, input.command, input.actor),
+      itemFingerprint(input.itemId, input.command, input.actor, null),
       (sql, now) => handleItemCommand(sql, input, now),
     );
     // Item handlers and #run only ever produce item results or the shared errors.
@@ -276,9 +279,23 @@ export class CafeDO extends DurableObject<Env> {
 
     if (message.type === "sync") return send(ws, this.#catchUp(identity, message.since));
 
+    // A typed manager PIN is hashed BEFORE the transaction (hashing is async, D-55);
+    // the lockout check and comparison then happen inside it, together with the void.
+    let typed: TypedApproval | null = null;
+    if (message.type === "item.command" && message.approval !== null) {
+      typed = { managerId: message.approval.managerId, computedHash: await this.#hashStaffPin(identity.venueId, message.approval) };
+      // The await let other messages run: make sure this socket is still allowed.
+      if (!this.#stillAuthorized(auth)) {
+        send(ws, { type: "error", error: "SESSION_ENDED" });
+        ws.close(CLOSE_AUTH_ENDED, "session ended");
+        return;
+      }
+    }
+
     // The actor always comes from the connection, never from the message.
     const actor = actorFor(identity);
-    const runnable = actor === null ? null : toRunnable(message, identity.venueId, actor);
+    const deviceId = identity.role === "live" ? null : identity.deviceId;
+    const runnable = actor === null ? null : toRunnable(message, identity.venueId, actor, typed, deviceId);
     if (runnable === null) return send(ws, { type: "error", error: "NOT_ALLOWED_FOR_CONNECTION" });
 
     const handled = this.#run(identity.venueId, runnable.key, runnable.fingerprintSource, runnable.handler);
@@ -329,6 +346,14 @@ export class CafeDO extends DurableObject<Env> {
       deviceTokenHash,
       sessionHash,
     };
+  }
+
+  /** The keyed hash of a typed PIN, or null if that staff member doesn't exist here. */
+  async #hashStaffPin(venueId: string, approval: ManagerApproval): Promise<string | null> {
+    const salt = this.ctx.storage.sql
+      .exec<{ pin_salt: string }>("SELECT pin_salt FROM staff WHERE id = ? AND venue_id = ?", approval.managerId, venueId)
+      .toArray()[0]?.pin_salt;
+    return salt === undefined ? null : pinHash(this.env.SERVER_SECRET, salt, approval.managerPin);
   }
 
   #stillAuthorized(auth: SocketAuth): boolean {
@@ -483,8 +508,20 @@ export class CafeDO extends DurableObject<Env> {
 
 // ---------- helpers ----------
 
+/** A typed manager PIN after hashing; the PIN itself goes no further. */
+interface TypedApproval {
+  managerId: string;
+  computedHash: string | null;
+}
+
 /** Map a command message to its handler, or null if this actor may not send it. */
-function toRunnable(message: Exclude<ClientMessage, { type: "sync" }>, venueId: string, actor: Actor): Runnable | null {
+function toRunnable(
+  message: Exclude<ClientMessage, { type: "sync" }>,
+  venueId: string,
+  actor: Actor,
+  typed: TypedApproval | null,
+  deviceId: string | null,
+): Runnable | null {
   if (message.type === "item.command") {
     const input: ItemCommandInput = {
       venueId,
@@ -495,8 +532,16 @@ function toRunnable(message: Exclude<ClientMessage, { type: "sync" }>, venueId: 
     };
     return {
       key: message.idempotencyKey,
-      fingerprintSource: itemFingerprint(message.itemId, message.command, actor),
-      handler: (sql, now) => handleItemCommand(sql, input, now),
+      // The approver's id is part of the command's identity; the PIN never is (it would be stored).
+      fingerprintSource: itemFingerprint(message.itemId, message.command, actor, typed?.managerId ?? null),
+      handler: (sql, now) => {
+        // A station's void is refused by the state machine (WRONG_ACTOR); only staff voids need approval.
+        if (input.command.type !== "void" || actor.kind !== "staff") return handleItemCommand(sql, input, now);
+        const approval = approveVoid(sql, { venueId, actorUserId: actor.userId, typed, deviceId, now });
+        // Not stored under the key, so the same tap can be retried with the right PIN.
+        if (!approval.ok) return { result: approval, events: [], store: false };
+        return handleItemCommand(sql, { ...input, command: { ...input.command, approvedBy: approval.approvedBy } }, now);
+      },
     };
   }
 
@@ -514,9 +559,9 @@ function toRunnable(message: Exclude<ClientMessage, { type: "sync" }>, venueId: 
   }
 }
 
-/** Kept identical to slice 1, so item commands sent over RPC and WebSocket match. */
-function itemFingerprint(itemId: string, command: unknown, actor: Actor) {
-  return { itemId, command, actor };
+/** The same shape for RPC and WebSocket, so the same command matches either way. */
+function itemFingerprint(itemId: string, command: unknown, actor: Actor, approverId: string | null) {
+  return { itemId, command, actor, approverId };
 }
 
 function bearerToken(header: string | null): string | null {

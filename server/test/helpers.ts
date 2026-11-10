@@ -91,11 +91,11 @@ export async function ensureStaff(cafe: Cafe, userId: string, role: "waiter" | "
   return { pin };
 }
 
-/** A paired waiter tablet with `userId` signed in. */
-export async function signedInWaiter(cafe: Cafe, userId: string) {
-  await ensureStaff(cafe, userId);
+/** A paired waiter tablet with `userId` signed in (a manager or owner can sign in on it too). */
+export async function signedInWaiter(cafe: Cafe, userId: string, role: "waiter" | "manager" | "owner" = "waiter") {
+  const { pin } = await ensureStaff(cafe, userId, role);
   const device = await pairDevice(cafe, "waiter");
-  const signedIn = await cafe.signIn({ deviceToken: device.token, userId, pin: TEST_PIN });
+  const signedIn = await cafe.signIn({ deviceToken: device.token, userId, pin });
   if (!signedIn.ok) throw new Error(`signIn failed: ${signedIn.error}`);
   return { ...device, sessionToken: signedIn.sessionToken };
 }
@@ -104,7 +104,11 @@ export async function signedInWaiter(cafe: Cafe, userId: string) {
 
 /** Descriptors for connect(); credentials are created when connecting. */
 export const stationHeaders = (stationId: string, _label?: string) => ({ who: "station" as const, stationId });
-export const staffHeaders = (userId: string) => ({ who: "staff" as const, userId });
+export const staffHeaders = (userId: string, role: "waiter" | "manager" | "owner" = "waiter") => ({
+  who: "staff" as const,
+  userId,
+  role,
+});
 /** The live view has no public route yet; internal code identifies it with this header. */
 export const liveHeaders = { "X-Cafe-Venue": VENUE, "X-Cafe-Role": "live", "X-Cafe-User": "owner-1" };
 
@@ -116,7 +120,7 @@ async function headersFor(cafe: Cafe, who: Who): Promise<Record<string, string>>
     return { Authorization: `Bearer ${token}` };
   }
   if (who.who === "staff") {
-    const { token, sessionToken } = await signedInWaiter(cafe, who.userId as string);
+    const { token, sessionToken } = await signedInWaiter(cafe, who.userId as string, who.role as "waiter" | "manager" | "owner");
     return { Authorization: `Bearer ${token}`, "X-Staff-Session": sessionToken };
   }
   return who as Record<string, string>;

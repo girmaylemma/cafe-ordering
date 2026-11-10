@@ -8,20 +8,20 @@ describe("parseClientMessage", () => {
     const raw = json({ type: "item.command", idempotencyKey: "k1", itemId: "i1", command: { type: "accept" } });
     expect(parseClientMessage(raw)).toEqual({
       ok: true,
-      message: { type: "item.command", idempotencyKey: "k1", itemId: "i1", command: { type: "accept" } },
+      message: { type: "item.command", idempotencyKey: "k1", itemId: "i1", command: { type: "accept" }, approval: null },
     });
   });
 
-  it("accepts a void with a reason and an approver, or with approvedBy null", () => {
-    for (const approvedBy of ["manager-1", null]) {
-      const raw = json({
-        type: "item.command",
-        idempotencyKey: "k1",
-        itemId: "i1",
-        command: { type: "void", reason: "burnt", approvedBy },
-      });
-      expect(parseClientMessage(raw)).toMatchObject({ ok: true, message: { command: { type: "void", approvedBy } } });
-    }
+  it("accepts a void with a manager id and PIN, or with neither (D-57); the server sets approvedBy", () => {
+    const base = { type: "item.command", idempotencyKey: "k1", itemId: "i1" };
+    expect(parseClientMessage(json({ ...base, command: { type: "void", reason: "burnt", managerId: "abebe", managerPin: "123456" } }))).toEqual({
+      ok: true,
+      message: { ...base, command: { type: "void", reason: "burnt", approvedBy: null }, approval: { managerId: "abebe", managerPin: "123456" } },
+    });
+    expect(parseClientMessage(json({ ...base, command: { type: "void", reason: "burnt" } }))).toEqual({
+      ok: true,
+      message: { ...base, command: { type: "void", reason: "burnt", approvedBy: null }, approval: null },
+    });
   });
 
   it("accepts a sync request", () => {
@@ -42,7 +42,7 @@ describe("parseClientMessage", () => {
     const parsed = parseClientMessage(raw);
     expect(parsed).toEqual({
       ok: true,
-      message: { type: "item.command", idempotencyKey: "k1", itemId: "i1", command: { type: "accept" } },
+      message: { type: "item.command", idempotencyKey: "k1", itemId: "i1", command: { type: "accept" }, approval: null },
     });
   });
 
@@ -55,9 +55,8 @@ describe("parseClientMessage", () => {
     ["an empty item id", json({ type: "item.command", idempotencyKey: "k", itemId: "", command: { type: "accept" } })],
     ["an over-long key", json({ type: "item.command", idempotencyKey: "k".repeat(101), itemId: "i", command: { type: "accept" } })],
     ["an unknown command", json({ type: "item.command", idempotencyKey: "k", itemId: "i", command: { type: "explode" } })],
-    ["a void without a reason", json({ type: "item.command", idempotencyKey: "k", itemId: "i", command: { type: "void", approvedBy: null } })],
-    ["a void with a numeric approver", json({ type: "item.command", idempotencyKey: "k", itemId: "i", command: { type: "void", reason: "x", approvedBy: 7 } })],
-    ["a negative sync", json({ type: "sync", since: -1 })],
+    ["a void without a reason", json({ type: "item.command", idempotencyKey: "k", itemId: "i", command: { type: "void" } })],
+    ["a void that sends approvedBy (only the server sets it)", json({ type: "item.command", idempotencyKey: "k", itemId: "i", command: { type: "void", reason: "x", approvedBy: "abebe" } })],    ["a negative sync", json({ type: "sync", since: -1 })],
     ["a fractional sync", json({ type: "sync", since: 1.5 })],
     ["a string sync", json({ type: "sync", since: "5" })],
   ])("rejects %s as INVALID_MESSAGE", (_label, raw) => {
