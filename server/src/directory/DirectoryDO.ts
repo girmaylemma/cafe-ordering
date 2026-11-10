@@ -7,6 +7,7 @@
  * it was aimed at, so guessing is limited per IP and globally (D-52), not per code.
  */
 import { DurableObject } from "cloudflare:workers";
+import { runMigrations, type Migration } from "../storage/migrations";
 
 export const PAIRING_CODE_TTL_MS = 10 * 60_000;
 export const MAX_FAILURES_PER_IP_PER_HOUR = 5;
@@ -18,7 +19,10 @@ export type RedeemResult =
   | { ok: true; venueId: string; deviceId: string }
   | { ok: false; error: "INVALID_CODE" | "RATE_LIMITED" };
 
-const SCHEMA = [
+const CLEANUP_INTERVAL_MS = 24 * HOUR_MS;
+
+/** APPEND ONLY: never edit or reorder a shipped migration (D-60). */
+const SCHEMA_V1 = [
   `CREATE TABLE IF NOT EXISTS pairing_codes (
      code        TEXT PRIMARY KEY,
      venue_id    TEXT NOT NULL,
@@ -34,10 +38,29 @@ const SCHEMA = [
    ) STRICT`,
 ];
 
+export const DIRECTORY_MIGRATIONS: readonly Migration[] = [
+  { version: 1, description: "pairing codes and rate limits", statements: SCHEMA_V1 },
+];
+
 export class DirectoryDO extends DurableObject<Env> {
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
-    for (const statement of SCHEMA) ctx.storage.sql.exec(statement);
+    runMigrations(ctx.storage, DIRECTORY_MIGRATIONS);
+    void ctx.blockConcurrencyWhile(async () => {
+      if ((await ctx.storage.getAlarm()) === null) await ctx.storage.setAlarm(Date.now() + CLEANUP_INTERVAL_MS);
+    });
+  }
+
+  /** Daily: remove used/expired codes and rate-limit windows that have run out (D-61). */
+  async alarm(): Promise<void> {
+    const now = Date.now();
+    const sql = this.ctx.storage.sql;
+    const removed = this.ctx.storage.transactionSync(() => ({
+      codes: sql.exec("DELETE FROM pairing_codes WHERE expires_at <= ? OR used_at IS NOT NULL", now).rowsWritten,
+      failureWindows: sql.exec("DELETE FROM pairing_failures WHERE window_start < ?", now - HOUR_MS).rowsWritten,
+    }));
+    console.log("directory cleanup", removed);
+    await this.ctx.storage.setAlarm(now + CLEANUP_INTERVAL_MS);
   }
 
   /** A new code for one device; any older code for that device stops working. */

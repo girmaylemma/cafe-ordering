@@ -5,8 +5,8 @@
  * Money is whole santim (INTEGER); times are milliseconds since 1970 in UTC (INTEGER);
  * yes/no values are INTEGER 0/1.
  *
- * NOTE: nothing is deployed yet, so these statements are edited in place. Before the first
- * deploy, schema changes must become numbered migrations (see docs/decisions.md D-47).
+ * FROZEN: this is migration 1 (see migrations.ts). Never edit it again; add a new migration
+ * instead (D-60). Changing a CREATE TABLE here would do nothing on cafés that already exist.
  */
 export const SCHEMA: readonly string[] = [
   // ---------- set up in the dashboard (seeded directly in tests for now) ----------

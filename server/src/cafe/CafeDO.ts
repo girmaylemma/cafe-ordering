@@ -23,7 +23,9 @@ import {
   type ServerMessage,
   type WireEvent,
 } from "./protocol";
-import { SCHEMA } from "./schema";
+import { runMigrations } from "../storage/migrations";
+import { CLEANUP_INTERVAL_MS, cleanupCafe } from "./cleanup";
+import { CAFE_MIGRATIONS } from "./migrations";
 
 export type { ItemCommandInput, ItemCommandResult } from "./items";
 export type { SignInResult } from "./auth";
@@ -65,9 +67,21 @@ type Fail<E extends string> = { ok: false; error: E };
 export class CafeDO extends DurableObject<Env> {
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
-    for (const statement of SCHEMA) ctx.storage.sql.exec(statement);
+    runMigrations(ctx.storage, CAFE_MIGRATIONS);
     // Answered by the runtime without waking this object or counting as a request.
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong"));
+    // Make sure the daily cleanup is scheduled (D-61). Nothing else runs until this finishes.
+    void ctx.blockConcurrencyWhile(async () => {
+      if ((await ctx.storage.getAlarm()) === null) await ctx.storage.setAlarm(Date.now() + CLEANUP_INTERVAL_MS);
+    });
+  }
+
+  /** Daily cleanup of technical rows; Cloudflare retries automatically if this throws. */
+  async alarm(): Promise<void> {
+    const now = Date.now();
+    const removed = this.ctx.storage.transactionSync(() => cleanupCafe(this.ctx.storage.sql, now));
+    console.log("cafe cleanup", removed);
+    await this.ctx.storage.setAlarm(now + CLEANUP_INTERVAL_MS);
   }
 
   // ---------- RPC: item commands (internal callers and tests) ----------

@@ -71,6 +71,8 @@ If a task seems to need any of these, STOP and ask me. Don't work around it.
 - Every table carries `venue_id`. Every staff action goes to the audit log (OrderEvent);
   kitchen/bar actions are recorded against the station device. OrderEvents are never edited or deleted.
 - Never hard-delete staff, menu items, tables or devices: deactivate them.
+- Schema changes are NEW migrations appended to `server/src/cafe/migrations.ts` (or the Directory's
+  list): never edit a shipped migration or `schema.ts`; additive changes only (D-60).
 - Item states: sent -> accepted -> ready -> delivered, plus terminal cancelled and voided.
   Accept and Ready are per item. Order/table states are derived from items.
   Cancel is allowed only before accept (first command to arrive wins); after that it's a void
