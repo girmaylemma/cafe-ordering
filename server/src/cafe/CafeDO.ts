@@ -45,6 +45,7 @@ import { handleItemCommand, type ItemCommandInput, type ItemCommandResult } from
 import { refreshTableStates, setSoldOut, soldOutNotice, tablesOfItems } from "./live";
 import { createOption, createOptionGroup, listOptionGroups, updateOption, updateOptionGroup } from "./options";
 import { closeSession, openSession, sendOrder } from "./orders";
+import { mergeSession, moveSession, transferSession } from "./tableMoves";
 import {
   isId,
   MAX_CATCH_UP_EVENTS,
@@ -868,6 +869,12 @@ function toRunnable(
       return { key: message.idempotencyKey, fingerprintSource, handler: (sql, now) => closeSession(sql, venueId, waiterId, message, now) };
     case "order.send":
       return { key: message.orderId, fingerprintSource, handler: (sql, now) => sendOrder(sql, venueId, waiterId, message, now) };
+    case "session.move":
+      return { key: message.idempotencyKey, fingerprintSource, handler: (sql, now) => moveSession(sql, venueId, waiterId, message, now) };
+    case "session.merge":
+      return { key: message.idempotencyKey, fingerprintSource, handler: (sql, now) => mergeSession(sql, venueId, waiterId, message, now) };
+    case "session.transfer":
+      return { key: message.idempotencyKey, fingerprintSource, handler: (sql, now) => transferSession(sql, venueId, waiterId, message, now) };
   }
 }
 

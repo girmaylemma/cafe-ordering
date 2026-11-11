@@ -9,6 +9,7 @@ import type { Actor, Command, ItemEventType, ItemState } from "../domain/itemSta
 import type { ItemCommandResult } from "./items";
 import type { SoldOutResult, TableState } from "./live";
 import type { OrderSendResult, SessionCloseResult, SessionOpenResult } from "./orders";
+import type { SessionActionResult } from "./tableMoves";
 
 /** Larger messages are refused. Counted in UTF-8 bytes: Amharic letters are 3 bytes each. */
 export const MAX_MESSAGE_BYTES = 16 * 1024;
@@ -78,6 +79,10 @@ export type ClientMessage =
   | SessionOpenMessage
   | SessionCloseMessage
   | OrderSendMessage
+  /** Table actions (W-09, 3c). They need a connection: never queued offline (D-18). */
+  | { type: "session.move"; idempotencyKey: string; sessionId: string; toTableId: string }
+  | { type: "session.merge"; idempotencyKey: string; sessionId: string; intoSessionId: string }
+  | { type: "session.transfer"; idempotencyKey: string; sessionId: string; toWaiterId: string }
   /** A kitchen/bar tablet marks one of its items sold out or back in stock (K-05). */
   | { type: "menu.sold_out"; idempotencyKey: string; menuItemId: string; soldOut: boolean }
   /** "Send me every event after `since`" (after a reconnect). */
@@ -91,7 +96,8 @@ export interface WireEvent {
   orderId: string;
   itemId: string;
   stationId: string;
-  type: ItemEventType | "item.sent";
+  /** item.table_changed: the item's table visit moved or merged (3c); from = to = its state. */
+  type: ItemEventType | "item.sent" | "item.table_changed";
   /** null for item.sent: the item is new. */
   from: ItemState | null;
   to: ItemState;
@@ -100,7 +106,7 @@ export interface WireEvent {
   details?: Record<string, unknown>;
 }
 
-export type CommandResult = ItemCommandResult | SessionOpenResult | SessionCloseResult | OrderSendResult | SoldOutResult;
+export type CommandResult = ItemCommandResult | SessionOpenResult | SessionCloseResult | OrderSendResult | SoldOutResult | SessionActionResult;
 
 export type ProtocolError =
   | "INVALID_MESSAGE"
@@ -116,6 +122,8 @@ export type ServerMessage =
   | { type: "sync.result"; events: WireEvent[]; reloadRequired: boolean }
   /** To every waiter, the item's station and the live view: grey the item out (or back in). */
   | { type: "menu.sold_out"; menuItemId: string; soldOut: boolean }
+  /** To the receiving waiter of a hand-over (3c). */
+  | { type: "table.transferred"; tableId: string; sessionId: string; fromWaiterId: string }
   /** To every waiter and the live view: a table's state on the floor map changed (W-02). */
   | { type: "table.state"; tableId: string; state: TableState; sessionId: string | null; waiterId: string | null }
   | { type: "error"; error: ProtocolError };
@@ -168,6 +176,21 @@ function parseMessage(data: Record<string, unknown>): ClientMessage | null {
       const items = parseLines(data.items);
       if (items === null) return null;
       return { type: "order.send", orderId, sessionId, tableId, createdAt, queuedOffline, items };
+    }
+    case "session.move": {
+      const { idempotencyKey, sessionId, toTableId } = data;
+      if (!isId(idempotencyKey) || !isId(sessionId) || !isId(toTableId)) return null;
+      return { type: "session.move", idempotencyKey, sessionId, toTableId };
+    }
+    case "session.merge": {
+      const { idempotencyKey, sessionId, intoSessionId } = data;
+      if (!isId(idempotencyKey) || !isId(sessionId) || !isId(intoSessionId)) return null;
+      return { type: "session.merge", idempotencyKey, sessionId, intoSessionId };
+    }
+    case "session.transfer": {
+      const { idempotencyKey, sessionId, toWaiterId } = data;
+      if (!isId(idempotencyKey) || !isId(sessionId) || !isId(toWaiterId)) return null;
+      return { type: "session.transfer", idempotencyKey, sessionId, toWaiterId };
     }
     case "menu.sold_out": {
       const { idempotencyKey, menuItemId, soldOut } = data;

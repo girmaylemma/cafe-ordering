@@ -9,6 +9,7 @@
  * - Closing is refused until every item is delivered, cancelled or voided (D-44).
  */
 import type { Actor } from "../domain/itemState";
+import { isManagerHere } from "./auth";
 import { insertEvent, type Handled } from "./events";
 import { checkLineOptions, type ChosenOption, type LineOptions } from "./options";
 import type { OrderSendMessage, SessionCloseMessage, SessionOpenMessage, WireEvent } from "./protocol";
@@ -114,7 +115,7 @@ export function closeSession(
   if (session === null) return done({ ok: false, error: "SESSION_NOT_FOUND" }, false);
   if (session.status === "closed") return done({ ok: true, alreadyDone: true });
   // Not stored: after a hand-over (slice 3c) the answer can change.
-  if (session.waiter_id !== waiterId) return done({ ok: false, error: "NOT_YOUR_TABLE" }, false);
+  if (session.waiter_id !== waiterId && !isManagerHere(sql, venueId, waiterId)) return done({ ok: false, error: "NOT_YOUR_TABLE" }, false);
 
   const unfinished = sql
     .exec<{ n: number }>(
@@ -297,7 +298,10 @@ function resolveSession(
   const session = findSession(sql, venueId, message.sessionId);
   const usable = session !== null && session.status === "open" && session.table_id === message.tableId;
 
-  if (usable && session.waiter_id === waiterId) return { ok: true, sessionId: session.id, conflict: null };
+  // The table's waiter, or a manager covering for them (D-78); the round is credited to the sender.
+  if (usable && (session.waiter_id === waiterId || isManagerHere(sql, venueId, waiterId))) {
+    return { ok: true, sessionId: session.id, conflict: null };
+  }
 
   if (!message.queuedOffline) {
     // A live round: the waiter is at the table and sees the error at once.
@@ -322,7 +326,7 @@ function resolveSession(
 
 type MenuRow = { id: string; name: string; name_am: string | null; price_santim: number; station_id: string; sold_out: number; active: number };
 type TableRow = { id: string; name: string };
-type SessionRow = { id: string; table_id: string; waiter_id: string; status: string };
+export type SessionRow = { id: string; table_id: string; waiter_id: string; status: string };
 
 const staff = (userId: string): Actor => ({ kind: "staff", userId });
 
@@ -338,7 +342,7 @@ function findMenuItem(sql: SqlStorage, venueId: string, id: string): MenuRow | n
   );
 }
 
-function findTable(sql: SqlStorage, venueId: string, id: string): TableRow | null {
+export function findTable(sql: SqlStorage, venueId: string, id: string): TableRow | null {
   return (
     sql
       .exec<TableRow>("SELECT id, name FROM tables WHERE id = ? AND venue_id = ? AND active = 1", id, venueId)
@@ -346,7 +350,7 @@ function findTable(sql: SqlStorage, venueId: string, id: string): TableRow | nul
   );
 }
 
-function findSession(sql: SqlStorage, venueId: string, id: string): SessionRow | null {
+export function findSession(sql: SqlStorage, venueId: string, id: string): SessionRow | null {
   return (
     sql
       .exec<SessionRow>(
@@ -358,7 +362,7 @@ function findSession(sql: SqlStorage, venueId: string, id: string): SessionRow |
   );
 }
 
-function findOpenSessionForTable(sql: SqlStorage, venueId: string, tableId: string): SessionRow | null {
+export function findOpenSessionForTable(sql: SqlStorage, venueId: string, tableId: string): SessionRow | null {
   return (
     sql
       .exec<SessionRow>(

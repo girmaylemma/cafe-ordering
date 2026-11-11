@@ -218,3 +218,12 @@ export function approveVoid(
     ? { ok: false, error: "MANAGER_LOCKED", retryAfterMs: check.retryAfterMs }
     : { ok: false, error: "MANAGER_PIN_INVALID" };
 }
+
+/** An active manager or owner of this café: may act on any table (D-46, D-78). */
+export function isManagerHere(sql: SqlStorage, venueId: string, userId: string): boolean {
+  return (
+    sql
+      .exec("SELECT 1 FROM staff WHERE id = ? AND venue_id = ? AND active = 1 AND role IN ('manager', 'owner')", userId, venueId)
+      .toArray().length > 0
+  );
+}
