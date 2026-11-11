@@ -37,11 +37,10 @@ export default defineConfig(async ({ command }) => ({
           proxy: {
             "/admin/api": {
               target: API_TARGET,
-              // Look exactly like a same-origin request behind Access, so the server's CSRF check passes.
-              headers: {
-                "Cf-Access-Jwt-Assertion": await devAccessToken(process.env.DEV_EMAIL ?? "dev-owner@example.com"),
-                Origin: API_TARGET,
-              },
+              // Only the Access token is added. Host and the browser's Origin pass through unchanged:
+              // both say localhost:5173, just as in production both name the real domain, so the
+              // server's same-origin (CSRF) check behaves exactly as it will behind Access.
+              headers: { "Cf-Access-Jwt-Assertion": await devAccessToken(process.env.DEV_EMAIL ?? "dev-owner@example.com") },
             },
           },
         }

@@ -128,3 +128,12 @@ Decisions and their reasons: `docs/decisions.md`.
 - Create a café (installer): set `$env:INSTALLER_SECRET`, then
   `npm run new-cafe -- --api <url> --name "<café>" --owner-name "<name>" --owner-email <email>`.
 - Run locally: `npx wrangler dev` (uses `.dev.vars`).
+
+### admin/ (dashboard, run inside `admin/`)
+- Install: `npm ci`
+- Test: `npm test`; type check: `npm run typecheck`
+- Build: `npm run build` (writes `server/public/admin`, served by the Worker under `/admin/`)
+- Local dev, three terminals:
+  1. `cd server; node scripts/dev-access-vars.mjs; npx wrangler dev` (fake `.invalid` Access team, local only)
+  2. once: `cd server; $env:INSTALLER_SECRET = "dev-only-installer-secret"; npm run new-cafe -- --api http://127.0.0.1:8787 --name "Dev Cafe" --owner-name "Dev Owner" --owner-email dev-owner@example.com`
+  3. `cd admin; npm run dev`, then open http://localhost:5173/admin/ (log in as another email: `$env:DEV_EMAIL = "..."`)
