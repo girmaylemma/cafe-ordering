@@ -31,6 +31,7 @@ export function errorMessage(error: unknown): string {
 export const priceFormatMessage = "Write the price like 180 or 42.50 (ETB, at most 2 decimals).";
 export const orderFormatMessage = "The order must be a whole number from 0 to 9999.";
 export const seatsFormatMessage = "Seats must be a whole number from 1 to 99, or empty.";
+export const minMaxMessage = "“At least” can't be more than “At most”, and “At most” must be 1 to 10.";
 
 export const noAccessMessage =
   "This email has no access to the dashboard. Ask the café owner to add you as a manager with this email.";

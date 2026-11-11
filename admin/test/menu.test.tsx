@@ -9,13 +9,23 @@ const CATEGORIES = [
   { id: "c-old", nameEn: "Old specials", nameAm: null, sortOrder: 3, active: false },
 ];
 const ITEMS = [
-  { id: "i-shiro", categoryId: "c-food", nameEn: "Shiro", nameAm: "ሽሮ", price: "180.00", priceSantim: 18000, stationId: "kitchen", fasting: true, soldOut: false, sortOrder: 0, active: true },
-  { id: "i-tibs", categoryId: "c-food", nameEn: "Tibs", nameAm: null, price: "320.00", priceSantim: 32000, stationId: "kitchen", fasting: false, soldOut: false, sortOrder: 1, active: true },
-  { id: "i-mac", categoryId: "c-drinks", nameEn: "Macchiato", nameAm: null, price: "42.50", priceSantim: 4250, stationId: "bar", fasting: false, soldOut: false, sortOrder: 0, active: true },
+  { id: "i-shiro", categoryId: "c-food", nameEn: "Shiro", nameAm: "ሽሮ", price: "180.00", priceSantim: 18000, stationId: "kitchen", fasting: true, soldOut: false, sortOrder: 0, active: true, optionGroupIds: [] },
+  { id: "i-tibs", categoryId: "c-food", nameEn: "Tibs", nameAm: null, price: "320.00", priceSantim: 32000, stationId: "kitchen", fasting: false, soldOut: true, sortOrder: 1, active: true, optionGroupIds: [] },
+  { id: "i-mac", categoryId: "c-drinks", nameEn: "Macchiato", nameAm: null, price: "42.50", priceSantim: 4250, stationId: "bar", fasting: false, soldOut: false, sortOrder: 0, active: true, optionGroupIds: ["g-size"] },
+];
+
+const GROUPS = [
+  { id: "g-size", nameEn: "Size", nameAm: null, minChoices: 1, maxChoices: 1, sortOrder: 0, active: true, options: [] },
+  { id: "g-old", nameEn: "Old group", nameAm: null, minChoices: 0, maxChoices: 1, sortOrder: 1, active: false, options: [] },
 ];
 
 function server(extra: Parameters<typeof fakeServer>[0] = {}) {
-  return fakeServer({ "GET /categories": [200, { categories: CATEGORIES }], "GET /menu-items": [200, { items: ITEMS }], ...extra });
+  return fakeServer({
+    "GET /categories": [200, { categories: CATEGORIES }],
+    "GET /menu-items": [200, { items: ITEMS }],
+    "GET /option-groups": [200, { groups: GROUPS }],
+    ...extra,
+  });
 }
 
 const itemRow = (name: string) => screen.getByText(name).closest("tr")!;
@@ -97,6 +107,7 @@ describe("MenuPage: items", () => {
         stationId: "bar",
         fasting: true,
         sortOrder: 0,
+        optionGroupIds: [],
       }),
     );
   });
@@ -146,5 +157,47 @@ describe("MenuPage: items", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add item" }));
 
     expect(await screen.findByText(/please check the form/i)).toBeTruthy();
+  });
+});
+
+describe("MenuPage: sold out and option groups", () => {
+  it("marks an item sold out from its row, and offers 'Back in stock' for a sold-out one", async () => {
+    const s = server({ "PATCH /menu-items/i-shiro": [200, { item: {} }] });
+    render(<MenuPage me={OWNER_ME} />);
+    await screen.findByTestId("items-c-food");
+
+    expect(within(itemRow("Tibs")).getByText("Sold out")).toBeTruthy();
+    expect(within(itemRow("Tibs")).getByRole("button", { name: "Back in stock" })).toBeTruthy();
+
+    fireEvent.click(within(itemRow("Shiro")).getByRole("button", { name: "Mark sold out" }));
+
+    await waitFor(() => expect(s.calls.find((c) => c.method === "PATCH")?.body).toEqual({ soldOut: true }));
+  });
+
+  it("the item form lists active option groups to attach; adding sends the chosen ids", async () => {
+    const s = server({ "POST /menu-items": [201, { item: { id: "i-new" } }] });
+    render(<MenuPage me={OWNER_ME} />);
+    await screen.findByTestId("items-c-food");
+
+    expect(screen.queryByLabelText("Old group")).toBeNull();
+    fireEvent.change(screen.getByLabelText("Item name (English)"), { target: { value: "Latte" } });
+    fireEvent.change(screen.getByLabelText("Price (ETB)"), { target: { value: "50" } });
+    fireEvent.click(screen.getByLabelText("Size"));
+    fireEvent.click(screen.getByRole("button", { name: "Add item" }));
+
+    await waitFor(() => expect((s.calls.find((c) => c.method === "POST")?.body as { optionGroupIds: string[] }).optionGroupIds).toEqual(["g-size"]));
+  });
+
+  it("editing an item with groups doesn't resend unchanged groups (arrays compared by content)", async () => {
+    const s = server({ "PATCH /menu-items/i-mac": [200, { item: {} }] });
+    render(<MenuPage me={OWNER_ME} />);
+    await screen.findByTestId("items-c-food");
+
+    fireEvent.click(within(itemRow("Macchiato")).getByRole("button", { name: "Edit" }));
+    expect((screen.getByLabelText("Size") as HTMLInputElement).checked).toBe(true);
+    fireEvent.change(screen.getByLabelText("Price (ETB)"), { target: { value: "45" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => expect(s.calls.find((c) => c.method === "PATCH")?.body).toEqual({ price: "45" }));
   });
 });

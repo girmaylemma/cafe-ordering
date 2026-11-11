@@ -127,6 +127,24 @@ button.danger {
   color: var(--accent);
 }
 
+.card.wide {
+  max-width: none;
+}
+.card.inactive {
+  opacity: 0.7;
+}
+.inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+fieldset {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+
 label.check {
   display: flex;
   align-items: center;

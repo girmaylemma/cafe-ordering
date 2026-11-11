@@ -1,10 +1,14 @@
 /** Small helpers shared by the dashboard's add/edit forms. */
 
-/** Only the fields whose value changed, so an edit sends (and the audit log records) real changes only. */
+/**
+ * Only the fields whose value changed, so an edit sends (and the audit log records) real changes only.
+ * Lists are compared by content: two arrays with the same ids are not a change.
+ */
 export function changedFields<T extends Record<string, unknown>>(before: T, after: T): Partial<T> {
   const changed: Partial<T> = {};
   for (const key of Object.keys(after) as Array<keyof T>) {
-    if (after[key] !== before[key]) changed[key] = after[key];
+    const same = Array.isArray(after[key]) ? JSON.stringify(after[key]) === JSON.stringify(before[key]) : after[key] === before[key];
+    if (!same) changed[key] = after[key];
   }
   return changed;
 }

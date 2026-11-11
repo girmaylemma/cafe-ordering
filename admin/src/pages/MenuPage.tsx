@@ -2,7 +2,7 @@ import { useCallback, useState, type FormEvent } from "react";
 import { api } from "../api";
 import { PRICE_PATTERN, changedFields, optionalText, optionalWholeNumber } from "../forms";
 import { errorMessage, orderFormatMessage, priceFormatMessage, stationLabel } from "../texts";
-import type { Category, Me, MenuItem, Station } from "../types";
+import type { Category, Me, MenuItem, OptionGroup, Station } from "../types";
 import { useLoad } from "../useLoad";
 
 type CategoryPayload = { nameEn: string; nameAm: string | null; sortOrder: number };
@@ -14,18 +14,20 @@ type ItemPayload = {
   stationId: Station;
   fasting: boolean;
   sortOrder: number;
+  optionGroupIds: string[];
 };
 
 const emptyCategory = { nameEn: "", nameAm: "", sortOrder: "0" };
-const emptyItem = { categoryId: "", nameEn: "", nameAm: "", price: "", stationId: "kitchen" as Station, fasting: false, sortOrder: "0" };
+const emptyItem = { categoryId: "", nameEn: "", nameAm: "", price: "", stationId: "kitchen" as Station, fasting: false, sortOrder: "0", optionGroupIds: [] as string[] };
 
 export function MenuPage(_props: { me: Me }) {
   const load = useCallback(async () => {
-    const [{ categories }, { items }] = await Promise.all([
+    const [{ categories }, { items }, { groups }] = await Promise.all([
       api<{ categories: Category[] }>("GET", "/categories"),
       api<{ items: MenuItem[] }>("GET", "/menu-items"),
+      api<{ groups: OptionGroup[] }>("GET", "/option-groups"),
     ]);
-    return { categories, items };
+    return { categories, items, groups };
   }, []);
   const { data, error: loadError, reload } = useLoad(load);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +41,7 @@ export function MenuPage(_props: { me: Me }) {
   const categories = data?.categories ?? [];
   const items = data?.items ?? [];
   const activeCategories = categories.filter((c) => c.active);
+  const activeGroups = (data?.groups ?? []).filter((g) => g.active);
 
   async function run(action: () => Promise<unknown>, success: string): Promise<boolean> {
     setError(null);
@@ -101,6 +104,8 @@ export function MenuPage(_props: { me: Me }) {
       stationId: itemForm.stationId,
       fasting: itemForm.fasting,
       sortOrder: sortOrder ?? 0,
+      // In the order the groups are listed (the order tablets show them).
+      optionGroupIds: activeGroups.filter((g) => itemForm.optionGroupIds.includes(g.id)).map((g) => g.id),
     };
 
     const editing = editingItem;
@@ -123,7 +128,17 @@ export function MenuPage(_props: { me: Me }) {
       stationId: (i.stationId === "bar" ? "bar" : "kitchen") as Station,
       fasting: i.fasting,
       sortOrder: String(i.sortOrder),
+      optionGroupIds: i.optionGroupIds,
     });
+  }
+
+  function onToggleSoldOut(i: MenuItem) {
+    // No confirmation: it's quick to undo, and waiters see it within seconds (K-05).
+    void run(() => api("PATCH", `/menu-items/${encodeURIComponent(i.id)}`, { soldOut: !i.soldOut }), i.soldOut ? `"${i.nameEn}" is back in stock.` : `"${i.nameEn}" is sold out.`);
+  }
+
+  function toggleGroup(id: string, on: boolean) {
+    setItemForm({ ...itemForm, optionGroupIds: on ? [...itemForm.optionGroupIds, id] : itemForm.optionGroupIds.filter((g) => g !== id) });
   }
 
   function onToggleItem(i: MenuItem) {
@@ -209,11 +224,16 @@ export function MenuPage(_props: { me: Me }) {
                   <td>{`${i.price} ETB`}</td>
                   <td>{stationLabel[i.stationId] ?? i.stationId}</td>
                   <td>{i.fasting ? "Fasting" : ""}</td>
-                  <td>{i.active ? "Active" : "Inactive"}</td>
+                  <td>{!i.active ? "Inactive" : i.soldOut ? "Sold out" : "Active"}</td>
                   <td className="actions">
                     <button type="button" onClick={() => onEditItem(i)}>
                       Edit
                     </button>
+                    {i.active && (
+                      <button type="button" onClick={() => onToggleSoldOut(i)}>
+                        {i.soldOut ? "Back in stock" : "Mark sold out"}
+                      </button>
+                    )}
                     <button type="button" className={i.active ? "danger" : undefined} onClick={() => onToggleItem(i)}>
                       {i.active ? "Deactivate" : "Reactivate"}
                     </button>
@@ -251,6 +271,17 @@ export function MenuPage(_props: { me: Me }) {
           <input id="item-fasting" type="checkbox" checked={itemForm.fasting} onChange={(e) => setItemForm({ ...itemForm, fasting: e.target.checked })} />
           Fasting (ጾም)
         </label>
+        {activeGroups.length > 0 && (
+          <fieldset>
+            <legend>Option groups</legend>
+            {activeGroups.map((g) => (
+              <label key={g.id} className="check" htmlFor={`item-group-${g.id}`}>
+                <input id={`item-group-${g.id}`} type="checkbox" checked={itemForm.optionGroupIds.includes(g.id)} onChange={(e) => toggleGroup(g.id, e.target.checked)} />
+                {g.nameEn}
+              </label>
+            ))}
+          </fieldset>
+        )}
         <label htmlFor="item-order">Item order</label>
         <input id="item-order" inputMode="numeric" value={itemForm.sortOrder} onChange={(e) => setItemForm({ ...itemForm, sortOrder: e.target.value })} />
         <div className="actions">
@@ -279,5 +310,6 @@ function itemPayload(i: MenuItem): ItemPayload {
     stationId: (i.stationId === "bar" ? "bar" : "kitchen") as Station,
     fasting: i.fasting,
     sortOrder: i.sortOrder,
+    optionGroupIds: i.optionGroupIds,
   };
 }

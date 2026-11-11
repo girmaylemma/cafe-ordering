@@ -51,6 +51,31 @@ export interface MenuItem {
   soldOut: boolean;
   sortOrder: number;
   active: boolean;
+  /** Attached option groups, in order (3b). */
+  optionGroupIds: string[];
+}
+
+export interface OptionChoice {
+  id: string;
+  groupId: string;
+  nameEn: string;
+  nameAm: string | null;
+  /** ETB as text, e.g. "15.00". */
+  extra: string;
+  extraSantim: number;
+  sortOrder: number;
+  active: boolean;
+}
+
+export interface OptionGroup {
+  id: string;
+  nameEn: string;
+  nameAm: string | null;
+  minChoices: number;
+  maxChoices: number;
+  sortOrder: number;
+  active: boolean;
+  options: OptionChoice[];
 }
 
 export interface CafeTable {
