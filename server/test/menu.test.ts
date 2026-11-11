@@ -243,7 +243,7 @@ describe("GET /menu and GET /tables (tablets)", () => {
 
     expect(await json(response)).toEqual({
       tables: [
-        { id: t7.id, name: "Table 7", area: null, seats: 4, sortOrder: 0, state: "open", sessionId: "s1", waiterId: "hana" },
+        { id: t7.id, name: "Table 7", area: null, seats: 4, sortOrder: 0, state: "seated", sessionId: "s1", waiterId: "hana" },
         { id: t8.id, name: "Table 8", area: null, seats: null, sortOrder: 0, state: "free", sessionId: null, waiterId: null },
       ],
     });

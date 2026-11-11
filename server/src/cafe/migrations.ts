@@ -47,4 +47,20 @@ export const CAFE_MIGRATIONS: readonly Migration[] = [
       "ALTER TABLE tables ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0",
     ],
   },
+  {
+    version: 4,
+    description: "last pushed table state (push only when it changes)",
+    statements: [
+      // Not the source of truth: table state is always derived from items (D-03). This only
+      // remembers what waiters were last told, so a change is pushed once and never repeated.
+      // A free table has no row.
+      `CREATE TABLE table_live_state (
+         table_id    TEXT PRIMARY KEY,
+         venue_id    TEXT NOT NULL,
+         state       TEXT NOT NULL CHECK (state IN ('seated', 'ordered', 'accepted', 'ready', 'delivered')),
+         session_id  TEXT NOT NULL,
+         waiter_id   TEXT NOT NULL
+       ) STRICT`,
+    ],
+  },
 ];

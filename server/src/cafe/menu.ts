@@ -5,6 +5,7 @@
  * only deactivated (D-21). Column names in UPDATEs come from this file, never from the request.
  */
 import { audit, fail, type AdminActor, type AdminResult } from "./admin";
+import { currentTableState } from "./live";
 
 /** The MVP stations (K-10, D-68). Configurable stations would be a later migration. */
 export const STATIONS = ["kitchen", "bar"] as const;
@@ -215,7 +216,8 @@ export function updateMenuItem(sql: SqlStorage, actor: AdminActor, id: string, b
   const fasting = bool(b.fasting);
   const sortOrder = intBetween(b.sortOrder, 0, 9999);
   const active = bool(b.active);
-  if (anyBad(categoryId, nameEn, nameAm, price, stationId, fasting, sortOrder, active)) return fail("INVALID_INPUT");
+  const soldOut = bool(b.soldOut); // managers may change sold-out too (3b)
+  if (anyBad(categoryId, nameEn, nameAm, price, stationId, fasting, sortOrder, active, soldOut)) return fail("INVALID_INPUT");
 
   // A price change never alters orders already sent: they copied the price (D-17).
   const changed = update(sql, "menu_items", id, {
@@ -227,6 +229,7 @@ export function updateMenuItem(sql: SqlStorage, actor: AdminActor, id: string, b
     fasting: flag(fasting as boolean | undefined),
     sort_order: sortOrder as number | undefined,
     active: flag(active as boolean | undefined),
+    sold_out: flag(soldOut as boolean | undefined),
   });
   audit(sql, actor, "menu_item.updated", { menuItemId: id, changed });
   return { ok: true, item: toItem(findItem(sql, actor.venue_id, id)!) };
@@ -324,7 +327,7 @@ export function tabletMenu(sql: SqlStorage, venueId: string) {
   return { categories, items };
 }
 
-/** Active tables with their live state: free, or open and held by a waiter. */
+/** Active tables with the same derived state that is pushed live (W-02, D-74). */
 export function tabletTables(sql: SqlStorage, venueId: string) {
   return sql
     .exec<TableRow & { session_id: string | null; waiter_id: string | null }>(
@@ -335,14 +338,5 @@ export function tabletTables(sql: SqlStorage, venueId: string) {
       venueId,
     )
     .toArray()
-    .map((r) => ({
-      id: r.id,
-      name: r.name,
-      area: r.area,
-      seats: r.seats,
-      sortOrder: r.sort_order,
-      state: r.session_id === null ? ("free" as const) : ("open" as const),
-      sessionId: r.session_id,
-      waiterId: r.waiter_id,
-    }));
+    .map((r) => ({ id: r.id, name: r.name, area: r.area, seats: r.seats, sortOrder: r.sort_order, ...currentTableState(sql, r.id) }));
 }

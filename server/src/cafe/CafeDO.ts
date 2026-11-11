@@ -40,8 +40,9 @@ import {
   updateMenuItem,
   updateTable,
 } from "./menu";
-import { EVENT_COLUMNS, rowToWireEvent, type EventRow, type Handled } from "./events";
+import { EVENT_COLUMNS, rowToWireEvent, type EventRow, type Handled, type Notice } from "./events";
 import { handleItemCommand, type ItemCommandInput, type ItemCommandResult } from "./items";
+import { refreshTableStates, setSoldOut, soldOutNotice, tablesOfItems } from "./live";
 import { closeSession, openSession, sendOrder } from "./orders";
 import {
   isId,
@@ -320,7 +321,13 @@ export class CafeDO extends DurableObject<Env> {
     return this.#asAdmin(actorId, (sql, actor) => createMenuItem(sql, actor, body));
   }
   adminUpdateMenuItem(actorId: string, id: string, body: Record<string, unknown>) {
-    return this.#asAdmin(actorId, (sql, actor) => updateMenuItem(sql, actor, id, body));
+    const before = this.ctx.storage.sql.exec<{ sold_out: number }>("SELECT sold_out FROM menu_items WHERE id = ?", id).toArray()[0];
+    const result = this.#asAdmin(actorId, (sql, actor) => updateMenuItem(sql, actor, id, body));
+    // A manager's sold-out change reaches waiters like a kitchen tap (3b).
+    if (result.ok && before !== undefined && result.item.soldOut !== (before.sold_out === 1)) {
+      this.#pushNotices([soldOutNotice(id, result.item.soldOut, result.item.stationId)]);
+    }
+    return result;
   }
   adminListTables(actorId: string) {
     return this.#asAdmin(actorId, (sql, actor) => listTables(sql, actor));
@@ -565,6 +572,7 @@ export class CafeDO extends DurableObject<Env> {
     // still be rolled back.
     send(ws, { type: "ack", idempotencyKey: runnable.key, result: handled.result });
     this.#push(handled.events);
+    this.#pushNotices(handled.notices ?? []);
   }
 
   async webSocketClose(ws: WebSocket, code: number): Promise<void> {
@@ -681,6 +689,9 @@ export class CafeDO extends DurableObject<Env> {
         }
 
         const handled = handler(sql, now);
+        // Recompute the touched tables in the same transaction; push only states that changed (D-74).
+        const touched = [...(handled.tables ?? []), ...tablesOfItems(sql, handled.events.map((e) => e.itemId))];
+        handled.notices = [...(handled.notices ?? []), ...refreshTableStates(sql, venueId, touched)];
         if (handled.store) {
           sql.exec(
             "INSERT INTO processed_commands (idempotency_key, venue_id, fingerprint, result, at) VALUES (?, ?, ?, ?, ?)",
@@ -713,6 +724,21 @@ export class CafeDO extends DurableObject<Env> {
             ws.send(message);
           } catch {
             // A socket that is closing; that tablet will catch up with "sync" when it reconnects.
+          }
+        }
+      }
+    }
+  }
+
+  #pushNotices(notices: Notice[]): void {
+    for (const notice of notices) {
+      const message = JSON.stringify(notice.message);
+      for (const tag of notice.tags) {
+        for (const ws of this.ctx.getWebSockets(tag)) {
+          try {
+            ws.send(message);
+          } catch {
+            // Closing socket: the tablet re-downloads /menu and /tables when it reconnects.
           }
         }
       }
@@ -805,6 +831,13 @@ function toRunnable(
         return handleItemCommand(sql, { ...input, command: { ...input.command, approvedBy: approval.approvedBy } }, now);
       },
     };
+  }
+
+  // Sold-out is a kitchen/bar action (managers use the dashboard).
+  if (message.type === "menu.sold_out") {
+    if (actor.kind !== "station") return null;
+    const station = actor;
+    return { key: message.idempotencyKey, fingerprintSource: { message, actor }, handler: (sql, now) => setSoldOut(sql, venueId, station, message, now) };
   }
 
   // Sessions and rounds are waiter actions only.

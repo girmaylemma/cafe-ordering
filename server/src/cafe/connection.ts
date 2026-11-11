@@ -39,7 +39,8 @@ export function tagsFor(identity: ConnectionIdentity): string[] {
     case "station":
       return [`station:${identity.stationId}`, `device:${identity.deviceId}`];
     case "staff":
-      return [`waiter:${identity.userId}`, `device:${identity.deviceId}`];
+      // "waiters": sold-out and table-state pushes reach every waiter's menu and floor map (3b).
+      return [`waiter:${identity.userId}`, `device:${identity.deviceId}`, "waiters"];
     case "live":
       return ["live"];
   }

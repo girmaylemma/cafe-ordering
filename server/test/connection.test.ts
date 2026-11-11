@@ -29,7 +29,8 @@ describe("tags, actors and recipients", () => {
 
   it("tags each connection by what it should receive, and by device so it can be closed on revoke", () => {
     expect(tagsFor(station)).toEqual(["station:kitchen", "device:d1"]);
-    expect(tagsFor(staff)).toEqual(["waiter:hana", "device:d2"]);
+    // "waiters": every waiter's floor map and menu get sold-out and table-state pushes (3b).
+    expect(tagsFor(staff)).toEqual(["waiter:hana", "device:d2", "waiters"]);
     expect(tagsFor(live)).toEqual(["live"]);
   });
 

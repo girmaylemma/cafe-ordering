@@ -1,6 +1,6 @@
 /** Writing to and reading from the order_events log (audit + sync). */
 import type { Actor, ItemState } from "../domain/itemState";
-import type { CommandResult, WireEvent } from "./protocol";
+import type { CommandResult, ServerMessage, WireEvent } from "./protocol";
 
 /**
  * What a command handler returns: the answer for the sender, the events to push after
@@ -11,6 +11,15 @@ export interface Handled {
   result: CommandResult;
   events: WireEvent[];
   store: boolean;
+  /** Other small pushes after commit (sold-out, table states), each with the tags that receive it. */
+  notices?: Notice[];
+  /** Tables whose state may have changed without an item event (session opened or closed). */
+  tables?: string[];
+}
+
+export interface Notice {
+  tags: string[];
+  message: ServerMessage;
 }
 
 export interface NewEvent {

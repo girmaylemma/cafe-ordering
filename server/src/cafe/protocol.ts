@@ -7,6 +7,7 @@
  */
 import type { Actor, Command, ItemEventType, ItemState } from "../domain/itemState";
 import type { ItemCommandResult } from "./items";
+import type { SoldOutResult, TableState } from "./live";
 import type { OrderSendResult, SessionCloseResult, SessionOpenResult } from "./orders";
 
 /** Larger messages are refused. Counted in UTF-8 bytes: Amharic letters are 3 bytes each. */
@@ -74,6 +75,8 @@ export type ClientMessage =
   | SessionOpenMessage
   | SessionCloseMessage
   | OrderSendMessage
+  /** A kitchen/bar tablet marks one of its items sold out or back in stock (K-05). */
+  | { type: "menu.sold_out"; idempotencyKey: string; menuItemId: string; soldOut: boolean }
   /** "Send me every event after `since`" (after a reconnect). */
   | { type: "sync"; since: number };
 
@@ -94,7 +97,7 @@ export interface WireEvent {
   details?: Record<string, unknown>;
 }
 
-export type CommandResult = ItemCommandResult | SessionOpenResult | SessionCloseResult | OrderSendResult;
+export type CommandResult = ItemCommandResult | SessionOpenResult | SessionCloseResult | OrderSendResult | SoldOutResult;
 
 export type ProtocolError =
   | "INVALID_MESSAGE"
@@ -108,6 +111,10 @@ export type ServerMessage =
   | { type: "ack"; idempotencyKey: string; result: CommandResult }
   | { type: "event"; event: WireEvent }
   | { type: "sync.result"; events: WireEvent[]; reloadRequired: boolean }
+  /** To every waiter, the item's station and the live view: grey the item out (or back in). */
+  | { type: "menu.sold_out"; menuItemId: string; soldOut: boolean }
+  /** To every waiter and the live view: a table's state on the floor map changed (W-02). */
+  | { type: "table.state"; tableId: string; state: TableState; sessionId: string | null; waiterId: string | null }
   | { type: "error"; error: ProtocolError };
 
 // ---------- parsing ----------
@@ -158,6 +165,11 @@ function parseMessage(data: Record<string, unknown>): ClientMessage | null {
       const items = parseLines(data.items);
       if (items === null) return null;
       return { type: "order.send", orderId, sessionId, tableId, createdAt, queuedOffline, items };
+    }
+    case "menu.sold_out": {
+      const { idempotencyKey, menuItemId, soldOut } = data;
+      if (!isId(idempotencyKey) || !isId(menuItemId) || typeof soldOut !== "boolean") return null;
+      return { type: "menu.sold_out", idempotencyKey, menuItemId, soldOut };
     }
     case "sync": {
       const { since } = data;

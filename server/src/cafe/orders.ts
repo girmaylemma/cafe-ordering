@@ -88,7 +88,7 @@ export function openSession(
   }
 
   insertSession(sql, venueId, message.sessionId, message.tableId, waiterId, message.guests, now);
-  return done({ ok: true, alreadyDone: false, sessionId: message.sessionId });
+  return { ...done({ ok: true, alreadyDone: false, sessionId: message.sessionId }), tables: [message.tableId] };
 }
 
 // ---------- session.close ----------
@@ -128,7 +128,7 @@ export function closeSession(
     at: now,
     details: { tableId: session.table_id },
   });
-  return done({ ok: true, alreadyDone: false });
+  return { ...done({ ok: true, alreadyDone: false }), tables: [session.table_id] };
 }
 
 // ---------- order.send ----------
