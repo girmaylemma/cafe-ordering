@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 
 import '../api/api_client.dart';
 import '../config.dart';
+import '../providers.dart';
 import 'credentials.dart';
 
 // ---------- states ----------
@@ -35,9 +36,12 @@ class NeedsSignIn extends AuthState {
 }
 
 class SignedIn extends AuthState {
-  const SignedIn(this.device, this.user);
+  const SignedIn(this.device, this.user, {this.error});
   final DeviceInfo device;
   final StaffMember user;
+
+  /// Why the last sign-out was refused (UNSENT_ROUNDS), if it was.
+  final String? error;
 }
 
 // ---------- dependencies (overridden in tests) ----------
@@ -107,9 +111,14 @@ class AuthController extends AsyncNotifier<AuthState> {
   }
 
   /// Ends the PIN session; the tablet stays paired. The server is told when reachable.
+  /// Refused while rounds wait to be sent: they exist only on this tablet (D-20).
   Future<void> signOut() async {
     final device = await _store.loadDevice();
     final session = await _store.loadSession();
+    if (device != null && session != null && await ref.read(databaseProvider).watchUnsentCount().first > 0) {
+      state = AsyncData(SignedIn(device.info, session.user, error: 'UNSENT_ROUNDS'));
+      return;
+    }
     if (device != null && session != null) {
       try {
         await _api.signOut(device.token, session.sessionToken);

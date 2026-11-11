@@ -19,6 +19,8 @@ String errorText(String code, {Duration? retryAfter}) {
     case 'LOCKED':
       final minutes = ((retryAfter?.inSeconds ?? 300) / 60).ceil();
       return 'Locked for $minutes minutes after too many wrong PINs.';
+    case 'UNSENT_ROUNDS':
+      return 'Some orders have not reached the kitchen yet. Wait for the connection before signing out.';
     case 'NOT_A_WAITER_DEVICE':
       return 'This is a kitchen tablet: nobody signs in on it.';
     default:

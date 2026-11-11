@@ -4,11 +4,14 @@ import 'package:cafe_tablet/api/api_client.dart';
 import 'package:cafe_tablet/app.dart';
 import 'package:cafe_tablet/auth/auth_controller.dart';
 import 'package:cafe_tablet/auth/credentials.dart';
+import 'package:cafe_tablet/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+
+import 'fakes.dart';
 
 const waiterDevice = {'id': 'd1', 'name': 'Tab 1', 'kind': 'waiter', 'stationId': null};
 const kitchenDevice = {'id': 'k1', 'name': 'Kitchen 1', 'kind': 'station', 'stationId': 'kitchen'};
@@ -26,7 +29,11 @@ ApiClient fakeApi(Map<String, (int, Object) Function(Map<String, dynamic>)> rout
 
 Future<void> pumpApp(WidgetTester tester, ApiClient api, MemoryCredentialStore store) async {
   await tester.pumpWidget(ProviderScope(
-    overrides: [apiClientProvider.overrideWithValue(api), credentialStoreProvider.overrideWithValue(store)],
+    overrides: [
+      apiClientProvider.overrideWithValue(api),
+      credentialStoreProvider.overrideWithValue(store),
+      databaseProvider.overrideWithValue(memoryDb()),
+    ],
     child: const CafeApp(),
   ));
   await tester.pumpAndSettle();

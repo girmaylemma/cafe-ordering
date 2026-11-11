@@ -3,10 +3,14 @@ import 'dart:convert';
 import 'package:cafe_tablet/api/api_client.dart';
 import 'package:cafe_tablet/auth/auth_controller.dart';
 import 'package:cafe_tablet/auth/credentials.dart';
+import 'package:cafe_tablet/data/database.dart';
+import 'package:cafe_tablet/providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+
+import 'fakes.dart';
 
 /// A fake server: routes are "METHOD /path" -> (status, body).
 ApiClient fakeApi(Map<String, (int, Object)> routes) {
@@ -28,10 +32,13 @@ const hanaSession = {
   'expiresAt': 1,
 };
 
-ProviderContainer container(ApiClient api, MemoryCredentialStore store) {
+ProviderContainer container(ApiClient api, MemoryCredentialStore store, [AppDatabase? db]) {
+  final database = db ?? memoryDb();
+  addTearDown(database.close);
   final c = ProviderContainer(overrides: [
     apiClientProvider.overrideWithValue(api),
     credentialStoreProvider.overrideWithValue(store),
+    databaseProvider.overrideWithValue(database),
   ]);
   addTearDown(c.dispose);
   return c;
@@ -137,5 +144,22 @@ void main() {
 
     expect(c.read(authControllerProvider).value, isA<Unpaired>());
     expect(await store.loadDevice(), isNull);
+  });
+
+  test('sign-out is refused while rounds are still waiting to be sent (D-20)', () async {
+    final store = MemoryCredentialStore();
+    await store.saveDevice(PairedDevice.fromJson('t', waiterDevice));
+    await store.saveSession(SignedInUser.fromJson(hanaSession));
+    final db = memoryDb();
+    await db.enqueue('o1', '{"type":"order.send"}', DateTime(2026));
+    final c = container(fakeApi({'POST /auth/sign-out': (204, {})}), store, db);
+    await c.read(authControllerProvider.future);
+
+    await c.read(authControllerProvider.notifier).signOut();
+
+    final state = c.read(authControllerProvider).value;
+    expect(state, isA<SignedIn>());
+    expect((state as SignedIn).error, 'UNSENT_ROUNDS');
+    expect(await store.loadSession(), isNotNull);
   });
 }
