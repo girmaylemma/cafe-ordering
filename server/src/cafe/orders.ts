@@ -10,6 +10,7 @@
  */
 import type { Actor } from "../domain/itemState";
 import { insertEvent, type Handled } from "./events";
+import { checkLineOptions, type ChosenOption, type LineOptions } from "./options";
 import type { OrderSendMessage, SessionCloseMessage, SessionOpenMessage, WireEvent } from "./protocol";
 
 // ---------- results ----------
@@ -38,7 +39,11 @@ export interface SentItem {
   name: string;
   /** Amharic name, copied with the English one (D-69); null if the menu has none. */
   nameAm: string | null;
+  /** Unit price INCLUDING the chosen options' extras (D-77). */
   priceSantim: number;
+  options: ChosenOption[];
+  /** A queued round whose options no longer matched the menu (D-77): the kitchen should ask. */
+  optionsChanged: boolean;
   qty: number;
   note: string | null;
   stationId: string;
@@ -51,6 +56,8 @@ export type OrderSendResult =
       ok: false;
       error:
         | "UNKNOWN_MENU_ITEM"
+        /** A live round whose options do not match the menu (D-77). */
+        | "INVALID_OPTIONS"
         | "DUPLICATE_ITEM_ID"
         | "TABLE_NOT_FOUND"
         | "SESSION_NOT_FOUND"
@@ -153,6 +160,12 @@ export function sendOrder(
     if (item === null) return refuse("UNKNOWN_MENU_ITEM");
     menu.set(item.id, item);
   }
+  const lineOptions = new Map<string, Extract<LineOptions, { ok: true }>>();
+  for (const line of message.items) {
+    const checked = checkLineOptions(sql, venueId, line.menuItemId, line.options, message.queuedOffline);
+    if (!checked.ok) return refuse("INVALID_OPTIONS");
+    lineOptions.set(line.id, checked);
+  }
   for (const line of message.items) {
     if (sql.exec("SELECT 1 FROM order_items WHERE id = ?", line.id).toArray().length > 0) {
       return refuse("DUPLICATE_ITEM_ID");
@@ -194,9 +207,11 @@ export function sendOrder(
   for (const line of message.items) {
     const m = menu.get(line.menuItemId)!; // filled in step 1
     const flag = m.active === 0 ? "unavailable" : m.sold_out === 1 ? "sold_out" : null;
+    const opts = lineOptions.get(line.id)!; // filled in step 1
+    const unitPrice = m.price_santim + opts.extraSantim;
     sql.exec(
-      `INSERT INTO order_items (id, venue_id, order_id, menu_item_id, station_id, name, name_am, price_santim, qty, note, flag, state)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent')`,
+      `INSERT INTO order_items (id, venue_id, order_id, menu_item_id, station_id, name, name_am, price_santim, qty, note, flag, options, options_changed, state)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent')`,
       line.id,
       venueId,
       message.orderId,
@@ -204,10 +219,12 @@ export function sendOrder(
       m.station_id,
       m.name,
       m.name_am,
-      m.price_santim,
+      unitPrice,
       line.qty,
       line.note,
       flag,
+      JSON.stringify(opts.chosen),
+      opts.changed ? 1 : 0,
     );
     // The ticket snapshot travels in the event, so a kitchen tablet catching up gets the full ticket.
     const details = {
@@ -222,6 +239,8 @@ export function sendOrder(
       note: line.note,
       flag,
       conflict,
+      options: opts.chosen.map((c) => ({ nameEn: c.nameEn, nameAm: c.nameAm })),
+      optionsChanged: opts.changed,
     };
     const seq = insertEvent(sql, {
       venueId,
@@ -239,7 +258,9 @@ export function sendOrder(
       menuItemId: m.id,
       name: m.name,
       nameAm: m.name_am,
-      priceSantim: m.price_santim,
+      priceSantim: unitPrice,
+      options: opts.chosen,
+      optionsChanged: opts.changed,
       qty: line.qty,
       note: line.note,
       stationId: m.station_id,

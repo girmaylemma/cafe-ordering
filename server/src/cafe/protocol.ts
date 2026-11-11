@@ -21,6 +21,7 @@ const MAX_NOTE_LENGTH = 200;
 const MAX_LINES_PER_ROUND = 50;
 const MAX_QTY = 99;
 const MAX_GUESTS = 99;
+const MAX_OPTIONS_PER_LINE = 20;
 
 // ---------- tablet -> server ----------
 
@@ -30,6 +31,8 @@ export interface OrderLine {
   menuItemId: string;
   qty: number;
   note: string | null;
+  /** Chosen option ids (W-05); [] when none. Older tablets that send nothing get []. */
+  options: string[];
 }
 
 export interface SessionOpenMessage {
@@ -192,8 +195,10 @@ function parseLines(value: unknown): OrderLine[] | null {
     if (!isId(id) || !isId(menuItemId) || ids.has(id)) return null;
     if (!isIntBetween(qty, 1, MAX_QTY)) return null;
     if (note !== null && (typeof note !== "string" || note.length > MAX_NOTE_LENGTH)) return null;
+    const options = raw.options === undefined ? [] : raw.options;
+    if (!Array.isArray(options) || options.length > MAX_OPTIONS_PER_LINE || !options.every(isId) || new Set(options).size !== options.length) return null;
     ids.add(id);
-    lines.push({ id, menuItemId, qty, note });
+    lines.push({ id, menuItemId, qty, note, options });
   }
   return lines;
 }

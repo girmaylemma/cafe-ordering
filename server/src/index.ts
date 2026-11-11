@@ -38,7 +38,7 @@ export default {
       case "GET /menu":
         return withCafe(request, env, async (cafe, token) => {
           const result = await cafe.tabletMenu(token);
-          return result.ok ? json(200, { categories: result.categories, items: result.items }) : json(401, { error: result.error });
+          return result.ok ? json(200, { categories: result.categories, items: result.items, optionGroups: result.optionGroups }) : json(401, { error: result.error });
         });
       case "GET /tables":
         return withCafe(request, env, async (cafe, token) => {

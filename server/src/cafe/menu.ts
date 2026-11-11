@@ -6,70 +6,13 @@
  */
 import { audit, fail, type AdminActor, type AdminResult } from "./admin";
 import { currentTableState } from "./live";
+import { activeGroupIdsOfItem, groupIdsOfItem, parseGroupIds, setItemGroups, tabletOptionGroups } from "./options";
+import { BAD, anyBad, bool, flag, formatPrice, intBetween, optionalText, parsePrice, requiredText, update, type Bad } from "./fields";
 
 /** The MVP stations (K-10, D-68). Configurable stations would be a later migration. */
 export const STATIONS = ["kitchen", "bar"] as const;
 export type StationId = (typeof STATIONS)[number];
 export const isStation = (v: unknown): v is StationId => (STATIONS as readonly unknown[]).includes(v);
-
-const BAD = Symbol("invalid");
-type Bad = typeof BAD;
-
-// ---------- field parsers: return the value, `undefined` (not given) or BAD ----------
-
-function requiredText(v: unknown, max: number): string | Bad {
-  if (typeof v !== "string") return BAD;
-  const s = v.trim();
-  return s.length > 0 && s.length <= max ? s : BAD;
-}
-
-/** Optional text: missing → undefined, null or "" → null (cleared). */
-function optionalText(v: unknown, max: number): string | null | undefined | Bad {
-  if (v === undefined) return undefined;
-  if (v === null) return null;
-  if (typeof v !== "string") return BAD;
-  const s = v.trim();
-  if (s.length === 0) return null;
-  return s.length <= max ? s : BAD;
-}
-
-function intBetween(v: unknown, min: number, max: number): number | undefined | Bad {
-  if (v === undefined) return undefined;
-  return typeof v === "number" && Number.isSafeInteger(v) && v >= min && v <= max ? v : BAD;
-}
-
-function bool(v: unknown): boolean | undefined | Bad {
-  if (v === undefined) return undefined;
-  return typeof v === "boolean" ? v : BAD;
-}
-
-/**
- * ETB as text with up to 2 decimals ("180", "42.50") → whole santim. Numbers are refused:
- * 42.5 in JSON is a binary float, and money must never pass through one.
- */
-export function parsePrice(v: unknown): number | Bad {
-  if (typeof v !== "string") return BAD;
-  const match = /^(\d{1,7})(?:\.(\d{1,2}))?$/.exec(v.trim());
-  if (match === null) return BAD;
-  return Number(match[1]) * 100 + Number((match[2] ?? "").padEnd(2, "0"));
-}
-
-export function formatPrice(santim: number): string {
-  return `${Math.floor(santim / 100)}.${String(santim % 100).padStart(2, "0")}`;
-}
-
-const anyBad = (...values: unknown[]) => values.some((v) => v === BAD);
-
-/** UPDATE only the given columns (whose names come from this file). */
-function update(sql: SqlStorage, table: string, id: string, changes: Record<string, SqlStorageValue | undefined>): string[] {
-  const entries = Object.entries(changes).filter((e): e is [string, SqlStorageValue] => e[1] !== undefined);
-  if (entries.length > 0) {
-    sql.exec(`UPDATE ${table} SET ${entries.map(([c]) => `${c} = ?`).join(", ")} WHERE id = ?`, ...entries.map(([, v]) => v), id);
-  }
-  return entries.map(([c]) => c);
-}
-
-const flag = (b: boolean | undefined) => (b === undefined ? undefined : b ? 1 : 0);
 
 // ---------- categories ----------
 
@@ -175,7 +118,7 @@ export function listMenuItems(sql: SqlStorage, actor: AdminActor): AdminResult<{
   const rows = sql
     .exec<ItemRow>(`SELECT ${ITEM_COLUMNS} FROM menu_items WHERE venue_id = ? ORDER BY sort_order, name`, actor.venue_id)
     .toArray();
-  return { ok: true, items: rows.map(toItem) };
+  return { ok: true, items: rows.map((r) => ({ ...toItem(r), optionGroupIds: groupIdsOfItem(sql, r.id) })) };
 }
 
 export function createMenuItem(sql: SqlStorage, actor: AdminActor, b: Record<string, unknown>): AdminResult<{ item: MenuItem }> {
@@ -217,7 +160,8 @@ export function updateMenuItem(sql: SqlStorage, actor: AdminActor, id: string, b
   const sortOrder = intBetween(b.sortOrder, 0, 9999);
   const active = bool(b.active);
   const soldOut = bool(b.soldOut); // managers may change sold-out too (3b)
-  if (anyBad(categoryId, nameEn, nameAm, price, stationId, fasting, sortOrder, active, soldOut)) return fail("INVALID_INPUT");
+  const groups = b.optionGroupIds === undefined ? undefined : parseGroupIds(sql, actor.venue_id, b.optionGroupIds);
+  if (anyBad(categoryId, nameEn, nameAm, price, stationId, fasting, sortOrder, active, soldOut, groups)) return fail("INVALID_INPUT");
 
   // A price change never alters orders already sent: they copied the price (D-17).
   const changed = update(sql, "menu_items", id, {
@@ -231,6 +175,10 @@ export function updateMenuItem(sql: SqlStorage, actor: AdminActor, id: string, b
     active: flag(active as boolean | undefined),
     sold_out: flag(soldOut as boolean | undefined),
   });
+  if (groups !== undefined) {
+    setItemGroups(sql, actor.venue_id, id, groups as string[]);
+    changed.push("option_groups");
+  }
   audit(sql, actor, "menu_item.updated", { menuItemId: id, changed });
   return { ok: true, item: toItem(findItem(sql, actor.venue_id, id)!) };
 }
@@ -322,9 +270,9 @@ export function tabletMenu(sql: SqlStorage, venueId: string) {
     .toArray()
     .map((r) => {
       const { price: _price, active: _active, ...item } = toItem(r);
-      return item;
+      return { ...item, optionGroupIds: activeGroupIdsOfItem(sql, r.id) };
     });
-  return { categories, items };
+  return { categories, items, optionGroups: tabletOptionGroups(sql, venueId) };
 }
 
 /** Active tables with the same derived state that is pushed live (W-02, D-74). */

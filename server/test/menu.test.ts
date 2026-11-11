@@ -221,8 +221,9 @@ describe("GET /menu and GET /tables (tablets)", () => {
     expect(await json(response)).toEqual({
       categories: [{ id: food.id, nameEn: "Food", nameAm: "ምግብ", sortOrder: 1 }],
       items: [
-        { id: shiro.id, categoryId: food.id, nameEn: "Shiro", nameAm: "ሽሮ", priceSantim: 18000, stationId: "kitchen", fasting: false, soldOut: false, sortOrder: 0 },
+        { id: shiro.id, categoryId: food.id, nameEn: "Shiro", nameAm: "ሽሮ", priceSantim: 18000, stationId: "kitchen", fasting: false, soldOut: false, sortOrder: 0, optionGroupIds: [] },
       ],
+      optionGroups: [],
     });
   });
 

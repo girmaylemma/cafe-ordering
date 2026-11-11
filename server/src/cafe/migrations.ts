@@ -63,4 +63,45 @@ export const CAFE_MIGRATIONS: readonly Migration[] = [
        ) STRICT`,
     ],
   },
+  {
+    version: 5,
+    description: "item options and add-ons (reusable groups, extra amounts)",
+    statements: [
+      // A reusable group, e.g. "Size: choose exactly 1" or "Extras: choose 0 to 2" (D-77).
+      `CREATE TABLE option_groups (
+         id           TEXT PRIMARY KEY,
+         venue_id     TEXT NOT NULL,
+         name_en      TEXT NOT NULL,
+         name_am      TEXT,
+         min_choices  INTEGER NOT NULL DEFAULT 0 CHECK (min_choices BETWEEN 0 AND 10),
+         max_choices  INTEGER NOT NULL DEFAULT 1 CHECK (max_choices BETWEEN 1 AND 10),
+         sort_order   INTEGER NOT NULL DEFAULT 0,
+         active       INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+         CHECK (min_choices <= max_choices)
+       ) STRICT`,
+      // An option adds an amount to the item's price (0 for free choices like spice level).
+      `CREATE TABLE options (
+         id            TEXT PRIMARY KEY,
+         venue_id      TEXT NOT NULL,
+         group_id      TEXT NOT NULL,
+         name_en       TEXT NOT NULL,
+         name_am       TEXT,
+         extra_santim  INTEGER NOT NULL DEFAULT 0 CHECK (extra_santim >= 0),
+         sort_order    INTEGER NOT NULL DEFAULT 0,
+         active        INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1))
+       ) STRICT`,
+      "CREATE INDEX options_by_group ON options (group_id)",
+      `CREATE TABLE menu_item_option_groups (
+         venue_id      TEXT NOT NULL,
+         menu_item_id  TEXT NOT NULL,
+         group_id      TEXT NOT NULL,
+         sort_order    INTEGER NOT NULL DEFAULT 0,
+         PRIMARY KEY (menu_item_id, group_id)
+       ) STRICT`,
+      // The chosen options as sent (JSON snapshot: names and extras), like name and price (D-17).
+      // price_santim of an order item is the unit price INCLUDING extras.
+      "ALTER TABLE order_items ADD COLUMN options TEXT",
+      "ALTER TABLE order_items ADD COLUMN options_changed INTEGER NOT NULL DEFAULT 0 CHECK (options_changed IN (0, 1))",
+    ],
+  },
 ];

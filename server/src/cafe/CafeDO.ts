@@ -43,6 +43,7 @@ import {
 import { EVENT_COLUMNS, rowToWireEvent, type EventRow, type Handled, type Notice } from "./events";
 import { handleItemCommand, type ItemCommandInput, type ItemCommandResult } from "./items";
 import { refreshTableStates, setSoldOut, soldOutNotice, tablesOfItems } from "./live";
+import { createOption, createOptionGroup, listOptionGroups, updateOption, updateOptionGroup } from "./options";
 import { closeSession, openSession, sendOrder } from "./orders";
 import {
   isId,
@@ -337,6 +338,22 @@ export class CafeDO extends DurableObject<Env> {
   }
   adminUpdateTable(actorId: string, id: string, body: Record<string, unknown>) {
     return this.#asAdmin(actorId, (sql, actor) => updateTable(sql, actor, id, body));
+  }
+
+  adminListOptionGroups(actorId: string) {
+    return this.#asAdmin(actorId, (sql, actor) => listOptionGroups(sql, actor));
+  }
+  adminCreateOptionGroup(actorId: string, body: Record<string, unknown>) {
+    return this.#asAdmin(actorId, (sql, actor) => createOptionGroup(sql, actor, body));
+  }
+  adminUpdateOptionGroup(actorId: string, id: string, body: Record<string, unknown>) {
+    return this.#asAdmin(actorId, (sql, actor) => updateOptionGroup(sql, actor, id, body));
+  }
+  adminCreateOption(actorId: string, groupId: string, body: Record<string, unknown>) {
+    return this.#asAdmin(actorId, (sql, actor) => createOption(sql, actor, groupId, body));
+  }
+  adminUpdateOption(actorId: string, id: string, body: Record<string, unknown>) {
+    return this.#asAdmin(actorId, (sql, actor) => updateOption(sql, actor, id, body));
   }
 
   /** GET /menu for a paired tablet (any kind). */

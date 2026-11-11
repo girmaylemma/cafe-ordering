@@ -108,8 +108,8 @@ describe("parseClientMessage", () => {
         createdAt: 1_700_000_000_000,
         queuedOffline: false,
         items: [
-          { id: "oi-1", menuItemId: "menu-shiro", qty: 2, note: "no onion" },
-          { id: "oi-2", menuItemId: "menu-shiro", qty: 2, note: null },
+          { id: "oi-1", menuItemId: "menu-shiro", qty: 2, note: "no onion", options: [] },
+          { id: "oi-2", menuItemId: "menu-shiro", qty: 2, note: null, options: [] },
         ],
       },
     });

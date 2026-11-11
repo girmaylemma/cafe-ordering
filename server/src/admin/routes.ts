@@ -65,7 +65,7 @@ export async function handleAdmin(request: Request, env: Env): Promise<Response>
   // (4) Route; the café checks role and permissions for every call.
   const path = url.pathname.slice("/admin/api".length);
   // "/staff/abc/pin" -> "/staff/:id/pin", "/tables/abc" -> "/tables/:id"
-  const route = `${request.method} ${path.replace(/^\/(staff|devices|categories|menu-items|tables)\/[^/]+(?=\/|$)/, "/$1/:id")}`;
+  const route = `${request.method} ${path.replace(/^\/(staff|devices|categories|menu-items|tables|option-groups|options)\/[^/]+(?=\/|$)/, "/$1/:id")}`;
   const id = decodeURIComponent(path.split("/")[2] ?? "");
   const hasBody = request.method === "POST" || request.method === "PATCH";
   const body = hasBody ? await readJson(request, 2048) : null;
@@ -109,6 +109,16 @@ export async function handleAdmin(request: Request, env: Env): Promise<Response>
       return respond(await cafe.adminCreateTable(me, b), 201);
     case "PATCH /tables/:id":
       return respond(await cafe.adminUpdateTable(me, id, b));
+    case "GET /option-groups":
+      return respond(await cafe.adminListOptionGroups(me));
+    case "POST /option-groups":
+      return respond(await cafe.adminCreateOptionGroup(me, b), 201);
+    case "PATCH /option-groups/:id":
+      return respond(await cafe.adminUpdateOptionGroup(me, id, b));
+    case "POST /option-groups/:id/options":
+      return respond(await cafe.adminCreateOption(me, id, b), 201);
+    case "PATCH /options/:id":
+      return respond(await cafe.adminUpdateOption(me, id, b));
     default:
       return json(404, { error: "NOT_FOUND" });
   }
