@@ -130,6 +130,25 @@ class AuthController extends AsyncNotifier<AuthState> {
     state = device == null ? const AsyncData(Unpaired()) : AsyncData(NeedsSignIn(device.info));
   }
 
+  /// The live connection was closed by the server (4001 or SESSION_ENDED). That means either
+  /// "your PIN session ended" or "this tablet was revoked"; one REST call tells which.
+  Future<void> accessEnded() async {
+    await _store.clearSession();
+    final device = await _store.loadDevice();
+    if (device == null) {
+      state = const AsyncData(Unpaired());
+      return;
+    }
+    try {
+      await _api.staff(device.token);
+    } on ApiException catch (e) {
+      if (e.status == 401) return _forgetDevice();
+    } on NetworkException {
+      // can't tell; ask for the PIN again (a revoked tablet will be found at sign-in)
+    }
+    state = AsyncData(device.info.kind == DeviceKind.station ? StationReady(device.info) : NeedsSignIn(device.info, error: 'SESSION_ENDED'));
+  }
+
   /// Called when the server says this tablet's token is no longer valid (revoked, D-13).
   Future<void> _forgetDevice() async {
     await _store.clearDevice();

@@ -5,6 +5,7 @@ import 'package:cafe_tablet/app.dart';
 import 'package:cafe_tablet/auth/auth_controller.dart';
 import 'package:cafe_tablet/auth/credentials.dart';
 import 'package:cafe_tablet/providers.dart';
+import 'package:cafe_tablet/session/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -33,6 +34,8 @@ Future<void> pumpApp(WidgetTester tester, ApiClient api, MemoryCredentialStore s
       apiClientProvider.overrideWithValue(api),
       credentialStoreProvider.overrideWithValue(store),
       databaseProvider.overrideWithValue(memoryDb()),
+      // No real WebSocket in widget tests: the floor map's live session is tested in floor_map_test.dart.
+      workSessionProvider.overrideWith((ref) async => null),
     ],
     child: const CafeApp(),
   ));
@@ -82,7 +85,9 @@ void main() {
     await tester.enterText(find.byKey(const Key('pin')), '1234');
     await tester.tap(find.text('Sign in'));
     await tester.pumpAndSettle();
-    expect(find.text('Signed in as Hana'), findsOneWidget);
+    // Signed in: the floor map, titled with the waiter's name.
+    expect(find.widgetWithText(AppBar, 'Hana'), findsOneWidget);
+    await unmountAndFlush(tester);
   });
 
   testWidgets('a locked account says how long to wait', (tester) async {

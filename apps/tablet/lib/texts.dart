@@ -19,6 +19,10 @@ String errorText(String code, {Duration? retryAfter}) {
     case 'LOCKED':
       final minutes = ((retryAfter?.inSeconds ?? 300) / 60).ceil();
       return 'Locked for $minutes minutes after too many wrong PINs.';
+    case 'SESSION_ENDED':
+      return 'You were signed out (the manager ended it, or the shift session expired). Sign in again.';
+    case 'TABLE_ALREADY_OPEN':
+      return 'Someone else just opened this table.';
     case 'UNSENT_ROUNDS':
       return 'Some orders have not reached the kitchen yet. Wait for the connection before signing out.';
     case 'NOT_A_WAITER_DEVICE':

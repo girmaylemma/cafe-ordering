@@ -7,6 +7,8 @@ import 'dart:convert';
 import 'package:cafe_tablet/data/database.dart';
 import 'package:cafe_tablet/sync/connection.dart';
 import 'package:drift/native.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 AppDatabase memoryDb() => AppDatabase(NativeDatabase.memory());
 
@@ -69,4 +71,12 @@ Future<void> settle() async {
   for (var i = 0; i < 20; i++) {
     await Future<void>.delayed(Duration.zero);
   }
+}
+
+/// End a widget test that showed database-backed screens: remove the screen, then let drift's
+/// tiny clean-up timer for cancelled watch streams run. Otherwise the test framework (rightly)
+/// fails with "A Timer is still pending even after the widget tree was disposed".
+Future<void> unmountAndFlush(WidgetTester tester) async {
+  await tester.pumpWidget(const SizedBox());
+  await tester.pump(const Duration(milliseconds: 1));
 }

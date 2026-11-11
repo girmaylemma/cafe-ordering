@@ -182,6 +182,10 @@ class AppDatabase extends _$AppDatabase {
         }
       });
 
+  /// The floor map's tables, in the manager's order.
+  Stream<List<CafeTable>> watchTables() =>
+      (select(cafeTables)..orderBy([(t) => OrderingTerm.asc(t.sortOrder), (t) => OrderingTerm.asc(t.name)])).watch();
+
   /// A `menu.sold_out` push.
   Future<void> setSoldOut(String menuItemId, bool soldOut) =>
       (update(menuItems)..where((i) => i.id.equals(menuItemId))).write(MenuItemsCompanion(soldOut: Value(soldOut)));
