@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "./api";
 import { DevicesPage } from "./pages/DevicesPage";
+import { MenuPage } from "./pages/MenuPage";
 import { StaffPage } from "./pages/StaffPage";
+import { TablesPage } from "./pages/TablesPage";
 import { errorMessage, noAccessMessage, roleLabel } from "./texts";
 import type { Me } from "./types";
 import { useLoad } from "./useLoad";
@@ -9,6 +11,8 @@ import { useLoad } from "./useLoad";
 const PAGES = [
   { id: "staff", label: "Staff" },
   { id: "tablets", label: "Tablets" },
+  { id: "menu", label: "Menu" },
+  { id: "tables", label: "Tables" },
 ] as const;
 type PageId = (typeof PAGES)[number]["id"];
 
@@ -57,7 +61,12 @@ export function App() {
           </button>
         ))}
       </nav>
-      <main>{page === "staff" ? <StaffPage me={me} /> : <DevicesPage me={me} />}</main>
+      <main>
+        {page === "staff" && <StaffPage me={me} />}
+        {page === "tablets" && <DevicesPage me={me} />}
+        {page === "menu" && <MenuPage me={me} />}
+        {page === "tables" && <TablesPage me={me} />}
+      </main>
     </>
   );
 }
