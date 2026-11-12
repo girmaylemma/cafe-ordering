@@ -24,6 +24,13 @@ final _activeKeyProvider = Provider<String?>((ref) {
   };
 });
 
+/// The signed-in waiter or manager (null on a kitchen tablet or before sign-in). Used to decide
+/// what to OFFER (e.g. a manager voids without typing a PIN); the server decides what is ALLOWED.
+final currentUserProvider = Provider<StaffMember?>((ref) => switch (ref.watch(authControllerProvider).value) {
+      SignedIn(:final user) => user,
+      _ => null,
+    });
+
 final workSessionProvider = FutureProvider<WorkSession?>((ref) async {
   if (ref.watch(_activeKeyProvider) == null) return null;
   final auth = ref.read(authControllerProvider.notifier);

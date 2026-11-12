@@ -44,8 +44,14 @@ final _soldOutProvider = StreamProvider.autoDispose<Set<String>>(
 );
 
 class OrderScreen extends ConsumerStatefulWidget {
-  const OrderScreen({super.key, required this.tableId});
+  const OrderScreen({super.key, required this.tableId, this.again = const [], this.replacesOrderId});
   final String tableId;
+
+  /// "Order again" (F2c): a refused round's lines, put into the draft once the menu is read.
+  final List<AgainLine> again;
+
+  /// The refused round this one replaces: removed from the table once the new round is sent.
+  final String? replacesOrderId;
 
   @override
   ConsumerState<OrderScreen> createState() => _OrderScreenState();
@@ -61,7 +67,51 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
     super.initState();
     _draft.addListener(() => setState(() {}));
     _search.addListener(() => setState(() {}));
+    if (widget.again.isNotEmpty) {
+      // Once, when the local menu is read (a few milliseconds; no network).
+      var done = false;
+      ref.listenManual(_menuProvider, (_, next) {
+        final menu = next.value;
+        if (done || menu == null) return;
+        done = true;
+        _orderAgain(menu);
+      }, fireImmediately: true);
+    }
   }
+
+  /// Checked against today's menu: sold-out or removed items and options that no longer fit are
+  /// left out, and the waiter is told which (they may need to choose again by hand).
+  void _orderAgain(_Menu menu) {
+    final items = {for (final i in menu.items) i.id: i};
+    final options = {for (final list in menu.options.values) for (final o in list) o.id: o};
+    final skipped = addAgain(
+      _draft,
+      widget.again,
+      item: (id) {
+        final i = items[id];
+        return i == null || i.soldOut ? null : _draftItem(i);
+      },
+      groups: (id) => [
+        for (final g in _groupsOf(items[id], menu)) DraftGroup(id: g.id, nameEn: g.nameEn, minChoices: g.minChoices, maxChoices: g.maxChoices),
+      ],
+      option: (id) {
+        final o = options[id];
+        return o == null ? null : DraftOption(id: o.id, groupId: o.groupId, nameEn: o.nameEn, extraSantim: o.extraSantim);
+      },
+    );
+    if (skipped.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Not added (sold out or changed): ${skipped.join(', ')}')));
+      });
+    }
+  }
+
+  static DraftItem _draftItem(MenuItem item) =>
+      DraftItem(menuItemId: item.id, nameEn: item.nameEn, nameAm: item.nameAm, priceSantim: item.priceSantim, stationId: item.stationId);
+
+  static List<OptionGroup> _groupsOf(MenuItem? item, _Menu menu) =>
+      item == null ? const [] : [for (final id in (jsonDecode(item.optionGroupIds) as List).cast<String>()) ?menu.groups[id]];
 
   @override
   void dispose() {
@@ -153,9 +203,8 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
   }
 
   Future<void> _tapItem(MenuItem item, _Menu menu) async {
-    final draftItem = DraftItem(menuItemId: item.id, nameEn: item.nameEn, nameAm: item.nameAm, priceSantim: item.priceSantim, stationId: item.stationId);
-    final groupIds = (jsonDecode(item.optionGroupIds) as List).cast<String>();
-    final groups = [for (final id in groupIds) ?menu.groups[id]];
+    final draftItem = _draftItem(item);
+    final groups = _groupsOf(item, menu);
     if (groups.isEmpty) {
       _draft.add(draftItem); // two taps: category, then item (design §5)
       return;
@@ -264,12 +313,15 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
           qty: lines[i].qty,
           note: Value(lines[i].note),
           optionsText: Value(lines[i].optionsText),
+          optionIds: Value(jsonEncode([for (final o in lines[i].options) o.id])),
           priceSantim: lines[i].unitSantim,
           state: 'sent',
           sync: 'sending',
           createdAt: now.microsecondsSinceEpoch + i,
         ),
     ]);
+    final replaced = widget.replacesOrderId;
+    if (replaced != null) await db.dismissRound(replaced); // the new round takes its place
     for (final l in lines) {
       await db.recordOrdered(l.item.menuItemId, now);
     }

@@ -2936,6 +2936,17 @@ class $OrderLinesTable extends OrderLines
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _optionIdsMeta = const VerificationMeta(
+    'optionIds',
+  );
+  @override
+  late final GeneratedColumn<String> optionIds = GeneratedColumn<String>(
+    'option_ids',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _roundMeta = const VerificationMeta('round');
   @override
   late final GeneratedColumn<int> round = GeneratedColumn<int>(
@@ -2995,6 +3006,7 @@ class $OrderLinesTable extends OrderLines
     note,
     optionsText,
     priceSantim,
+    optionIds,
     round,
     state,
     sync,
@@ -3093,6 +3105,12 @@ class $OrderLinesTable extends OrderLines
     } else if (isInserting) {
       context.missing(_priceSantimMeta);
     }
+    if (data.containsKey('option_ids')) {
+      context.handle(
+        _optionIdsMeta,
+        optionIds.isAcceptableOrUnknown(data['option_ids']!, _optionIdsMeta),
+      );
+    }
     if (data.containsKey('round')) {
       context.handle(
         _roundMeta,
@@ -3178,6 +3196,10 @@ class $OrderLinesTable extends OrderLines
         DriftSqlType.int,
         data['${effectivePrefix}price_santim'],
       )!,
+      optionIds: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}option_ids'],
+      ),
       round: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}round'],
@@ -3224,6 +3246,10 @@ class OrderLine extends DataClass implements Insertable<OrderLine> {
   /// Unit price incl. options, for DISPLAY only; the server's price counts (D-17).
   final int priceSantim;
 
+  /// JSON list of the chosen option ids, for "Order again" (F2c). Null for rounds sent from
+  /// another tablet and for lines stored before schema 4.
+  final String? optionIds;
+
   /// Round number from the server; null until the round is confirmed.
   final int? round;
 
@@ -3245,6 +3271,7 @@ class OrderLine extends DataClass implements Insertable<OrderLine> {
     this.note,
     this.optionsText,
     required this.priceSantim,
+    this.optionIds,
     this.round,
     required this.state,
     required this.sync,
@@ -3270,6 +3297,9 @@ class OrderLine extends DataClass implements Insertable<OrderLine> {
       map['options_text'] = Variable<String>(optionsText);
     }
     map['price_santim'] = Variable<int>(priceSantim);
+    if (!nullToAbsent || optionIds != null) {
+      map['option_ids'] = Variable<String>(optionIds);
+    }
     if (!nullToAbsent || round != null) {
       map['round'] = Variable<int>(round);
     }
@@ -3298,6 +3328,9 @@ class OrderLine extends DataClass implements Insertable<OrderLine> {
           ? const Value.absent()
           : Value(optionsText),
       priceSantim: Value(priceSantim),
+      optionIds: optionIds == null && nullToAbsent
+          ? const Value.absent()
+          : Value(optionIds),
       round: round == null && nullToAbsent
           ? const Value.absent()
           : Value(round),
@@ -3326,6 +3359,7 @@ class OrderLine extends DataClass implements Insertable<OrderLine> {
       note: serializer.fromJson<String?>(json['note']),
       optionsText: serializer.fromJson<String?>(json['optionsText']),
       priceSantim: serializer.fromJson<int>(json['priceSantim']),
+      optionIds: serializer.fromJson<String?>(json['optionIds']),
       round: serializer.fromJson<int?>(json['round']),
       state: serializer.fromJson<String>(json['state']),
       sync: serializer.fromJson<String>(json['sync']),
@@ -3347,6 +3381,7 @@ class OrderLine extends DataClass implements Insertable<OrderLine> {
       'note': serializer.toJson<String?>(note),
       'optionsText': serializer.toJson<String?>(optionsText),
       'priceSantim': serializer.toJson<int>(priceSantim),
+      'optionIds': serializer.toJson<String?>(optionIds),
       'round': serializer.toJson<int?>(round),
       'state': serializer.toJson<String>(state),
       'sync': serializer.toJson<String>(sync),
@@ -3366,6 +3401,7 @@ class OrderLine extends DataClass implements Insertable<OrderLine> {
     Value<String?> note = const Value.absent(),
     Value<String?> optionsText = const Value.absent(),
     int? priceSantim,
+    Value<String?> optionIds = const Value.absent(),
     Value<int?> round = const Value.absent(),
     String? state,
     String? sync,
@@ -3382,6 +3418,7 @@ class OrderLine extends DataClass implements Insertable<OrderLine> {
     note: note.present ? note.value : this.note,
     optionsText: optionsText.present ? optionsText.value : this.optionsText,
     priceSantim: priceSantim ?? this.priceSantim,
+    optionIds: optionIds.present ? optionIds.value : this.optionIds,
     round: round.present ? round.value : this.round,
     state: state ?? this.state,
     sync: sync ?? this.sync,
@@ -3406,6 +3443,7 @@ class OrderLine extends DataClass implements Insertable<OrderLine> {
       priceSantim: data.priceSantim.present
           ? data.priceSantim.value
           : this.priceSantim,
+      optionIds: data.optionIds.present ? data.optionIds.value : this.optionIds,
       round: data.round.present ? data.round.value : this.round,
       state: data.state.present ? data.state.value : this.state,
       sync: data.sync.present ? data.sync.value : this.sync,
@@ -3427,6 +3465,7 @@ class OrderLine extends DataClass implements Insertable<OrderLine> {
           ..write('note: $note, ')
           ..write('optionsText: $optionsText, ')
           ..write('priceSantim: $priceSantim, ')
+          ..write('optionIds: $optionIds, ')
           ..write('round: $round, ')
           ..write('state: $state, ')
           ..write('sync: $sync, ')
@@ -3448,6 +3487,7 @@ class OrderLine extends DataClass implements Insertable<OrderLine> {
     note,
     optionsText,
     priceSantim,
+    optionIds,
     round,
     state,
     sync,
@@ -3468,6 +3508,7 @@ class OrderLine extends DataClass implements Insertable<OrderLine> {
           other.note == this.note &&
           other.optionsText == this.optionsText &&
           other.priceSantim == this.priceSantim &&
+          other.optionIds == this.optionIds &&
           other.round == this.round &&
           other.state == this.state &&
           other.sync == this.sync &&
@@ -3486,6 +3527,7 @@ class OrderLinesCompanion extends UpdateCompanion<OrderLine> {
   final Value<String?> note;
   final Value<String?> optionsText;
   final Value<int> priceSantim;
+  final Value<String?> optionIds;
   final Value<int?> round;
   final Value<String> state;
   final Value<String> sync;
@@ -3503,6 +3545,7 @@ class OrderLinesCompanion extends UpdateCompanion<OrderLine> {
     this.note = const Value.absent(),
     this.optionsText = const Value.absent(),
     this.priceSantim = const Value.absent(),
+    this.optionIds = const Value.absent(),
     this.round = const Value.absent(),
     this.state = const Value.absent(),
     this.sync = const Value.absent(),
@@ -3521,6 +3564,7 @@ class OrderLinesCompanion extends UpdateCompanion<OrderLine> {
     this.note = const Value.absent(),
     this.optionsText = const Value.absent(),
     required int priceSantim,
+    this.optionIds = const Value.absent(),
     this.round = const Value.absent(),
     required String state,
     required String sync,
@@ -3548,6 +3592,7 @@ class OrderLinesCompanion extends UpdateCompanion<OrderLine> {
     Expression<String>? note,
     Expression<String>? optionsText,
     Expression<int>? priceSantim,
+    Expression<String>? optionIds,
     Expression<int>? round,
     Expression<String>? state,
     Expression<String>? sync,
@@ -3566,6 +3611,7 @@ class OrderLinesCompanion extends UpdateCompanion<OrderLine> {
       if (note != null) 'note': note,
       if (optionsText != null) 'options_text': optionsText,
       if (priceSantim != null) 'price_santim': priceSantim,
+      if (optionIds != null) 'option_ids': optionIds,
       if (round != null) 'round': round,
       if (state != null) 'state': state,
       if (sync != null) 'sync': sync,
@@ -3586,6 +3632,7 @@ class OrderLinesCompanion extends UpdateCompanion<OrderLine> {
     Value<String?>? note,
     Value<String?>? optionsText,
     Value<int>? priceSantim,
+    Value<String?>? optionIds,
     Value<int?>? round,
     Value<String>? state,
     Value<String>? sync,
@@ -3604,6 +3651,7 @@ class OrderLinesCompanion extends UpdateCompanion<OrderLine> {
       note: note ?? this.note,
       optionsText: optionsText ?? this.optionsText,
       priceSantim: priceSantim ?? this.priceSantim,
+      optionIds: optionIds ?? this.optionIds,
       round: round ?? this.round,
       state: state ?? this.state,
       sync: sync ?? this.sync,
@@ -3646,6 +3694,9 @@ class OrderLinesCompanion extends UpdateCompanion<OrderLine> {
     if (priceSantim.present) {
       map['price_santim'] = Variable<int>(priceSantim.value);
     }
+    if (optionIds.present) {
+      map['option_ids'] = Variable<String>(optionIds.value);
+    }
     if (round.present) {
       map['round'] = Variable<int>(round.value);
     }
@@ -3680,6 +3731,7 @@ class OrderLinesCompanion extends UpdateCompanion<OrderLine> {
           ..write('note: $note, ')
           ..write('optionsText: $optionsText, ')
           ..write('priceSantim: $priceSantim, ')
+          ..write('optionIds: $optionIds, ')
           ..write('round: $round, ')
           ..write('state: $state, ')
           ..write('sync: $sync, ')
@@ -5548,6 +5600,7 @@ typedef $$OrderLinesTableCreateCompanionBuilder =
       Value<String?> note,
       Value<String?> optionsText,
       required int priceSantim,
+      Value<String?> optionIds,
       Value<int?> round,
       required String state,
       required String sync,
@@ -5567,6 +5620,7 @@ typedef $$OrderLinesTableUpdateCompanionBuilder =
       Value<String?> note,
       Value<String?> optionsText,
       Value<int> priceSantim,
+      Value<String?> optionIds,
       Value<int?> round,
       Value<String> state,
       Value<String> sync,
@@ -5631,6 +5685,11 @@ class $$OrderLinesTableFilterComposer
 
   ColumnFilters<int> get priceSantim => $composableBuilder(
     column: $table.priceSantim,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get optionIds => $composableBuilder(
+    column: $table.optionIds,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5719,6 +5778,11 @@ class $$OrderLinesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get optionIds => $composableBuilder(
+    column: $table.optionIds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get round => $composableBuilder(
     column: $table.round,
     builder: (column) => ColumnOrderings(column),
@@ -5790,6 +5854,9 @@ class $$OrderLinesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get optionIds =>
+      $composableBuilder(column: $table.optionIds, builder: (column) => column);
+
   GeneratedColumn<int> get round =>
       $composableBuilder(column: $table.round, builder: (column) => column);
 
@@ -5847,6 +5914,7 @@ class $$OrderLinesTableTableManager
                 Value<String?> note = const Value.absent(),
                 Value<String?> optionsText = const Value.absent(),
                 Value<int> priceSantim = const Value.absent(),
+                Value<String?> optionIds = const Value.absent(),
                 Value<int?> round = const Value.absent(),
                 Value<String> state = const Value.absent(),
                 Value<String> sync = const Value.absent(),
@@ -5864,6 +5932,7 @@ class $$OrderLinesTableTableManager
                 note: note,
                 optionsText: optionsText,
                 priceSantim: priceSantim,
+                optionIds: optionIds,
                 round: round,
                 state: state,
                 sync: sync,
@@ -5883,6 +5952,7 @@ class $$OrderLinesTableTableManager
                 Value<String?> note = const Value.absent(),
                 Value<String?> optionsText = const Value.absent(),
                 required int priceSantim,
+                Value<String?> optionIds = const Value.absent(),
                 Value<int?> round = const Value.absent(),
                 required String state,
                 required String sync,
@@ -5900,6 +5970,7 @@ class $$OrderLinesTableTableManager
                 note: note,
                 optionsText: optionsText,
                 priceSantim: priceSantim,
+                optionIds: optionIds,
                 round: round,
                 state: state,
                 sync: sync,

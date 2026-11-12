@@ -119,6 +119,10 @@ class OrderLines extends Table {
   /// Unit price incl. options, for DISPLAY only; the server's price counts (D-17).
   IntColumn get priceSantim => integer()();
 
+  /// JSON list of the chosen option ids, for "Order again" (F2c). Null for rounds sent from
+  /// another tablet and for lines stored before schema 4.
+  TextColumn get optionIds => text().nullable()();
+
   /// Round number from the server; null until the round is confirmed.
   IntColumn get round => integer().nullable()();
 
@@ -153,7 +157,7 @@ class AppDatabase extends _$AppDatabase {
 
   /// Bump on every schema change and add a step below. Never edit an earlier step.
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -161,6 +165,9 @@ class AppDatabase extends _$AppDatabase {
         onUpgrade: (m, from, to) async {
           if (from < 2) await m.createTable(orderLines); // F2b1: what is on each table
           if (from < 3) await m.createTable(orderHistory); // F2b2: favourites
+          // F2c: order again. Schema 1 just created order_lines WITH this column (createTable uses
+          // today's definition); schemas 2 and 3 have the table without it.
+          if (from >= 2 && from < 4) await m.addColumn(orderLines, orderLines.optionIds);
         },
       );
 
@@ -257,6 +264,20 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> setLinesSync(String orderId, String sync, {String? error}) =>
       (update(orderLines)..where((l) => l.orderId.equals(orderId))).write(OrderLinesCompanion(sync: Value(sync), error: Value(error)));
+
+  /// Every line of one round (for "Order again").
+  Future<List<OrderLine>> linesOfRound(String orderId) =>
+      (select(orderLines)..where((l) => l.orderId.equals(orderId))..orderBy([(l) => OrderingTerm.asc(l.createdAt)])).get();
+
+  /// Forget a round the server refused (the waiter tapped Dismiss): its lines and its outbox
+  /// entry, which would otherwise block sign-out for ever. A round still waiting to be sent is
+  /// never touched: that one is not refused, it just has not gone yet.
+  Future<void> dismissRound(String orderId) => transaction(() async {
+        final waiting = await (select(outboxEntries)..where((o) => o.key.equals(orderId) & o.status.equals('pending'))).getSingleOrNull();
+        if (waiting != null) return;
+        await (delete(orderLines)..where((l) => l.orderId.equals(orderId) & l.sync.equals('needs_attention'))).go();
+        await (delete(outboxEntries)..where((o) => o.key.equals(orderId))).go();
+      });
 
   /// Apply one item event from the server (live push or catch-up).
   Future<void> applyItemEvent(Map<String, dynamic> e) async {

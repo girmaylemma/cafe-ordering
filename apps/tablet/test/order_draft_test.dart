@@ -93,4 +93,55 @@ void main() {
       expect(await db.favouriteItemIds(now), ['shiro', 'mac']);
     });
   });
+
+  group('order again (a round the server refused)', () {
+    const size = DraftGroup(id: 'g-size', nameEn: 'Size', minChoices: 1, maxChoices: 1);
+    final menu = {'shiro': shiro, 'mac': mac};
+    final options = {'o-large': large};
+    List<String> again(OrderDraft draft, List<AgainLine> lines, {Set<String> soldOut = const {}}) => addAgain(
+          draft,
+          lines,
+          item: (id) => soldOut.contains(id) ? null : menu[id],
+          groups: (id) => id == 'mac' ? const [size] : const [],
+          option: (id) => options[id],
+        );
+
+    test('the same items, quantities, notes and options go into the new round', () {
+      final draft = OrderDraft();
+      final skipped = again(draft, const [
+        AgainLine(name: 'Shiro', menuItemId: 'shiro', qty: 2, note: 'no onion'),
+        AgainLine(name: 'Macchiato', menuItemId: 'mac', qty: 1, optionIds: ['o-large']),
+      ]);
+
+      expect(skipped, isEmpty);
+      expect(draft.lines.map((l) => (l.item.menuItemId, l.qty, l.note, l.optionsText)), [('shiro', 2, 'no onion', null), ('mac', 1, null, 'Large')]);
+    });
+
+    test('an item now sold out or removed from the menu is left out and named', () {
+      final draft = OrderDraft();
+      final skipped = again(draft, const [
+        AgainLine(name: 'Shiro', menuItemId: 'shiro', qty: 1),
+        AgainLine(name: 'Kitfo', menuItemId: 'kitfo', qty: 1),
+      ], soldOut: {'shiro'});
+
+      expect(draft.isEmpty, isTrue);
+      expect(skipped, ['Shiro', 'Kitfo']);
+    });
+
+    test('an option that no longer exists leaves a required choice open: the line is left out', () {
+      final draft = OrderDraft();
+      final skipped = again(draft, const [AgainLine(name: 'Macchiato', menuItemId: 'mac', qty: 1, optionIds: ['o-gone'])]);
+
+      expect(draft.isEmpty, isTrue);
+      expect(skipped, ['Macchiato']);
+    });
+
+    test('the new round gets NEW item ids (it is a new round, not a resend)', () {
+      final draft = OrderDraft();
+      again(draft, const [AgainLine(name: 'Shiro', menuItemId: 'shiro', qty: 1)]);
+      final a = draft.toMessage(orderId: 'o1', sessionId: 's1', tableId: 't7', now: DateTime(2026));
+      final b = draft.toMessage(orderId: 'o2', sessionId: 's1', tableId: 't7', now: DateTime(2026));
+      expect((a['items'] as List).single['id'], isNot((b['items'] as List).single['id']));
+    });
+  });
 }

@@ -27,6 +27,36 @@ String errorText(String code, {Duration? retryAfter}) {
       return 'Some orders have not reached the kitchen yet. Wait for the connection before signing out.';
     case 'NOT_A_WAITER_DEVICE':
       return 'This is a kitchen tablet: nobody signs in on it.';
+    // ---------- waiter actions (F2c) ----------
+    case 'NEEDS_CONNECTION':
+      return 'Needs internet: this cannot wait offline. Try again when the connection is back.';
+    case 'NO_ANSWER':
+      return 'No answer from the server. Check the table: it may have worked. If not, try again.';
+    case 'NEEDS_MANAGER_VOID':
+      return 'The kitchen already accepted it. Ask a manager to void it.';
+    case 'NOT_ALLOWED_FROM_STATE':
+      return 'Not possible any more: the item changed. Look at its state now.';
+    case 'ITEMS_NOT_FINISHED':
+      return 'Some items are not finished yet. Mark them delivered, cancelled or voided first.';
+    case 'NOT_YOUR_TABLE':
+      return 'This table belongs to another waiter.';
+    case 'SESSION_CLOSED':
+      return 'This table was already closed.';
+    case 'SESSION_NOT_FOUND':
+      return 'The server does not know this table visit yet. Wait a moment and try again.';
+    case 'TABLE_NOT_FOUND':
+      return 'That table no longer exists.';
+    case 'STAFF_NOT_FOUND':
+      return 'That waiter is not active any more.';
+    case 'MANAGER_PIN_INVALID':
+      return 'Wrong manager PIN. Try again.';
+    case 'MANAGER_APPROVAL_REQUIRED':
+      return 'A manager must approve this.';
+    case 'MANAGER_LOCKED':
+      final minutes = ((retryAfter?.inSeconds ?? 300) / 60).ceil();
+      return 'Manager PIN locked for $minutes minutes after too many wrong tries.';
+    case 'VOID_NEEDS_REASON':
+      return 'Write why the item is voided.';
     default:
       return 'Something went wrong ($code). Try again.';
   }

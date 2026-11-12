@@ -6,6 +6,7 @@ import 'dart:async';
 
 import '../api/api_client.dart';
 import '../data/database.dart';
+import '../sync/commands.dart';
 import '../sync/connection.dart';
 import '../sync/outbox.dart';
 
@@ -25,6 +26,7 @@ class WorkSession {
       final ok = result['ok'] == true;
       unawaited(_db.setLinesSync(key, ok ? 'sent' : 'needs_attention', error: ok ? null : '${result['error']}'));
     });
+    commands = TableCommands(connection);
   }
 
   final ApiClient _api;
@@ -35,12 +37,18 @@ class WorkSession {
   late final Connection connection;
   late final Outbox outbox;
 
-  final _staff = <String, String>{};
+  /// Actions that need a connection (delivered, cancel, void, close, move, merge, hand over).
+  late final TableCommands commands;
+
+  final _staff = <String, StaffMember>{};
   final _subscriptions = <StreamSubscription<Object?>>[];
   bool _accessEndedReported = false;
 
   /// A staff member's name for the floor map (null if unknown, e.g. never downloaded).
-  String? staffName(String? id) => id == null ? null : _staff[id];
+  String? staffName(String? id) => id == null ? null : _staff[id]?.name;
+
+  /// Active staff as last downloaded (for hand-over and the manager list of a void).
+  List<StaffMember> get staff => List.unmodifiable(_staff.values);
 
   Future<void> start() async {
     _subscriptions
@@ -74,7 +82,7 @@ class WorkSession {
       await _db.replaceTables(tables['tables'] as List);
       _staff
         ..clear()
-        ..addEntries(staff.map((s) => MapEntry(s.id, s.name)));
+        ..addEntries(staff.map((s) => MapEntry(s.id, s)));
     } on NetworkException {
       // keep what we have; we'll try again when the connection is back
     } on ApiException catch (e) {

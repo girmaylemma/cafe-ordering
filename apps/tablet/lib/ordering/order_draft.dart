@@ -57,18 +57,18 @@ class OrderDraft extends ChangeNotifier {
 
   /// Add an item. A plain item (no options, no note) joins an existing plain line of the same
   /// item; anything with options or a note gets its own line.
-  void add(DraftItem item, {List<DraftOption> options = const [], String? note}) {
+  void add(DraftItem item, {List<DraftOption> options = const [], String? note, int qty = 1}) {
     final cleanNote = (note == null || note.trim().isEmpty) ? null : note.trim();
     if (options.isEmpty && cleanNote == null) {
       for (final l in _lines) {
         if (l.isPlain && l.item.menuItemId == item.menuItemId) {
-          l.qty++;
+          l.qty += qty;
           notifyListeners();
           return;
         }
       }
     }
-    _lines.add(DraftLine(key: 'l${_keys++}', item: item, options: List.of(options), note: cleanNote, qty: 1));
+    _lines.add(DraftLine(key: 'l${_keys++}', item: item, options: List.of(options), note: cleanNote, qty: qty));
     notifyListeners();
   }
 
@@ -110,6 +110,46 @@ class OrderDraft extends ChangeNotifier {
             {'id': newId(), 'menuItemId': l.item.menuItemId, 'qty': l.qty, 'note': l.note, 'options': [for (final o in l.options) o.id]},
         ],
       };
+}
+
+/// One line of a refused round, to be ordered again (F2c).
+class AgainLine {
+  const AgainLine({required this.name, required this.menuItemId, required this.qty, this.note, this.optionIds = const []});
+  final String name;
+  final String menuItemId;
+  final int qty;
+  final String? note;
+  final List<String> optionIds;
+}
+
+/// Put a refused round's lines into [draft] as a NEW round (new ids are made by [OrderDraft.toMessage]).
+/// Checked against the CURRENT menu: an item that is gone or sold out, or whose options no longer
+/// fit (removed option, required choice now missing), is left out. Returns the names left out.
+List<String> addAgain(
+  OrderDraft draft,
+  List<AgainLine> lines, {
+  required DraftItem? Function(String menuItemId) item,
+  required List<DraftGroup> Function(String menuItemId) groups,
+  required DraftOption? Function(String optionId) option,
+}) {
+  final skipped = <String>[];
+  for (final l in lines) {
+    final current = item(l.menuItemId);
+    final chosen = [for (final id in l.optionIds) option(id)];
+    final itemGroups = groups(l.menuItemId);
+    final options = chosen.whereType<DraftOption>().toList();
+    final fits = current != null &&
+        options.length == chosen.length &&
+        options.every((o) => itemGroups.any((g) => g.id == o.groupId)) &&
+        missingChoices(itemGroups, options).isEmpty &&
+        itemGroups.every((g) => options.where((o) => o.groupId == g.id).length <= g.maxChoices);
+    if (fits) {
+      draft.add(current, options: options, note: l.note, qty: l.qty);
+    } else {
+      skipped.add(l.name);
+    }
+  }
+  return skipped;
 }
 
 /// Names of required groups that are not chosen yet (empty = ready to add).
