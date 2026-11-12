@@ -87,6 +87,7 @@ class Connection {
 
   /// Everything the server pushes: item events ({type: event}), table.state, menu.sold_out,
   /// table.transferred, and {type: reload} when catch-up was too long (download everything again).
+  /// Events from catch-up carry `replay: true`: they are history (no alerts for them).
   Stream<Map<String, dynamic>> get pushes => _pushes.stream;
 
   void start() {
@@ -179,7 +180,7 @@ class Connection {
       case 'sync.result':
         for (final event in (message['events'] as List).cast<Map<String, dynamic>>()) {
           await _advance(event['seq'] as int);
-          _pushes.add({'type': 'event', 'event': event});
+          _pushes.add({'type': 'event', 'event': event, 'replay': true});
         }
         if (message['reloadRequired'] == true) _pushes.add(const {'type': 'reload'});
       case 'error' when message['error'] == 'SESSION_ENDED':

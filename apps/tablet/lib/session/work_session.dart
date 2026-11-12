@@ -4,6 +4,7 @@ library;
 
 import 'dart:async';
 
+import '../alerts/waiter_alerts.dart';
 import '../api/api_client.dart';
 import '../data/database.dart';
 import '../sync/commands.dart';
@@ -19,6 +20,8 @@ class WorkSession {
     required SocketConnector connect,
     Future<void> Function(Duration)? delay,
     this._onAccessEnded,
+    String? userId,
+    AlertOutput? alertOutput,
   }) {
     connection = Connection(connect: connect, db: _db, delay: delay);
     // A round that waited offline: show its final answer on the table screen.
@@ -27,6 +30,10 @@ class WorkSession {
       unawaited(_db.setLinesSync(key, ok ? 'sent' : 'needs_attention', error: ok ? null : '${result['error']}'));
     });
     commands = TableCommands(connection);
+    // Only a signed-in waiter's tablet rings (a kitchen tablet has no user and no alerts).
+    alerts = userId == null || alertOutput == null
+        ? null
+        : WaiterAlerts(db: _db, myUserId: userId, output: alertOutput, staffName: staffName);
   }
 
   final ApiClient _api;
@@ -39,6 +46,9 @@ class WorkSession {
 
   /// Actions that need a connection (delivered, cancel, void, close, move, merge, hand over).
   late final TableCommands commands;
+
+  /// The waiter's alerts (null on a kitchen tablet).
+  late final WaiterAlerts? alerts;
 
   final _staff = <String, StaffMember>{};
   final _subscriptions = <StreamSubscription<Object?>>[];
@@ -70,6 +80,7 @@ class WorkSession {
     _subscriptions.clear();
     await outbox.stop();
     await connection.stop();
+    alerts?.dispose();
   }
 
   /// Download the menu, tables and staff names. Never deletes data when offline.
@@ -101,6 +112,7 @@ class WorkSession {
       case 'event':
         await _db.applyItemEvent((push['event'] as Map).cast<String, dynamic>());
     }
+    await alerts?.onPush(push); // after the database: the rules read the item's current table
   }
 
   Future<void> _accessEnded() async {

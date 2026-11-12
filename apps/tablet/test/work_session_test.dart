@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:cafe_tablet/alerts/waiter_alerts.dart';
 import 'package:cafe_tablet/api/api_client.dart';
 import 'package:cafe_tablet/data/database.dart';
 import 'package:cafe_tablet/session/work_session.dart';
@@ -7,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+import 'alerts_test.dart' show FakeOutput;
 import 'fakes.dart';
 
 const waiter = DeviceInfo(id: 'd1', name: 'Tab 1', kind: DeviceKind.waiter, stationId: null);
@@ -198,5 +200,56 @@ void main() {
     final lines = {for (final l in await db.select(db.orderLines).get()) l.orderId: (l.sync, l.error)};
     expect(lines, {'o1': ('needs_attention', 'TABLE_NOT_FOUND'), 'o2': ('sent', null)});
   });
-}
 
+  test('pushes are applied one at a time, in order: sent, accepted, ready for one item end as ready', () async {
+    final socket = FakeSocket();
+    server.tableState = 'ordered';
+    await start([socket]);
+    Map<String, dynamic> e(int seq, String type, String? from, String to) => {
+          'seq': seq, 'orderId': 'o1', 'itemId': 'i1', 'stationId': 'kitchen', 'type': type, 'from': from, 'to': to, 'at': 1,
+          if (type == 'item.sent') 'details': {'tableId': 't7', 'round': 1, 'name': 'Shiro', 'nameAm': null, 'qty': 1, 'note': null, 'options': <Object>[]},
+        };
+
+    // One catch-up message: the insert (sent) must finish before the updates run.
+    socket.receive({'type': 'sync.result', 'reloadRequired': false, 'events': [e(1, 'item.sent', null, 'sent'), e(2, 'item.accepted', 'sent', 'accepted'), e(3, 'item.ready', 'accepted', 'ready')]});
+    await settle();
+
+    expect((await db.select(db.orderLines).getSingle()).state, 'ready');
+  });
+
+  test('real wiring: a live Ready push on my table rings; the same from catch-up does not', () async {
+    final socket = FakeSocket();
+    final output = FakeOutput();
+    db = memoryDb();
+    final session = WorkSession(
+      api: server.api(),
+      db: db,
+      device: waiter,
+      deviceToken: 't',
+      connect: FakeServer([socket]).connect,
+      delay: (_) async {},
+      userId: 'hana',
+      alertOutput: output,
+    );
+    addTearDown(() async {
+      await session.stop();
+      await db.close();
+    });
+    await session.start();
+    await settle();
+    Map<String, dynamic> e(int seq, String itemId, String type, String? from, String to) => {
+          'seq': seq, 'orderId': 'o1', 'itemId': itemId, 'stationId': 'kitchen', 'type': type, 'from': from, 'to': to, 'at': 1,
+          if (type == 'item.sent') 'details': {'tableId': 't7', 'round': 1, 'name': 'Shiro', 'nameAm': null, 'qty': 1, 'note': null, 'options': <Object>[]},
+        };
+    socket.receive({'type': 'table.state', 'tableId': 't7', 'state': 'ordered', 'sessionId': 's1', 'waiterId': 'hana'});
+    socket.receive({'type': 'sync.result', 'reloadRequired': false, 'events': [e(1, 'i1', 'item.sent', null, 'sent'), e(2, 'i1', 'item.ready', 'accepted', 'ready')]});
+    await settle();
+    expect(output.rings, isEmpty); // history
+
+    socket.receive({'type': 'event', 'event': e(3, 'i2', 'item.sent', null, 'sent')});
+    socket.receive({'type': 'event', 'event': e(4, 'i2', 'item.ready', 'accepted', 'ready')});
+    await settle();
+
+    expect(output.rings, [AlertSound.loud]);
+  });
+}

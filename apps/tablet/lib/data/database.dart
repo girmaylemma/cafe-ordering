@@ -265,6 +265,8 @@ class AppDatabase extends _$AppDatabase {
   Future<void> setLinesSync(String orderId, String sync, {String? error}) =>
       (update(orderLines)..where((l) => l.orderId.equals(orderId))).write(OrderLinesCompanion(sync: Value(sync), error: Value(error)));
 
+  Future<OrderLine?> lineById(String itemId) => (select(orderLines)..where((l) => l.id.equals(itemId))).getSingleOrNull();
+
   /// Every line of one round (for "Order again").
   Future<List<OrderLine>> linesOfRound(String orderId) =>
       (select(orderLines)..where((l) => l.orderId.equals(orderId))..orderBy([(l) => OrderingTerm.asc(l.createdAt)])).get();

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'auth/auth_controller.dart';
 import 'texts.dart';
+import 'ui/alert_banner.dart';
 import 'ui/floor_map_screen.dart';
 import 'ui/pair_screen.dart';
 import 'ui/pin_screen.dart';
@@ -17,6 +18,7 @@ class CafeApp extends ConsumerWidget {
     return MaterialApp(
       title: 'Café',
       theme: ThemeData(colorSchemeSeed: const Color(0xFF0B6E4F), useMaterial3: true),
+      builder: (context, child) => AlertBanner(child: child!), // over every screen (F2c2)
       home: switch (auth) {
         AsyncData(:final value) => switch (value) {
             Unpaired(:final error) => PairScreen(error: error),

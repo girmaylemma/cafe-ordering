@@ -61,6 +61,8 @@ void main() {
 
     expect(await db.lastSeq(), 6);
     expect(pushes.map((p) => p['event']?['type'] ?? p['type']), ['item.sent', 'item.accepted', 'item.ready']);
+    // Catch-up is history: marked, so the waiter's tablet doesn't ring for it (F2c2).
+    expect(pushes.map((p) => p['replay'] == true), [true, true, false]);
   });
 
   test('a catch-up that is too long asks the app to reload everything', () async {

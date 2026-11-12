@@ -5,6 +5,8 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../alerts/device_output.dart';
+import '../alerts/waiter_alerts.dart';
 import '../api/api_client.dart';
 import '../auth/auth_controller.dart';
 import '../config.dart';
@@ -45,10 +47,25 @@ final workSessionProvider = FutureProvider<WorkSession?>((ref) async {
     deviceToken: device.token,
     connect: () => connectSocket(Uri.parse(apiBaseUrl), device.token, session?.sessionToken),
     onAccessEnded: auth.accessEnded,
+    userId: session?.user.id,
+    alertOutput: session == null ? null : ref.read(alertOutputProvider),
   );
   ref.onDispose(work.stop);
   unawaited(work.start()); // don't wait for the first download: the cached data shows at once
   return work;
+});
+
+/// The phone's speaker and vibrator (replaced by a fake in tests).
+final alertOutputProvider = Provider<AlertOutput>((ref) {
+  final output = DeviceAlertOutput();
+  ref.onDispose(output.dispose);
+  return output;
+});
+
+/// Alerts to show as banners (none on a kitchen tablet or before sign-in).
+final alertsProvider = StreamProvider<Alert>((ref) async* {
+  final alerts = (await ref.watch(workSessionProvider.future))?.alerts;
+  if (alerts != null) yield* alerts.alerts;
 });
 
 final linkStateProvider = StreamProvider<LinkState>((ref) async* {
