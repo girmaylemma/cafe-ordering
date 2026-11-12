@@ -153,4 +153,22 @@ void main() {
 
     expect(accessEnded, 1);
   });
+
+  test('item events, live and from catch-up, become the lines of the table screen', () async {
+    final socket = FakeSocket();
+    await start([socket]);
+    Map<String, dynamic> sentEvent(int seq, String itemId) => {
+          'seq': seq, 'orderId': 'o1', 'itemId': itemId, 'stationId': 'kitchen', 'type': 'item.sent', 'from': null, 'to': 'sent',
+          'details': {'tableId': 't7', 'round': 1, 'name': 'Shiro', 'nameAm': null, 'qty': 1, 'note': null, 'options': <Object>[]},
+        };
+
+    socket.receive({'type': 'sync.result', 'reloadRequired': false, 'events': [sentEvent(1, 'i1')]});
+    socket.receive({'type': 'event', 'event': sentEvent(2, 'i2')});
+    socket.receive({'type': 'event', 'event': {'seq': 3, 'orderId': 'o1', 'itemId': 'i1', 'stationId': 'kitchen', 'type': 'item.ready', 'from': 'accepted', 'to': 'ready'}});
+    await settle();
+
+    final lines = await db.select(db.orderLines).get();
+    expect({for (final l in lines) l.id: l.state}, {'i1': 'ready', 'i2': 'sent'});
+  });
 }
+

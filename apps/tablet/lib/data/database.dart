@@ -100,6 +100,39 @@ class OutboxEntries extends Table {
   Set<Column> get primaryKey => {key};
 }
 
+/// What is on the waiter's tables right now: built from item events (sent, accepted, ready ...)
+/// plus rounds this tablet has not got confirmed yet. Cleared when a table becomes free.
+class OrderLines extends Table {
+  /// The item id (UUID v7 made on the tablet).
+  TextColumn get id => text()();
+  TextColumn get orderId => text()();
+  TextColumn get tableId => text()();
+  TextColumn get menuItemId => text()();
+  TextColumn get nameEn => text()();
+  TextColumn get nameAm => text().nullable()();
+  IntColumn get qty => integer()();
+  TextColumn get note => text().nullable()();
+
+  /// Chosen options for display, e.g. "Large, Honey".
+  TextColumn get optionsText => text().nullable()();
+
+  /// Unit price incl. options, for DISPLAY only; the server's price counts (D-17).
+  IntColumn get priceSantim => integer()();
+
+  /// Round number from the server; null until the round is confirmed.
+  IntColumn get round => integer().nullable()();
+
+  /// sent, accepted, ready, delivered, cancelled, voided (the server's item state).
+  TextColumn get state => text()();
+
+  /// queued, sending, sent, needs_attention: has the server got it? (not an order state)
+  TextColumn get sync => text()();
+  TextColumn get error => text().nullable()();
+  IntColumn get createdAt => integer()();
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 class KeyValues extends Table {
   TextColumn get key => text()();
   TextColumn get value => text()();
@@ -107,12 +140,21 @@ class KeyValues extends Table {
   Set<Column> get primaryKey => {key};
 }
 
-@DriftDatabase(tables: [Categories, MenuItems, OptionGroups, OptionChoices, CafeTables, OutboxEntries, KeyValues])
+@DriftDatabase(tables: [Categories, MenuItems, OptionGroups, OptionChoices, CafeTables, OutboxEntries, KeyValues, OrderLines])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? driftDatabase(name: 'cafe'));
 
+  /// Bump on every schema change and add a step below. Never edit an earlier step.
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) => m.createAll(),
+        onUpgrade: (m, from, to) async {
+          if (from < 2) await m.createTable(orderLines); // F2b1: what is on each table
+        },
+      );
 
   // ---------- menu and tables ----------
 
@@ -168,6 +210,9 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> replaceTables(List<dynamic> list) => transaction(() async {
         await delete(cafeTables).go();
+        // Visits that ended while we were away: forget their lines.
+        final free = list.cast<Map<String, dynamic>>().where((t) => t['state'] == 'free').map((t) => t['id'] as String).toList();
+        await (delete(orderLines)..where((l) => l.tableId.isIn(free))).go();
         for (final t in list.cast<Map<String, dynamic>>()) {
           await into(cafeTables).insert(CafeTablesCompanion.insert(
             id: t['id'] as String,
@@ -190,10 +235,67 @@ class AppDatabase extends _$AppDatabase {
   Future<void> setSoldOut(String menuItemId, bool soldOut) =>
       (update(menuItems)..where((i) => i.id.equals(menuItemId))).write(MenuItemsCompanion(soldOut: Value(soldOut)));
 
-  /// A `table.state` push.
-  Future<void> setTableState(String tableId, String state, String? sessionId, String? waiterId) =>
-      (update(cafeTables)..where((t) => t.id.equals(tableId)))
-          .write(CafeTablesCompanion(state: Value(state), sessionId: Value(sessionId), waiterId: Value(waiterId)));
+  /// A `table.state` push. A table that becomes free ends its visit: its lines are removed.
+  Future<void> setTableState(String tableId, String state, String? sessionId, String? waiterId) => transaction(() async {
+        await (update(cafeTables)..where((t) => t.id.equals(tableId)))
+            .write(CafeTablesCompanion(state: Value(state), sessionId: Value(sessionId), waiterId: Value(waiterId)));
+        if (state == 'free') await (delete(orderLines)..where((l) => l.tableId.equals(tableId))).go();
+      });
+
+  // ---------- order lines ----------
+
+  /// Lines this tablet just created (sending or queued), before the server confirms them.
+  Future<void> addLocalLines(List<OrderLinesCompanion> lines) => batch((b) => b.insertAll(orderLines, lines, mode: InsertMode.insertOrReplace));
+
+  Future<void> setLinesSync(String orderId, String sync, {String? error}) =>
+      (update(orderLines)..where((l) => l.orderId.equals(orderId))).write(OrderLinesCompanion(sync: Value(sync), error: Value(error)));
+
+  /// Apply one item event from the server (live push or catch-up).
+  Future<void> applyItemEvent(Map<String, dynamic> e) async {
+    final id = e['itemId'] as String;
+    final details = (e['details'] as Map?)?.cast<String, dynamic>();
+    switch (e['type']) {
+      case 'item.sent':
+        final d = details ?? const {};
+        final options = ((d['options'] as List?) ?? const []).map((o) => (o as Map)['nameEn']).join(', ');
+        final existing = await (select(orderLines)..where((l) => l.id.equals(id))).getSingleOrNull();
+        if (existing != null) {
+          // Our own round, confirmed: keep the display price we already have.
+          await (update(orderLines)..where((l) => l.id.equals(id)))
+              .write(OrderLinesCompanion(sync: const Value('sent'), error: const Value(null), round: Value(d['round'] as int?), state: Value(e['to'] as String)));
+          return;
+        }
+        await into(orderLines).insert(OrderLinesCompanion.insert(
+          id: id,
+          orderId: e['orderId'] as String,
+          tableId: d['tableId'] as String,
+          menuItemId: '',
+          nameEn: d['name'] as String,
+          nameAm: Value(d['nameAm'] as String?),
+          qty: d['qty'] as int,
+          note: Value(d['note'] as String?),
+          optionsText: Value(options.isEmpty ? null : options),
+          priceSantim: 0, // unknown for rounds sent from another tablet (display only)
+          round: Value(d['round'] as int?),
+          state: e['to'] as String,
+          sync: 'sent',
+          createdAt: e['at'] is int ? (e['at'] as int) * 1000 : 0,
+        ));
+      case 'item.table_changed':
+        await (update(orderLines)..where((l) => l.id.equals(id))).write(OrderLinesCompanion(tableId: Value(details!['tableId'] as String)));
+      default:
+        // accepted, ready, delivered, cancelled, voided, undone: the item's new state (ignored if unknown here)
+        await (update(orderLines)..where((l) => l.id.equals(id))).write(OrderLinesCompanion(state: Value(e['to'] as String)));
+    }
+  }
+
+  /// The current visit's lines of one table, round by round (unconfirmed rounds last).
+  Stream<List<OrderLine>> watchLines(String tableId) => (select(orderLines)
+        ..where((l) => l.tableId.equals(tableId))
+        ..orderBy([(l) => OrderingTerm(expression: l.round, nulls: NullsOrder.last), (l) => OrderingTerm.asc(l.createdAt)]))
+      .watch();
+
+  Stream<CafeTable?> watchTable(String tableId) => (select(cafeTables)..where((t) => t.id.equals(tableId))).watchSingleOrNull();
 
   // ---------- outbox ----------
 

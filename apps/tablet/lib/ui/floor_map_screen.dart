@@ -10,6 +10,7 @@ import '../session/providers.dart';
 import '../sync/connection.dart';
 import '../sync/outbox.dart';
 import '../texts.dart';
+import 'table_screen.dart';
 
 /// The waiter's home: every table with its live state (W-02), grouped by area.
 class FloorMapScreen extends ConsumerStatefulWidget {
@@ -96,7 +97,7 @@ class _FloorMapScreenState extends ConsumerState<FloorMapScreen> {
     final messenger = ScaffoldMessenger.of(context);
     if (t.state == 'free') return _openTable(t);
     if (t.waiterId == widget.user.id) {
-      messenger.showSnackBar(SnackBar(content: Text('${t.name}: ordering comes in the next step (F2b).')));
+      await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TableScreen(tableId: t.id)));
       return;
     }
     final holder = ref.read(workSessionProvider).value?.staffName(t.waiterId) ?? 'another waiter';

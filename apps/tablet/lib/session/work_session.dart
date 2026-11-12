@@ -86,6 +86,8 @@ class WorkSession {
         await _db.setSoldOut(push['menuItemId'] as String, push['soldOut'] as bool);
       case 'reload':
         await refresh();
+      case 'event':
+        await _db.applyItemEvent((push['event'] as Map).cast<String, dynamic>());
     }
   }
 

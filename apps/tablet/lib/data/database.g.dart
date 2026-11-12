@@ -2830,6 +2830,867 @@ class KeyValuesCompanion extends UpdateCompanion<KeyValue> {
   }
 }
 
+class $OrderLinesTable extends OrderLines
+    with TableInfo<$OrderLinesTable, OrderLine> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $OrderLinesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _orderIdMeta = const VerificationMeta(
+    'orderId',
+  );
+  @override
+  late final GeneratedColumn<String> orderId = GeneratedColumn<String>(
+    'order_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tableIdMeta = const VerificationMeta(
+    'tableId',
+  );
+  @override
+  late final GeneratedColumn<String> tableId = GeneratedColumn<String>(
+    'table_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _menuItemIdMeta = const VerificationMeta(
+    'menuItemId',
+  );
+  @override
+  late final GeneratedColumn<String> menuItemId = GeneratedColumn<String>(
+    'menu_item_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameEnMeta = const VerificationMeta('nameEn');
+  @override
+  late final GeneratedColumn<String> nameEn = GeneratedColumn<String>(
+    'name_en',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameAmMeta = const VerificationMeta('nameAm');
+  @override
+  late final GeneratedColumn<String> nameAm = GeneratedColumn<String>(
+    'name_am',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _qtyMeta = const VerificationMeta('qty');
+  @override
+  late final GeneratedColumn<int> qty = GeneratedColumn<int>(
+    'qty',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _optionsTextMeta = const VerificationMeta(
+    'optionsText',
+  );
+  @override
+  late final GeneratedColumn<String> optionsText = GeneratedColumn<String>(
+    'options_text',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _priceSantimMeta = const VerificationMeta(
+    'priceSantim',
+  );
+  @override
+  late final GeneratedColumn<int> priceSantim = GeneratedColumn<int>(
+    'price_santim',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _roundMeta = const VerificationMeta('round');
+  @override
+  late final GeneratedColumn<int> round = GeneratedColumn<int>(
+    'round',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _stateMeta = const VerificationMeta('state');
+  @override
+  late final GeneratedColumn<String> state = GeneratedColumn<String>(
+    'state',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _syncMeta = const VerificationMeta('sync');
+  @override
+  late final GeneratedColumn<String> sync = GeneratedColumn<String>(
+    'sync',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _errorMeta = const VerificationMeta('error');
+  @override
+  late final GeneratedColumn<String> error = GeneratedColumn<String>(
+    'error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    orderId,
+    tableId,
+    menuItemId,
+    nameEn,
+    nameAm,
+    qty,
+    note,
+    optionsText,
+    priceSantim,
+    round,
+    state,
+    sync,
+    error,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'order_lines';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<OrderLine> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('order_id')) {
+      context.handle(
+        _orderIdMeta,
+        orderId.isAcceptableOrUnknown(data['order_id']!, _orderIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_orderIdMeta);
+    }
+    if (data.containsKey('table_id')) {
+      context.handle(
+        _tableIdMeta,
+        tableId.isAcceptableOrUnknown(data['table_id']!, _tableIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tableIdMeta);
+    }
+    if (data.containsKey('menu_item_id')) {
+      context.handle(
+        _menuItemIdMeta,
+        menuItemId.isAcceptableOrUnknown(
+          data['menu_item_id']!,
+          _menuItemIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_menuItemIdMeta);
+    }
+    if (data.containsKey('name_en')) {
+      context.handle(
+        _nameEnMeta,
+        nameEn.isAcceptableOrUnknown(data['name_en']!, _nameEnMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameEnMeta);
+    }
+    if (data.containsKey('name_am')) {
+      context.handle(
+        _nameAmMeta,
+        nameAm.isAcceptableOrUnknown(data['name_am']!, _nameAmMeta),
+      );
+    }
+    if (data.containsKey('qty')) {
+      context.handle(
+        _qtyMeta,
+        qty.isAcceptableOrUnknown(data['qty']!, _qtyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_qtyMeta);
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    if (data.containsKey('options_text')) {
+      context.handle(
+        _optionsTextMeta,
+        optionsText.isAcceptableOrUnknown(
+          data['options_text']!,
+          _optionsTextMeta,
+        ),
+      );
+    }
+    if (data.containsKey('price_santim')) {
+      context.handle(
+        _priceSantimMeta,
+        priceSantim.isAcceptableOrUnknown(
+          data['price_santim']!,
+          _priceSantimMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_priceSantimMeta);
+    }
+    if (data.containsKey('round')) {
+      context.handle(
+        _roundMeta,
+        round.isAcceptableOrUnknown(data['round']!, _roundMeta),
+      );
+    }
+    if (data.containsKey('state')) {
+      context.handle(
+        _stateMeta,
+        state.isAcceptableOrUnknown(data['state']!, _stateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stateMeta);
+    }
+    if (data.containsKey('sync')) {
+      context.handle(
+        _syncMeta,
+        sync.isAcceptableOrUnknown(data['sync']!, _syncMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_syncMeta);
+    }
+    if (data.containsKey('error')) {
+      context.handle(
+        _errorMeta,
+        error.isAcceptableOrUnknown(data['error']!, _errorMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  OrderLine map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return OrderLine(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      orderId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}order_id'],
+      )!,
+      tableId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}table_id'],
+      )!,
+      menuItemId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}menu_item_id'],
+      )!,
+      nameEn: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name_en'],
+      )!,
+      nameAm: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name_am'],
+      ),
+      qty: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}qty'],
+      )!,
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      ),
+      optionsText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}options_text'],
+      ),
+      priceSantim: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}price_santim'],
+      )!,
+      round: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}round'],
+      ),
+      state: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}state'],
+      )!,
+      sync: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync'],
+      )!,
+      error: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}error'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $OrderLinesTable createAlias(String alias) {
+    return $OrderLinesTable(attachedDatabase, alias);
+  }
+}
+
+class OrderLine extends DataClass implements Insertable<OrderLine> {
+  /// The item id (UUID v7 made on the tablet).
+  final String id;
+  final String orderId;
+  final String tableId;
+  final String menuItemId;
+  final String nameEn;
+  final String? nameAm;
+  final int qty;
+  final String? note;
+
+  /// Chosen options for display, e.g. "Large, Honey".
+  final String? optionsText;
+
+  /// Unit price incl. options, for DISPLAY only; the server's price counts (D-17).
+  final int priceSantim;
+
+  /// Round number from the server; null until the round is confirmed.
+  final int? round;
+
+  /// sent, accepted, ready, delivered, cancelled, voided (the server's item state).
+  final String state;
+
+  /// queued, sending, sent, needs_attention: has the server got it? (not an order state)
+  final String sync;
+  final String? error;
+  final int createdAt;
+  const OrderLine({
+    required this.id,
+    required this.orderId,
+    required this.tableId,
+    required this.menuItemId,
+    required this.nameEn,
+    this.nameAm,
+    required this.qty,
+    this.note,
+    this.optionsText,
+    required this.priceSantim,
+    this.round,
+    required this.state,
+    required this.sync,
+    this.error,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['order_id'] = Variable<String>(orderId);
+    map['table_id'] = Variable<String>(tableId);
+    map['menu_item_id'] = Variable<String>(menuItemId);
+    map['name_en'] = Variable<String>(nameEn);
+    if (!nullToAbsent || nameAm != null) {
+      map['name_am'] = Variable<String>(nameAm);
+    }
+    map['qty'] = Variable<int>(qty);
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
+    if (!nullToAbsent || optionsText != null) {
+      map['options_text'] = Variable<String>(optionsText);
+    }
+    map['price_santim'] = Variable<int>(priceSantim);
+    if (!nullToAbsent || round != null) {
+      map['round'] = Variable<int>(round);
+    }
+    map['state'] = Variable<String>(state);
+    map['sync'] = Variable<String>(sync);
+    if (!nullToAbsent || error != null) {
+      map['error'] = Variable<String>(error);
+    }
+    map['created_at'] = Variable<int>(createdAt);
+    return map;
+  }
+
+  OrderLinesCompanion toCompanion(bool nullToAbsent) {
+    return OrderLinesCompanion(
+      id: Value(id),
+      orderId: Value(orderId),
+      tableId: Value(tableId),
+      menuItemId: Value(menuItemId),
+      nameEn: Value(nameEn),
+      nameAm: nameAm == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nameAm),
+      qty: Value(qty),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      optionsText: optionsText == null && nullToAbsent
+          ? const Value.absent()
+          : Value(optionsText),
+      priceSantim: Value(priceSantim),
+      round: round == null && nullToAbsent
+          ? const Value.absent()
+          : Value(round),
+      state: Value(state),
+      sync: Value(sync),
+      error: error == null && nullToAbsent
+          ? const Value.absent()
+          : Value(error),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory OrderLine.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return OrderLine(
+      id: serializer.fromJson<String>(json['id']),
+      orderId: serializer.fromJson<String>(json['orderId']),
+      tableId: serializer.fromJson<String>(json['tableId']),
+      menuItemId: serializer.fromJson<String>(json['menuItemId']),
+      nameEn: serializer.fromJson<String>(json['nameEn']),
+      nameAm: serializer.fromJson<String?>(json['nameAm']),
+      qty: serializer.fromJson<int>(json['qty']),
+      note: serializer.fromJson<String?>(json['note']),
+      optionsText: serializer.fromJson<String?>(json['optionsText']),
+      priceSantim: serializer.fromJson<int>(json['priceSantim']),
+      round: serializer.fromJson<int?>(json['round']),
+      state: serializer.fromJson<String>(json['state']),
+      sync: serializer.fromJson<String>(json['sync']),
+      error: serializer.fromJson<String?>(json['error']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'orderId': serializer.toJson<String>(orderId),
+      'tableId': serializer.toJson<String>(tableId),
+      'menuItemId': serializer.toJson<String>(menuItemId),
+      'nameEn': serializer.toJson<String>(nameEn),
+      'nameAm': serializer.toJson<String?>(nameAm),
+      'qty': serializer.toJson<int>(qty),
+      'note': serializer.toJson<String?>(note),
+      'optionsText': serializer.toJson<String?>(optionsText),
+      'priceSantim': serializer.toJson<int>(priceSantim),
+      'round': serializer.toJson<int?>(round),
+      'state': serializer.toJson<String>(state),
+      'sync': serializer.toJson<String>(sync),
+      'error': serializer.toJson<String?>(error),
+      'createdAt': serializer.toJson<int>(createdAt),
+    };
+  }
+
+  OrderLine copyWith({
+    String? id,
+    String? orderId,
+    String? tableId,
+    String? menuItemId,
+    String? nameEn,
+    Value<String?> nameAm = const Value.absent(),
+    int? qty,
+    Value<String?> note = const Value.absent(),
+    Value<String?> optionsText = const Value.absent(),
+    int? priceSantim,
+    Value<int?> round = const Value.absent(),
+    String? state,
+    String? sync,
+    Value<String?> error = const Value.absent(),
+    int? createdAt,
+  }) => OrderLine(
+    id: id ?? this.id,
+    orderId: orderId ?? this.orderId,
+    tableId: tableId ?? this.tableId,
+    menuItemId: menuItemId ?? this.menuItemId,
+    nameEn: nameEn ?? this.nameEn,
+    nameAm: nameAm.present ? nameAm.value : this.nameAm,
+    qty: qty ?? this.qty,
+    note: note.present ? note.value : this.note,
+    optionsText: optionsText.present ? optionsText.value : this.optionsText,
+    priceSantim: priceSantim ?? this.priceSantim,
+    round: round.present ? round.value : this.round,
+    state: state ?? this.state,
+    sync: sync ?? this.sync,
+    error: error.present ? error.value : this.error,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  OrderLine copyWithCompanion(OrderLinesCompanion data) {
+    return OrderLine(
+      id: data.id.present ? data.id.value : this.id,
+      orderId: data.orderId.present ? data.orderId.value : this.orderId,
+      tableId: data.tableId.present ? data.tableId.value : this.tableId,
+      menuItemId: data.menuItemId.present
+          ? data.menuItemId.value
+          : this.menuItemId,
+      nameEn: data.nameEn.present ? data.nameEn.value : this.nameEn,
+      nameAm: data.nameAm.present ? data.nameAm.value : this.nameAm,
+      qty: data.qty.present ? data.qty.value : this.qty,
+      note: data.note.present ? data.note.value : this.note,
+      optionsText: data.optionsText.present
+          ? data.optionsText.value
+          : this.optionsText,
+      priceSantim: data.priceSantim.present
+          ? data.priceSantim.value
+          : this.priceSantim,
+      round: data.round.present ? data.round.value : this.round,
+      state: data.state.present ? data.state.value : this.state,
+      sync: data.sync.present ? data.sync.value : this.sync,
+      error: data.error.present ? data.error.value : this.error,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OrderLine(')
+          ..write('id: $id, ')
+          ..write('orderId: $orderId, ')
+          ..write('tableId: $tableId, ')
+          ..write('menuItemId: $menuItemId, ')
+          ..write('nameEn: $nameEn, ')
+          ..write('nameAm: $nameAm, ')
+          ..write('qty: $qty, ')
+          ..write('note: $note, ')
+          ..write('optionsText: $optionsText, ')
+          ..write('priceSantim: $priceSantim, ')
+          ..write('round: $round, ')
+          ..write('state: $state, ')
+          ..write('sync: $sync, ')
+          ..write('error: $error, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    orderId,
+    tableId,
+    menuItemId,
+    nameEn,
+    nameAm,
+    qty,
+    note,
+    optionsText,
+    priceSantim,
+    round,
+    state,
+    sync,
+    error,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is OrderLine &&
+          other.id == this.id &&
+          other.orderId == this.orderId &&
+          other.tableId == this.tableId &&
+          other.menuItemId == this.menuItemId &&
+          other.nameEn == this.nameEn &&
+          other.nameAm == this.nameAm &&
+          other.qty == this.qty &&
+          other.note == this.note &&
+          other.optionsText == this.optionsText &&
+          other.priceSantim == this.priceSantim &&
+          other.round == this.round &&
+          other.state == this.state &&
+          other.sync == this.sync &&
+          other.error == this.error &&
+          other.createdAt == this.createdAt);
+}
+
+class OrderLinesCompanion extends UpdateCompanion<OrderLine> {
+  final Value<String> id;
+  final Value<String> orderId;
+  final Value<String> tableId;
+  final Value<String> menuItemId;
+  final Value<String> nameEn;
+  final Value<String?> nameAm;
+  final Value<int> qty;
+  final Value<String?> note;
+  final Value<String?> optionsText;
+  final Value<int> priceSantim;
+  final Value<int?> round;
+  final Value<String> state;
+  final Value<String> sync;
+  final Value<String?> error;
+  final Value<int> createdAt;
+  final Value<int> rowid;
+  const OrderLinesCompanion({
+    this.id = const Value.absent(),
+    this.orderId = const Value.absent(),
+    this.tableId = const Value.absent(),
+    this.menuItemId = const Value.absent(),
+    this.nameEn = const Value.absent(),
+    this.nameAm = const Value.absent(),
+    this.qty = const Value.absent(),
+    this.note = const Value.absent(),
+    this.optionsText = const Value.absent(),
+    this.priceSantim = const Value.absent(),
+    this.round = const Value.absent(),
+    this.state = const Value.absent(),
+    this.sync = const Value.absent(),
+    this.error = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  OrderLinesCompanion.insert({
+    required String id,
+    required String orderId,
+    required String tableId,
+    required String menuItemId,
+    required String nameEn,
+    this.nameAm = const Value.absent(),
+    required int qty,
+    this.note = const Value.absent(),
+    this.optionsText = const Value.absent(),
+    required int priceSantim,
+    this.round = const Value.absent(),
+    required String state,
+    required String sync,
+    this.error = const Value.absent(),
+    required int createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       orderId = Value(orderId),
+       tableId = Value(tableId),
+       menuItemId = Value(menuItemId),
+       nameEn = Value(nameEn),
+       qty = Value(qty),
+       priceSantim = Value(priceSantim),
+       state = Value(state),
+       sync = Value(sync),
+       createdAt = Value(createdAt);
+  static Insertable<OrderLine> custom({
+    Expression<String>? id,
+    Expression<String>? orderId,
+    Expression<String>? tableId,
+    Expression<String>? menuItemId,
+    Expression<String>? nameEn,
+    Expression<String>? nameAm,
+    Expression<int>? qty,
+    Expression<String>? note,
+    Expression<String>? optionsText,
+    Expression<int>? priceSantim,
+    Expression<int>? round,
+    Expression<String>? state,
+    Expression<String>? sync,
+    Expression<String>? error,
+    Expression<int>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (orderId != null) 'order_id': orderId,
+      if (tableId != null) 'table_id': tableId,
+      if (menuItemId != null) 'menu_item_id': menuItemId,
+      if (nameEn != null) 'name_en': nameEn,
+      if (nameAm != null) 'name_am': nameAm,
+      if (qty != null) 'qty': qty,
+      if (note != null) 'note': note,
+      if (optionsText != null) 'options_text': optionsText,
+      if (priceSantim != null) 'price_santim': priceSantim,
+      if (round != null) 'round': round,
+      if (state != null) 'state': state,
+      if (sync != null) 'sync': sync,
+      if (error != null) 'error': error,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  OrderLinesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? orderId,
+    Value<String>? tableId,
+    Value<String>? menuItemId,
+    Value<String>? nameEn,
+    Value<String?>? nameAm,
+    Value<int>? qty,
+    Value<String?>? note,
+    Value<String?>? optionsText,
+    Value<int>? priceSantim,
+    Value<int?>? round,
+    Value<String>? state,
+    Value<String>? sync,
+    Value<String?>? error,
+    Value<int>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return OrderLinesCompanion(
+      id: id ?? this.id,
+      orderId: orderId ?? this.orderId,
+      tableId: tableId ?? this.tableId,
+      menuItemId: menuItemId ?? this.menuItemId,
+      nameEn: nameEn ?? this.nameEn,
+      nameAm: nameAm ?? this.nameAm,
+      qty: qty ?? this.qty,
+      note: note ?? this.note,
+      optionsText: optionsText ?? this.optionsText,
+      priceSantim: priceSantim ?? this.priceSantim,
+      round: round ?? this.round,
+      state: state ?? this.state,
+      sync: sync ?? this.sync,
+      error: error ?? this.error,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (orderId.present) {
+      map['order_id'] = Variable<String>(orderId.value);
+    }
+    if (tableId.present) {
+      map['table_id'] = Variable<String>(tableId.value);
+    }
+    if (menuItemId.present) {
+      map['menu_item_id'] = Variable<String>(menuItemId.value);
+    }
+    if (nameEn.present) {
+      map['name_en'] = Variable<String>(nameEn.value);
+    }
+    if (nameAm.present) {
+      map['name_am'] = Variable<String>(nameAm.value);
+    }
+    if (qty.present) {
+      map['qty'] = Variable<int>(qty.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (optionsText.present) {
+      map['options_text'] = Variable<String>(optionsText.value);
+    }
+    if (priceSantim.present) {
+      map['price_santim'] = Variable<int>(priceSantim.value);
+    }
+    if (round.present) {
+      map['round'] = Variable<int>(round.value);
+    }
+    if (state.present) {
+      map['state'] = Variable<String>(state.value);
+    }
+    if (sync.present) {
+      map['sync'] = Variable<String>(sync.value);
+    }
+    if (error.present) {
+      map['error'] = Variable<String>(error.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OrderLinesCompanion(')
+          ..write('id: $id, ')
+          ..write('orderId: $orderId, ')
+          ..write('tableId: $tableId, ')
+          ..write('menuItemId: $menuItemId, ')
+          ..write('nameEn: $nameEn, ')
+          ..write('nameAm: $nameAm, ')
+          ..write('qty: $qty, ')
+          ..write('note: $note, ')
+          ..write('optionsText: $optionsText, ')
+          ..write('priceSantim: $priceSantim, ')
+          ..write('round: $round, ')
+          ..write('state: $state, ')
+          ..write('sync: $sync, ')
+          ..write('error: $error, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2840,6 +3701,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CafeTablesTable cafeTables = $CafeTablesTable(this);
   late final $OutboxEntriesTable outboxEntries = $OutboxEntriesTable(this);
   late final $KeyValuesTable keyValues = $KeyValuesTable(this);
+  late final $OrderLinesTable orderLines = $OrderLinesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2852,6 +3714,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     cafeTables,
     outboxEntries,
     keyValues,
+    orderLines,
   ];
 }
 
@@ -4419,6 +5282,408 @@ typedef $$KeyValuesTableProcessedTableManager =
       KeyValue,
       PrefetchHooks Function()
     >;
+typedef $$OrderLinesTableCreateCompanionBuilder =
+    OrderLinesCompanion Function({
+      required String id,
+      required String orderId,
+      required String tableId,
+      required String menuItemId,
+      required String nameEn,
+      Value<String?> nameAm,
+      required int qty,
+      Value<String?> note,
+      Value<String?> optionsText,
+      required int priceSantim,
+      Value<int?> round,
+      required String state,
+      required String sync,
+      Value<String?> error,
+      required int createdAt,
+      Value<int> rowid,
+    });
+typedef $$OrderLinesTableUpdateCompanionBuilder =
+    OrderLinesCompanion Function({
+      Value<String> id,
+      Value<String> orderId,
+      Value<String> tableId,
+      Value<String> menuItemId,
+      Value<String> nameEn,
+      Value<String?> nameAm,
+      Value<int> qty,
+      Value<String?> note,
+      Value<String?> optionsText,
+      Value<int> priceSantim,
+      Value<int?> round,
+      Value<String> state,
+      Value<String> sync,
+      Value<String?> error,
+      Value<int> createdAt,
+      Value<int> rowid,
+    });
+
+class $$OrderLinesTableFilterComposer
+    extends Composer<_$AppDatabase, $OrderLinesTable> {
+  $$OrderLinesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get orderId => $composableBuilder(
+    column: $table.orderId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tableId => $composableBuilder(
+    column: $table.tableId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get menuItemId => $composableBuilder(
+    column: $table.menuItemId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nameEn => $composableBuilder(
+    column: $table.nameEn,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nameAm => $composableBuilder(
+    column: $table.nameAm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get qty => $composableBuilder(
+    column: $table.qty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get optionsText => $composableBuilder(
+    column: $table.optionsText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get priceSantim => $composableBuilder(
+    column: $table.priceSantim,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get round => $composableBuilder(
+    column: $table.round,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get state => $composableBuilder(
+    column: $table.state,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sync => $composableBuilder(
+    column: $table.sync,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get error => $composableBuilder(
+    column: $table.error,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$OrderLinesTableOrderingComposer
+    extends Composer<_$AppDatabase, $OrderLinesTable> {
+  $$OrderLinesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get orderId => $composableBuilder(
+    column: $table.orderId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tableId => $composableBuilder(
+    column: $table.tableId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get menuItemId => $composableBuilder(
+    column: $table.menuItemId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nameEn => $composableBuilder(
+    column: $table.nameEn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nameAm => $composableBuilder(
+    column: $table.nameAm,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get qty => $composableBuilder(
+    column: $table.qty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get optionsText => $composableBuilder(
+    column: $table.optionsText,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get priceSantim => $composableBuilder(
+    column: $table.priceSantim,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get round => $composableBuilder(
+    column: $table.round,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get state => $composableBuilder(
+    column: $table.state,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sync => $composableBuilder(
+    column: $table.sync,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get error => $composableBuilder(
+    column: $table.error,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$OrderLinesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $OrderLinesTable> {
+  $$OrderLinesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get orderId =>
+      $composableBuilder(column: $table.orderId, builder: (column) => column);
+
+  GeneratedColumn<String> get tableId =>
+      $composableBuilder(column: $table.tableId, builder: (column) => column);
+
+  GeneratedColumn<String> get menuItemId => $composableBuilder(
+    column: $table.menuItemId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get nameEn =>
+      $composableBuilder(column: $table.nameEn, builder: (column) => column);
+
+  GeneratedColumn<String> get nameAm =>
+      $composableBuilder(column: $table.nameAm, builder: (column) => column);
+
+  GeneratedColumn<int> get qty =>
+      $composableBuilder(column: $table.qty, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<String> get optionsText => $composableBuilder(
+    column: $table.optionsText,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get priceSantim => $composableBuilder(
+    column: $table.priceSantim,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get round =>
+      $composableBuilder(column: $table.round, builder: (column) => column);
+
+  GeneratedColumn<String> get state =>
+      $composableBuilder(column: $table.state, builder: (column) => column);
+
+  GeneratedColumn<String> get sync =>
+      $composableBuilder(column: $table.sync, builder: (column) => column);
+
+  GeneratedColumn<String> get error =>
+      $composableBuilder(column: $table.error, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$OrderLinesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $OrderLinesTable,
+          OrderLine,
+          $$OrderLinesTableFilterComposer,
+          $$OrderLinesTableOrderingComposer,
+          $$OrderLinesTableAnnotationComposer,
+          $$OrderLinesTableCreateCompanionBuilder,
+          $$OrderLinesTableUpdateCompanionBuilder,
+          (
+            OrderLine,
+            BaseReferences<_$AppDatabase, $OrderLinesTable, OrderLine>,
+          ),
+          OrderLine,
+          PrefetchHooks Function()
+        > {
+  $$OrderLinesTableTableManager(_$AppDatabase db, $OrderLinesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$OrderLinesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$OrderLinesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$OrderLinesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> orderId = const Value.absent(),
+                Value<String> tableId = const Value.absent(),
+                Value<String> menuItemId = const Value.absent(),
+                Value<String> nameEn = const Value.absent(),
+                Value<String?> nameAm = const Value.absent(),
+                Value<int> qty = const Value.absent(),
+                Value<String?> note = const Value.absent(),
+                Value<String?> optionsText = const Value.absent(),
+                Value<int> priceSantim = const Value.absent(),
+                Value<int?> round = const Value.absent(),
+                Value<String> state = const Value.absent(),
+                Value<String> sync = const Value.absent(),
+                Value<String?> error = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => OrderLinesCompanion(
+                id: id,
+                orderId: orderId,
+                tableId: tableId,
+                menuItemId: menuItemId,
+                nameEn: nameEn,
+                nameAm: nameAm,
+                qty: qty,
+                note: note,
+                optionsText: optionsText,
+                priceSantim: priceSantim,
+                round: round,
+                state: state,
+                sync: sync,
+                error: error,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String orderId,
+                required String tableId,
+                required String menuItemId,
+                required String nameEn,
+                Value<String?> nameAm = const Value.absent(),
+                required int qty,
+                Value<String?> note = const Value.absent(),
+                Value<String?> optionsText = const Value.absent(),
+                required int priceSantim,
+                Value<int?> round = const Value.absent(),
+                required String state,
+                required String sync,
+                Value<String?> error = const Value.absent(),
+                required int createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => OrderLinesCompanion.insert(
+                id: id,
+                orderId: orderId,
+                tableId: tableId,
+                menuItemId: menuItemId,
+                nameEn: nameEn,
+                nameAm: nameAm,
+                qty: qty,
+                note: note,
+                optionsText: optionsText,
+                priceSantim: priceSantim,
+                round: round,
+                state: state,
+                sync: sync,
+                error: error,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$OrderLinesTable, OrderLine>(table),
+                  BaseReferences<_$AppDatabase, $OrderLinesTable, OrderLine>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$OrderLinesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $OrderLinesTable,
+      OrderLine,
+      $$OrderLinesTableFilterComposer,
+      $$OrderLinesTableOrderingComposer,
+      $$OrderLinesTableAnnotationComposer,
+      $$OrderLinesTableCreateCompanionBuilder,
+      $$OrderLinesTableUpdateCompanionBuilder,
+      (OrderLine, BaseReferences<_$AppDatabase, $OrderLinesTable, OrderLine>),
+      OrderLine,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4437,4 +5702,6 @@ class $AppDatabaseManager {
       $$OutboxEntriesTableTableManager(_db, _db.outboxEntries);
   $$KeyValuesTableTableManager get keyValues =>
       $$KeyValuesTableTableManager(_db, _db.keyValues);
+  $$OrderLinesTableTableManager get orderLines =>
+      $$OrderLinesTableTableManager(_db, _db.orderLines);
 }
