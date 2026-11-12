@@ -6,6 +6,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../alerts/device_output.dart';
+import '../alerts/keep_alive.dart';
 import '../alerts/waiter_alerts.dart';
 import '../api/api_client.dart';
 import '../auth/auth_controller.dart';
@@ -49,6 +50,7 @@ final workSessionProvider = FutureProvider<WorkSession?>((ref) async {
     onAccessEnded: auth.accessEnded,
     userId: session?.user.id,
     alertOutput: session == null ? null : ref.read(alertOutputProvider),
+    keepAlive: session == null ? null : ref.read(keepAliveProvider),
   );
   ref.onDispose(work.stop);
   unawaited(work.start()); // don't wait for the first download: the cached data shows at once
@@ -61,6 +63,9 @@ final alertOutputProvider = Provider<AlertOutput>((ref) {
   ref.onDispose(output.dispose);
   return output;
 });
+
+/// Keeps the app running with the screen off while a waiter is signed in (F2d).
+final keepAliveProvider = Provider<KeepAlive>((ref) => ForegroundKeepAlive());
 
 /// Alerts to show as banners (none on a kitchen tablet or before sign-in).
 final alertsProvider = StreamProvider<Alert>((ref) async* {

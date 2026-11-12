@@ -4,6 +4,7 @@ library;
 
 import 'dart:async';
 
+import '../alerts/keep_alive.dart';
 import '../alerts/waiter_alerts.dart';
 import '../api/api_client.dart';
 import '../data/database.dart';
@@ -22,6 +23,7 @@ class WorkSession {
     this._onAccessEnded,
     String? userId,
     AlertOutput? alertOutput,
+    KeepAlive? keepAlive,
   }) {
     connection = Connection(connect: connect, db: _db, delay: delay);
     // A round that waited offline: show its final answer on the table screen.
@@ -34,6 +36,8 @@ class WorkSession {
     alerts = userId == null || alertOutput == null
         ? null
         : WaiterAlerts(db: _db, myUserId: userId, output: alertOutput, staffName: staffName);
+    // Only a waiter's phone needs to stay awake for alerts (a kitchen tablet stays on screen).
+    _keepAlive = alerts == null ? null : keepAlive;
   }
 
   final ApiClient _api;
@@ -52,6 +56,7 @@ class WorkSession {
 
   final _staff = <String, StaffMember>{};
   final _subscriptions = <StreamSubscription<Object?>>[];
+  late final KeepAlive? _keepAlive;
   bool _accessEndedReported = false;
 
   /// A staff member's name for the floor map (null if unknown, e.g. never downloaded).
@@ -61,6 +66,13 @@ class WorkSession {
   List<StaffMember> get staff => List.unmodifiable(_staff.values);
 
   Future<void> start() async {
+    final keepAlive = _keepAlive;
+    if (keepAlive != null) {
+      _subscriptions.add(alerts!.alerts.listen((a) => unawaited(keepAlive.show(a.text))));
+      // Not awaited: the permission questions must not hold up the connection. Best effort:
+      // if Android refuses, alerts still work while the app is on screen.
+      unawaited(keepAlive.start().catchError((Object _) {}));
+    }
     _subscriptions
       ..add(connection.pushes.listen(_onPush))
       ..add(connection.states.listen((state) {
@@ -81,6 +93,7 @@ class WorkSession {
     await outbox.stop();
     await connection.stop();
     alerts?.dispose();
+    await _keepAlive?.stop().catchError((Object _) {});
   }
 
   /// Download the menu, tables and staff names. Never deletes data when offline.

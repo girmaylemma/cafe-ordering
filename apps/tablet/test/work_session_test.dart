@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:cafe_tablet/alerts/keep_alive.dart';
 import 'package:cafe_tablet/alerts/waiter_alerts.dart';
 import 'package:cafe_tablet/api/api_client.dart';
 import 'package:cafe_tablet/data/database.dart';
@@ -252,4 +253,76 @@ void main() {
 
     expect(output.rings, [AlertSound.loud]);
   });
+
+  group('keeping alerts alive with the screen off (F2d)', () {
+    Future<(WorkSession, FakeSocket)> waiterSession(FakeKeepAlive keepAlive, {String? userId = 'hana'}) async {
+      final socket = FakeSocket();
+      db = memoryDb();
+      final session = WorkSession(
+        api: server.api(),
+        db: db,
+        device: waiter,
+        deviceToken: 't',
+        connect: FakeServer([socket]).connect,
+        delay: (_) async {},
+        userId: userId,
+        alertOutput: userId == null ? null : FakeOutput(),
+        keepAlive: keepAlive,
+      );
+      addTearDown(db.close);
+      await session.start();
+      await settle();
+      return (session, socket);
+    }
+
+    test("a waiter's session keeps the app alive from start to stop", () async {
+      final keepAlive = FakeKeepAlive();
+      final (session, _) = await waiterSession(keepAlive);
+      expect(keepAlive.running, isTrue);
+
+      await session.stop(); // sign-out or access ended
+
+      expect(keepAlive.running, isFalse);
+    });
+
+    test('each alert is also written in the notification (seen on the lock screen)', () async {
+      final keepAlive = FakeKeepAlive();
+      final (session, socket) = await waiterSession(keepAlive);
+      addTearDown(session.stop);
+      socket.receive({'type': 'table.state', 'tableId': 't7', 'state': 'ordered', 'sessionId': 's1', 'waiterId': 'hana'});
+      socket.receive({'type': 'event', 'event': {
+        'seq': 1, 'orderId': 'o1', 'itemId': 'i1', 'stationId': 'kitchen', 'type': 'item.sent', 'from': null, 'to': 'sent', 'at': 1,
+        'details': {'tableId': 't7', 'round': 1, 'name': 'Shiro', 'nameAm': null, 'qty': 2, 'note': null, 'options': <Object>[]},
+      }});
+      socket.receive({'type': 'event', 'event': {'seq': 2, 'orderId': 'o1', 'itemId': 'i1', 'stationId': 'kitchen', 'type': 'item.ready', 'from': 'accepted', 'to': 'ready', 'at': 2}});
+      await settle();
+
+      expect(keepAlive.shown, ['Table 7 — ready: 2× Shiro']);
+    });
+
+    test('a kitchen tablet (no waiter signed in) never starts it', () async {
+      final keepAlive = FakeKeepAlive();
+      final (session, _) = await waiterSession(keepAlive, userId: null);
+      addTearDown(session.stop);
+
+      expect(keepAlive.starts, 0);
+    });
+  });
+}
+
+class FakeKeepAlive implements KeepAlive {
+  bool running = false;
+  int starts = 0;
+  final shown = <String>[];
+  @override
+  Future<void> start() async {
+    starts++;
+    running = true;
+  }
+
+  @override
+  Future<void> show(String text) async => shown.add(text);
+
+  @override
+  Future<void> stop() async => running = false;
 }
