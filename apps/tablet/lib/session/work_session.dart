@@ -20,7 +20,11 @@ class WorkSession {
     this._onAccessEnded,
   }) {
     connection = Connection(connect: connect, db: _db, delay: delay);
-    outbox = Outbox(_db, connection);
+    // A round that waited offline: show its final answer on the table screen.
+    outbox = Outbox(_db, connection, onAnswer: (key, result) {
+      final ok = result['ok'] == true;
+      unawaited(_db.setLinesSync(key, ok ? 'sent' : 'needs_attention', error: ok ? null : '${result['error']}'));
+    });
   }
 
   final ApiClient _api;

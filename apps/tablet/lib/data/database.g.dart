@@ -3691,6 +3691,258 @@ class OrderLinesCompanion extends UpdateCompanion<OrderLine> {
   }
 }
 
+class $OrderHistoryTable extends OrderHistory
+    with TableInfo<$OrderHistoryTable, OrderHistoryData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $OrderHistoryTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _menuItemIdMeta = const VerificationMeta(
+    'menuItemId',
+  );
+  @override
+  late final GeneratedColumn<String> menuItemId = GeneratedColumn<String>(
+    'menu_item_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _atMeta = const VerificationMeta('at');
+  @override
+  late final GeneratedColumn<int> at = GeneratedColumn<int>(
+    'at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, menuItemId, at];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'order_history';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<OrderHistoryData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('menu_item_id')) {
+      context.handle(
+        _menuItemIdMeta,
+        menuItemId.isAcceptableOrUnknown(
+          data['menu_item_id']!,
+          _menuItemIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_menuItemIdMeta);
+    }
+    if (data.containsKey('at')) {
+      context.handle(_atMeta, at.isAcceptableOrUnknown(data['at']!, _atMeta));
+    } else if (isInserting) {
+      context.missing(_atMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  OrderHistoryData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return OrderHistoryData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      menuItemId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}menu_item_id'],
+      )!,
+      at: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}at'],
+      )!,
+    );
+  }
+
+  @override
+  $OrderHistoryTable createAlias(String alias) {
+    return $OrderHistoryTable(attachedDatabase, alias);
+  }
+}
+
+class OrderHistoryData extends DataClass
+    implements Insertable<OrderHistoryData> {
+  final int id;
+  final String menuItemId;
+  final int at;
+  const OrderHistoryData({
+    required this.id,
+    required this.menuItemId,
+    required this.at,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['menu_item_id'] = Variable<String>(menuItemId);
+    map['at'] = Variable<int>(at);
+    return map;
+  }
+
+  OrderHistoryCompanion toCompanion(bool nullToAbsent) {
+    return OrderHistoryCompanion(
+      id: Value(id),
+      menuItemId: Value(menuItemId),
+      at: Value(at),
+    );
+  }
+
+  factory OrderHistoryData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return OrderHistoryData(
+      id: serializer.fromJson<int>(json['id']),
+      menuItemId: serializer.fromJson<String>(json['menuItemId']),
+      at: serializer.fromJson<int>(json['at']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'menuItemId': serializer.toJson<String>(menuItemId),
+      'at': serializer.toJson<int>(at),
+    };
+  }
+
+  OrderHistoryData copyWith({int? id, String? menuItemId, int? at}) =>
+      OrderHistoryData(
+        id: id ?? this.id,
+        menuItemId: menuItemId ?? this.menuItemId,
+        at: at ?? this.at,
+      );
+  OrderHistoryData copyWithCompanion(OrderHistoryCompanion data) {
+    return OrderHistoryData(
+      id: data.id.present ? data.id.value : this.id,
+      menuItemId: data.menuItemId.present
+          ? data.menuItemId.value
+          : this.menuItemId,
+      at: data.at.present ? data.at.value : this.at,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OrderHistoryData(')
+          ..write('id: $id, ')
+          ..write('menuItemId: $menuItemId, ')
+          ..write('at: $at')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, menuItemId, at);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is OrderHistoryData &&
+          other.id == this.id &&
+          other.menuItemId == this.menuItemId &&
+          other.at == this.at);
+}
+
+class OrderHistoryCompanion extends UpdateCompanion<OrderHistoryData> {
+  final Value<int> id;
+  final Value<String> menuItemId;
+  final Value<int> at;
+  const OrderHistoryCompanion({
+    this.id = const Value.absent(),
+    this.menuItemId = const Value.absent(),
+    this.at = const Value.absent(),
+  });
+  OrderHistoryCompanion.insert({
+    this.id = const Value.absent(),
+    required String menuItemId,
+    required int at,
+  }) : menuItemId = Value(menuItemId),
+       at = Value(at);
+  static Insertable<OrderHistoryData> custom({
+    Expression<int>? id,
+    Expression<String>? menuItemId,
+    Expression<int>? at,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (menuItemId != null) 'menu_item_id': menuItemId,
+      if (at != null) 'at': at,
+    });
+  }
+
+  OrderHistoryCompanion copyWith({
+    Value<int>? id,
+    Value<String>? menuItemId,
+    Value<int>? at,
+  }) {
+    return OrderHistoryCompanion(
+      id: id ?? this.id,
+      menuItemId: menuItemId ?? this.menuItemId,
+      at: at ?? this.at,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (menuItemId.present) {
+      map['menu_item_id'] = Variable<String>(menuItemId.value);
+    }
+    if (at.present) {
+      map['at'] = Variable<int>(at.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OrderHistoryCompanion(')
+          ..write('id: $id, ')
+          ..write('menuItemId: $menuItemId, ')
+          ..write('at: $at')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3702,6 +3954,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $OutboxEntriesTable outboxEntries = $OutboxEntriesTable(this);
   late final $KeyValuesTable keyValues = $KeyValuesTable(this);
   late final $OrderLinesTable orderLines = $OrderLinesTable(this);
+  late final $OrderHistoryTable orderHistory = $OrderHistoryTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3715,6 +3968,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     outboxEntries,
     keyValues,
     orderLines,
+    orderHistory,
   ];
 }
 
@@ -5684,6 +5938,170 @@ typedef $$OrderLinesTableProcessedTableManager =
       OrderLine,
       PrefetchHooks Function()
     >;
+typedef $$OrderHistoryTableCreateCompanionBuilder =
+    OrderHistoryCompanion Function({
+      Value<int> id,
+      required String menuItemId,
+      required int at,
+    });
+typedef $$OrderHistoryTableUpdateCompanionBuilder =
+    OrderHistoryCompanion Function({
+      Value<int> id,
+      Value<String> menuItemId,
+      Value<int> at,
+    });
+
+class $$OrderHistoryTableFilterComposer
+    extends Composer<_$AppDatabase, $OrderHistoryTable> {
+  $$OrderHistoryTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get menuItemId => $composableBuilder(
+    column: $table.menuItemId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get at => $composableBuilder(
+    column: $table.at,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$OrderHistoryTableOrderingComposer
+    extends Composer<_$AppDatabase, $OrderHistoryTable> {
+  $$OrderHistoryTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get menuItemId => $composableBuilder(
+    column: $table.menuItemId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get at => $composableBuilder(
+    column: $table.at,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$OrderHistoryTableAnnotationComposer
+    extends Composer<_$AppDatabase, $OrderHistoryTable> {
+  $$OrderHistoryTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get menuItemId => $composableBuilder(
+    column: $table.menuItemId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get at =>
+      $composableBuilder(column: $table.at, builder: (column) => column);
+}
+
+class $$OrderHistoryTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $OrderHistoryTable,
+          OrderHistoryData,
+          $$OrderHistoryTableFilterComposer,
+          $$OrderHistoryTableOrderingComposer,
+          $$OrderHistoryTableAnnotationComposer,
+          $$OrderHistoryTableCreateCompanionBuilder,
+          $$OrderHistoryTableUpdateCompanionBuilder,
+          (
+            OrderHistoryData,
+            BaseReferences<_$AppDatabase, $OrderHistoryTable, OrderHistoryData>,
+          ),
+          OrderHistoryData,
+          PrefetchHooks Function()
+        > {
+  $$OrderHistoryTableTableManager(_$AppDatabase db, $OrderHistoryTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$OrderHistoryTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$OrderHistoryTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$OrderHistoryTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> menuItemId = const Value.absent(),
+                Value<int> at = const Value.absent(),
+              }) =>
+                  OrderHistoryCompanion(id: id, menuItemId: menuItemId, at: at),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String menuItemId,
+                required int at,
+              }) => OrderHistoryCompanion.insert(
+                id: id,
+                menuItemId: menuItemId,
+                at: at,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$OrderHistoryTable, OrderHistoryData>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $OrderHistoryTable,
+                    OrderHistoryData
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$OrderHistoryTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $OrderHistoryTable,
+      OrderHistoryData,
+      $$OrderHistoryTableFilterComposer,
+      $$OrderHistoryTableOrderingComposer,
+      $$OrderHistoryTableAnnotationComposer,
+      $$OrderHistoryTableCreateCompanionBuilder,
+      $$OrderHistoryTableUpdateCompanionBuilder,
+      (
+        OrderHistoryData,
+        BaseReferences<_$AppDatabase, $OrderHistoryTable, OrderHistoryData>,
+      ),
+      OrderHistoryData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -5704,4 +6122,6 @@ class $AppDatabaseManager {
       $$KeyValuesTableTableManager(_db, _db.keyValues);
   $$OrderLinesTableTableManager get orderLines =>
       $$OrderLinesTableTableManager(_db, _db.orderLines);
+  $$OrderHistoryTableTableManager get orderHistory =>
+      $$OrderHistoryTableTableManager(_db, _db.orderHistory);
 }

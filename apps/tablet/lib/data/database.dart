@@ -133,6 +133,13 @@ class OrderLines extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// Items this tablet ordered recently: the Favourites tab (W-04, D-80). Kept 14 days.
+class OrderHistory extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get menuItemId => text()();
+  IntColumn get at => integer()();
+}
+
 class KeyValues extends Table {
   TextColumn get key => text()();
   TextColumn get value => text()();
@@ -140,19 +147,20 @@ class KeyValues extends Table {
   Set<Column> get primaryKey => {key};
 }
 
-@DriftDatabase(tables: [Categories, MenuItems, OptionGroups, OptionChoices, CafeTables, OutboxEntries, KeyValues, OrderLines])
+@DriftDatabase(tables: [Categories, MenuItems, OptionGroups, OptionChoices, CafeTables, OutboxEntries, KeyValues, OrderLines, OrderHistory])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? driftDatabase(name: 'cafe'));
 
   /// Bump on every schema change and add a step below. Never edit an earlier step.
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) => m.createAll(),
         onUpgrade: (m, from, to) async {
           if (from < 2) await m.createTable(orderLines); // F2b1: what is on each table
+          if (from < 3) await m.createTable(orderHistory); // F2b2: favourites
         },
       );
 
@@ -316,6 +324,36 @@ class AppDatabase extends _$AppDatabase {
 
   /// Unsent and refused rounds: sign-out is blocked while any exist (D-20).
   Stream<int> watchUnsentCount() => (selectOnly(outboxEntries)..addColumns([outboxEntries.key.count()])).map((r) => r.read(outboxEntries.key.count()) ?? 0).watchSingle();
+
+  // ---------- favourites ----------
+
+  static const _favouriteWindow = Duration(days: 14);
+
+  Future<void> recordOrdered(String menuItemId, DateTime at) => transaction(() async {
+        await into(orderHistory).insert(OrderHistoryCompanion.insert(menuItemId: menuItemId, at: at.millisecondsSinceEpoch));
+        final cutoff = at.subtract(_favouriteWindow).millisecondsSinceEpoch;
+        await (delete(orderHistory)..where((h) => h.at.isSmallerThanValue(cutoff))).go();
+      });
+
+  /// The 12 items this tablet ordered most in the last 14 days, most ordered first.
+  Future<List<String>> favouriteItemIds(DateTime now) async {
+    final cutoff = now.subtract(_favouriteWindow).millisecondsSinceEpoch;
+    final rows = await customSelect(
+      'SELECT menu_item_id, COUNT(*) AS c FROM order_history WHERE at >= ? GROUP BY menu_item_id ORDER BY c DESC, MAX(at) DESC LIMIT 12',
+      variables: [Variable.withInt(cutoff)],
+      readsFrom: {orderHistory},
+    ).get();
+    return [for (final r in rows) r.read<String>('menu_item_id')];
+  }
+
+  /// The whole menu for the order screen.
+  Future<List<MenuItem>> allMenuItems() => (select(menuItems)..orderBy([(i) => OrderingTerm.asc(i.sortOrder), (i) => OrderingTerm.asc(i.nameEn)])).get();
+  Stream<List<MenuItem>> watchMenuItems() =>
+      (select(menuItems)..orderBy([(i) => OrderingTerm.asc(i.sortOrder), (i) => OrderingTerm.asc(i.nameEn)])).watch();
+  Future<List<Category>> allCategories() => (select(categories)..orderBy([(c) => OrderingTerm.asc(c.sortOrder)])).get();
+  Future<List<OptionGroup>> allOptionGroups() => select(optionGroups).get();
+  Future<List<OptionChoice>> allOptions() => (select(optionChoices)..orderBy([(o) => OrderingTerm.asc(o.sortOrder)])).get();
+  Future<CafeTable?> tableById(String id) => (select(cafeTables)..where((t) => t.id.equals(id))).getSingleOrNull();
 
   // ---------- last seen event ----------
 

@@ -39,7 +39,11 @@ class OfflineNotAllowed implements Exception {
 const _retryLater = {'INTERNAL_ERROR'};
 
 class Outbox {
-  Outbox(this._db, this._connection, {DateTime Function()? now}) : _now = now ?? DateTime.now;
+  Outbox(this._db, this._connection, {DateTime Function()? now, this.onAnswer}) : _now = now ?? DateTime.now;
+
+  /// Called with each waiting message's final answer (accepted or refused), so the screens
+  /// can show "Sent ✓" or "Not sent" for a round that waited offline.
+  final void Function(String key, Map<String, dynamic> result)? onAnswer;
 
   static const queueable = {'order.send', 'session.open'};
 
@@ -110,6 +114,7 @@ class Outbox {
           } else {
             await _db.markNeedsAttention(waiting.key, '${result['error']}');
           }
+          onAnswer?.call(waiting.key, result);
         }
       } while (_drainAgain);
     } finally {

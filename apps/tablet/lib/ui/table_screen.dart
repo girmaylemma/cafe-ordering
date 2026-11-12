@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/database.dart';
 import '../providers.dart';
 import '../texts.dart';
+import 'order_screen.dart';
 
 final _linesProvider = StreamProvider.family<List<OrderLine>, String>((ref, tableId) => ref.watch(databaseProvider).watchLines(tableId));
 final _tableProvider = StreamProvider.family<CafeTable?, String>((ref, tableId) => ref.watch(databaseProvider).watchTable(tableId));
@@ -55,7 +56,7 @@ class TableScreen extends ConsumerWidget {
           child: FilledButton.icon(
             icon: const Icon(Icons.add),
             label: const Padding(padding: EdgeInsets.all(12), child: Text('Add items')),
-            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('The order builder comes in the next step (F2b2).'))),
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => OrderScreen(tableId: tableId))),
           ),
         ),
       ),

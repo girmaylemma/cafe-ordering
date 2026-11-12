@@ -107,9 +107,9 @@ class _FloorMapScreenState extends ConsumerState<FloorMapScreen> {
   Future<void> _openTable(CafeTable t) async {
     final guests = await showDialog<_Guests>(context: context, builder: (_) => _GuestsDialog(table: t));
     if (guests == null || !mounted) return;
-    final work = ref.read(workSessionProvider).value;
+    final work = await ref.read(workSessionProvider.future); // wait if it is still loading
     final db = ref.read(databaseProvider);
-    if (work == null) return;
+    if (work == null || !mounted) return;
 
     final sessionId = newId();
     // Show it as seated at once (any tap < 100 ms); the server's push confirms or corrects it.

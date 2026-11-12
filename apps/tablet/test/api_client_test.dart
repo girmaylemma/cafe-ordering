@@ -94,4 +94,18 @@ void main() {
       expect(requests.single.headers['x-staff-session'], 'sess');
     });
   });
+
+  test('JSON is read as UTF-8 even without a charset: Amharic names stay readable (RFC 8259)', () async {
+    // Exactly what our server sends: UTF-8 bytes, "application/json" with no charset.
+    final (api, _) = clientWith((_) async => http.Response.bytes(
+          utf8.encode(jsonEncode({'categories': [], 'items': [{'nameAm': 'ሽሮ'}], 'optionGroups': []})),
+          200,
+          headers: {'content-type': 'application/json'},
+        ));
+
+    final menu = await api.menu('tok');
+
+    expect(((menu['items'] as List).single as Map)['nameAm'], 'ሽሮ');
+  });
 }
+

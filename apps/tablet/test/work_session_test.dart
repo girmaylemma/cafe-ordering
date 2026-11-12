@@ -170,5 +170,33 @@ void main() {
     final lines = await db.select(db.orderLines).get();
     expect({for (final l in lines) l.id: l.state}, {'i1': 'ready', 'i2': 'sent'});
   });
+
+  test('a round that waited offline shows its final answer: refused -> "needs attention", accepted -> sent', () async {
+    final socket = FakeSocket();
+    server.tableState = 'ordered'; // the table is still open (a free table would end the visit and clear its lines)
+    db = memoryDb();
+    final session = WorkSession(api: server.api(), db: db, device: waiter, deviceToken: 't', connect: FakeServer([socket]).connect, delay: (_) async {});
+    addTearDown(() async {
+      await session.stop();
+      await db.close();
+    });
+    // Two rounds were taken offline: their lines show "queued" and they wait in the outbox.
+    for (final id in ['o1', 'o2']) {
+      await db.addLocalLines([
+        OrderLinesCompanion.insert(id: '$id-i', orderId: id, tableId: 't7', menuItemId: 'shiro', nameEn: 'Shiro', qty: 1, priceSantim: 18000, state: 'sent', sync: 'queued', createdAt: id.hashCode),
+      ]);
+      await db.enqueue(id, '{"type":"order.send","orderId":"$id","queuedOffline":true}', DateTime.now());
+    }
+
+    await session.start(); // the connection comes back and the outbox sends them, oldest first
+    await settle();
+    socket.ackLast({'ok': false, 'error': 'TABLE_NOT_FOUND'});
+    await settle();
+    socket.ackLast({'ok': true});
+    await settle();
+
+    final lines = {for (final l in await db.select(db.orderLines).get()) l.orderId: (l.sync, l.error)};
+    expect(lines, {'o1': ('needs_attention', 'TABLE_NOT_FOUND'), 'o2': ('sent', null)});
+  });
 }
 
