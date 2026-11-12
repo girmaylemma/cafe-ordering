@@ -128,6 +128,8 @@ Decisions and their reasons: `docs/decisions.md`.
 - Create a café (installer): set `$env:INSTALLER_SECRET`, then
   `npm run new-cafe -- --api <url> --name "<café>" --owner-name "<name>" --owner-email <email>`.
 - Run locally: `npx wrangler dev` (uses `.dev.vars`).
+- Pretend kitchen tablet for testing the waiter app before F3: `node scripts/dev-kitchen.mjs --api http://127.0.0.1:8787 --code <kitchen pairing code>`
+  (first time; afterwards without `--code`). Type `a N` accept, `r N` ready, `u N` undo, `l` list, `q` quit.
 
 ### admin/ (dashboard, run inside `admin/`)
 - Install: `npm ci`
