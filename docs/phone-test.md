@@ -11,13 +11,16 @@ You will open **3 blue PowerShell windows** on the PC. Keep them all open until 
 2. Copy this line, right-click inside the window to paste, press **Enter**:
 
    ```powershell
-   cd C:\Users\lenovo\Projects\cafe-ordering\server; node scripts/dev-access-vars.mjs; npx wrangler dev --ip 0.0.0.0
+   cd C:\Users\lenovo\Projects\cafe-ordering\server; node scripts/dev-access-vars.mjs; npx.cmd wrangler dev --ip 0.0.0.0
    ```
 
 3. Wait until you see **`Ready on`**.
 4. If a Windows box asks about **Node.js**: tick **Private networks**, click **Allow access**.
 
 ✋ **Leave this window open. Don't type in it again.**
+
+> Why `npx.cmd` and not `npx`? Windows PowerShell blocks script files by default, and `npx` is one
+> (`npx.ps1`: "running scripts is disabled on this system"). `npx.cmd` does the same job and is not blocked.
 
 ---
 
@@ -147,6 +150,7 @@ Tick each box when it works. If something doesn't, write down **what you did** a
 | Phone: the code doesn't work | Too old. Paste the Step 2 line again for a new code. |
 | No sound | Turn up the phone's **media** volume (play a video and press volume up). |
 | No ring when locked | Phone Settings → Apps → **cafe_tablet** → Battery → **Unrestricted**. |
+| Red text "running scripts is disabled on this system" | Write `npx.cmd` (or `npm.cmd`) instead of `npx` (or `npm`). |
 | Window 3: "Not paired yet" | Paste the Step 2 line again, then Step 5 again. |
 
 When you finish, tell Claude: **your phone brand and model**, and **what happened in Test 3**.
