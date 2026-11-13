@@ -130,6 +130,8 @@ Decisions and their reasons: `docs/decisions.md`.
 - Run locally: `npx wrangler dev` (uses `.dev.vars`).
 - Pretend kitchen tablet for testing the waiter app before F3: `node scripts/dev-kitchen.mjs --api http://127.0.0.1:8787 --code <kitchen pairing code>`
   (first time; afterwards without `--code`). Type `a N` accept, `r N` ready, `u N` undo, `l` list, `q` quit.
+- Phone test setup in one command (café, staff, menu, tables, pretend kitchen, phone pairing code, build command):
+  `node scripts/dev-phone-test.mjs` (needs `wrangler dev --ip 0.0.0.0` running; safe to run again). Guide: `docs/phone-test.md`.
 
 ### admin/ (dashboard, run inside `admin/`)
 - Install: `npm ci`
