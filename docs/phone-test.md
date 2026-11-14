@@ -81,6 +81,8 @@ You will open **3 blue PowerShell windows** on the PC. Keep them all open until 
    cd C:\Users\lenovo\Projects\cafe-ordering\server; node scripts/dev-kitchen.mjs
    ```
 
+   (Or copy the **`node scripts/dev-kitchen.mjs --api ...`** line that Step 2 printed: it always has the right address.)
+
 3. You see **`Connected. Waiting for orders...`**
 
 This window is the kitchen. You talk to it by typing:

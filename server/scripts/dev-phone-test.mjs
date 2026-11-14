@@ -18,7 +18,26 @@ import { networkInterfaces } from "node:os";
 import { fileURLToPath } from "node:url";
 import { TEST_ACCESS_PRIVATE_JWK } from "../test/fixtures/accessKeys.ts";
 
-const API = process.env.DEV_API ?? "http://127.0.0.1:8787"; // DEV_API: only for testing this script
+const wifiAddresses = Object.values(networkInterfaces())
+  .flat()
+  .filter((a) => a && a.family === "IPv4" && !a.internal)
+  .map((a) => a.address)
+  .sort((a, b) => Number(b.startsWith("192.168.")) - Number(a.startsWith("192.168.")));
+const START = String.raw`cd C:\Users\lenovo\Projects\cafe-ordering\server; npx.cmd wrangler dev --ip 0.0.0.0`;
+
+/** The server's address: this PC (127.0.0.1), or the Wi-Fi address if it was started with --ip <that address>. */
+async function findServer() {
+  if (process.env.DEV_API) return process.env.DEV_API; // only for testing this script
+  for (const host of ["127.0.0.1", ...wifiAddresses]) {
+    try {
+      await fetch(`http://${host}:8787/menu`, { signal: AbortSignal.timeout(3000) });
+      return `http://${host}:8787`;
+    } catch {
+      // not there: try the next address
+    }
+  }
+  return null;
+}
 const OWNER = "dev-owner@example.com";
 const here = (path) => fileURLToPath(new URL(path, import.meta.url));
 
@@ -45,7 +64,8 @@ async function call(method, path, body, headers = {}) {
   try {
     res = await fetch(API + path, { method, headers: { "content-type": "application/json", ...headers }, body: body && JSON.stringify(body) });
   } catch {
-    stop("The server is not running. In another window: cd server; npx wrangler dev --ip 0.0.0.0");
+    stop(`The server stopped answering. In another window run:
+  ${START}`);
   }
   const json = await res.json().catch(() => ({}));
   return { ok: res.ok, status: res.status, ...json };
@@ -65,6 +85,11 @@ async function accessToken() {
   const sig = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, new TextEncoder().encode(`${head}.${claims}`));
   return `${head}.${claims}.${b64(new Uint8Array(sig))}`;
 }
+
+const API = await findServer();
+if (API === null) stop(`The server is not running. Open another PowerShell window and run:
+  ${START}
+Wait for "Ready on", then run this again.`);
 
 // ---------- 1. the café ----------
 const created = await call("POST", "/installer/venues", { name: "Dev Cafe", ownerName: "Dev Owner", ownerEmail: OWNER, ownerPin: "135790" }, { Authorization: `Bearer ${setting("INSTALLER_SECRET")}` });
@@ -109,11 +134,7 @@ console.log("✓ Pretend kitchen paired");
 
 // ---------- 4. the phone ----------
 const phone = await admin("POST", "/devices", { name: `Test phone ${stamp}`, kind: "waiter" });
-const addresses = Object.values(networkInterfaces())
-  .flat()
-  .filter((a) => a && a.family === "IPv4" && !a.internal)
-  .map((a) => a.address)
-  .sort((a, b) => Number(b.startsWith("192.168.")) - Number(a.startsWith("192.168.")));
+const addresses = wifiAddresses;
 const ip = addresses[0] ?? "<PC-IP>";
 
 console.log(`
@@ -125,5 +146,8 @@ console.log(`
 Build the app for this PC (in the apps\\tablet folder):
   flutter build apk --debug --dart-define=API_URL=http://${ip}:8787
 ${addresses.length > 1 ? `\n(This PC has more than one address: ${addresses.join(", ")}. Use the Wi-Fi one if ${ip} doesn't work.)\n` : ""}
+The pretend kitchen (in the server folder):
+  node scripts/dev-kitchen.mjs --api ${API}
+
 Code expired? Just run this command again: it makes a new one.
 `);
