@@ -132,6 +132,7 @@ Decisions and their reasons: `docs/decisions.md`.
   (first time; afterwards without `--code`). Type `a N` accept, `r N` ready, `u N` undo, `l` list, `q` quit.
 - Phone test setup in one command (café, staff, menu, tables, pretend kitchen, phone pairing code, build command):
   `node scripts/dev-phone-test.mjs` (needs `wrangler dev --ip 0.0.0.0` running; safe to run again). Guide: `docs/phone-test.md`.
+  Easiest: double-click `phone-test.cmd` in the repo root (starts the server window, sets up, becomes the kitchen).
 
 ### admin/ (dashboard, run inside `admin/`)
 - Install: `npm ci`

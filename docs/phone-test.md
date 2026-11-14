@@ -1,158 +1,131 @@
 # Testing the waiter app on your phone
 
-Your **phone** and your **PC** must use the **same Wi-Fi**.
-You will open **3 blue PowerShell windows** on the PC. Keep them all open until you finish.
+Your **phone** and your **PC** must be on the **same Wi-Fi**.
+
+You do **not** need to type commands. You double-click one file.
 
 ---
 
-## Step 1: Window 1, the server
+## Part 1: Start everything (on the PC)
 
-1. Press the **Windows key**, type `powershell`, press **Enter**. A blue window opens.
-2. Copy this line, right-click inside the window to paste, press **Enter**:
+1. Open **File Explorer** (the yellow folder icon at the bottom of the screen).
+2. Click in the address bar at the top, paste this, press **Enter**:
 
-   ```powershell
-   cd C:\Users\lenovo\Projects\cafe-ordering\server; node scripts/dev-access-vars.mjs; npx.cmd wrangler dev --ip 0.0.0.0
+   ```
+   C:\Users\lenovo\Projects\cafe-ordering
    ```
 
-3. Wait until you see **`Ready on`**.
-4. If a Windows box asks about **Node.js**: tick **Private networks**, click **Allow access**.
+3. Find the file **`phone-test`** (its icon is a small window with gears). **Double-click it.**
+   If Windows says "Windows protected your PC": click **More info** → **Run anyway**.
 
-✋ **Leave this window open. Don't type in it again.**
+4. Now **two black windows** are open:
 
-> Why `npx.cmd` and not `npx`? Windows PowerShell blocks script files by default, and `npx` is one
-> (`npx.ps1`: "running scripts is disabled on this system"). `npx.cmd` does the same job and is not blocked.
+   | Window title | What it is | What you do |
+   |---|---|---|
+   | **CAFE SERVER - keep this window open** | the server | **Nothing.** Don't close it. If Windows asks about Node.js: tick **Private networks** → **Allow access**. |
+   | **CAFE KITCHEN (pretend) - phone test** | the kitchen | You type here later. |
+
+5. Wait. In the **KITCHEN** window you see `Waiting for the server to start...`, then green ✓ lines,
+   then a box:
+
+   ```
+   PHONE PAIRING CODE:   543696      (works for 10 minutes)
+   ```
+
+   📝 Write down the code. Then you see `Connected. Waiting for orders...` ✅
+
+> Code too old (more than 10 minutes)? Close **only** the KITCHEN window and double-click
+> `phone-test` again. You get a new code. The server window can stay open.
 
 ---
 
-## Step 2: Window 2, the setup
+## Part 2: The app on the phone
 
-1. Open a **new** PowerShell window (Windows key → `powershell` → Enter).
-2. Paste this and press **Enter**:
+### Only if the app is not on the phone yet, or your PC's address changed
 
-   ```powershell
-   cd C:\Users\lenovo\Projects\cafe-ordering\server; node scripts/dev-phone-test.mjs
-   ```
+The app must know your PC's address. In the KITCHEN window, look at the line under
+"Build the app for this PC". If it says `http://192.168.1.2:8787`, the app built on 14 Nov is
+correct: skip to "Open the app" below. If the address is different, ask Claude to rebuild it.
 
-3. You see green ✓ lines, then a box like this:
-
-   ```
-   PHONE PAIRING CODE:   225358
-   ```
-
-   📝 **Write down the code.** It works for 10 minutes.
-   (Too late? Paste the same line again: you get a new code.)
-
-4. Below the box there is a line starting with **`flutter build apk`**. Leave it there; you need it in Step 3.
-
----
-
-## Step 3: Build the app (same Window 2)
-
-1. Paste this and press **Enter**:
-
-   ```powershell
-   cd C:\Users\lenovo\Projects\cafe-ordering\apps\tablet
-   ```
-
-2. Copy the **`flutter build apk ...`** line that Step 2 printed (it has your PC's address in it),
-   paste it, press **Enter**.
-3. Wait (a few minutes) until you see **`Built build\app\outputs\flutter-apk\app-debug.apk`**.
-
----
-
-## Step 4: Put the app on the phone
-
-1. On the PC, open **Telegram Desktop** → **Saved Messages**.
-2. Click the 📎 paperclip → go to
+To copy the app to the phone:
+1. PC: open **Telegram Desktop** → **Saved Messages** → click 📎.
+2. Paste this in the file box's address bar and press Enter:
    `C:\Users\lenovo\Projects\cafe-ordering\apps\tablet\build\app\outputs\flutter-apk`
-   → choose **`app-debug.apk`** → **Send**.
-3. On the **phone**, open Telegram → **Saved Messages** → tap the file.
-4. If the phone asks "allow installing apps from Telegram?" → **Allow**. Then **Install**.
-   If it warns "unknown app" → **Install anyway** (it's your own app).
+3. Choose **`app-debug.apk`** → **Send**.
+4. Phone: Telegram → **Saved Messages** → tap the file → **Install** (or **Update**).
+   If asked: **Allow** installing from Telegram. If warned: **Install anyway**.
 
----
-
-## Step 5: Window 3, the pretend kitchen
-
-1. Open a **new** PowerShell window.
-2. Paste this and press **Enter**:
-
-   ```powershell
-   cd C:\Users\lenovo\Projects\cafe-ordering\server; node scripts/dev-kitchen.mjs
-   ```
-
-   (Or copy the **`node scripts/dev-kitchen.mjs --api ...`** line that Step 2 printed: it always has the right address.)
-
-3. You see **`Connected. Waiting for orders...`**
-
-This window is the kitchen. You talk to it by typing:
-
-| Type this | It means |
-|---|---|
-| `a 1` then Enter | kitchen **accepts** item 1 |
-| `r 1` then Enter | item 1 is **ready** |
-| `u 1` then Enter | **undo** the last tap on item 1 (within 10 seconds) |
-
----
-
-## Step 6: Open the app on the phone
-
-1. Open **cafe_tablet**.
-2. Type the **pairing code** from Step 2.
+### Open the app
+1. Open **cafe_tablet** on the phone.
+2. Type the **pairing code** from Part 1.
 3. Tap **Hana**, type PIN **1234**.
-4. The phone asks two questions: tap **Allow** both times.
+4. Two questions appear: tap **Allow** both times.
 5. ✅ You see the tables, and a notification **"Café: alerts are on"**.
 
 ---
 
-## The tests
+## Part 3: The tests
 
-Tick each box when it works. If something doesn't, write down **what you did** and **what you saw**.
+You are the waiter (phone) **and** the kitchen (the KITCHEN window on the PC).
+In the KITCHEN window you type a short command and press **Enter**:
+
+| Type | Means |
+|---|---|
+| `a 1` | accept item 1 |
+| `r 1` | item 1 is ready |
+| `u 1` | undo the last tap on item 1 (within 10 seconds) |
+| `l` | show the list again |
+
+Tick each box when it works. If not, write down what you did and what you saw.
 
 ### Test 1: Send an order
-- [ ] Tap **Table 1** → **Add items** → **Food** → tap **Shiro** twice → **Send to kitchen**.
-- [ ] Window 3 shows **`NEW: 1. 2× Shiro`**.
+- [ ] Phone: tap **Table 1** → **Add items** → **Food** → tap **Shiro** two times → **Send to kitchen**.
+- [ ] KITCHEN window shows **`NEW: 1. 2× Shiro`**.
 
 ### Test 2: Sounds (phone unlocked)
-- [ ] Window 3: type `a 1` → phone plays a **soft sound**.
-- [ ] Type `r 1` → phone plays a **loud sound, vibrates**, orange box "**Table 1 — ready**".
+- [ ] KITCHEN: type `a 1` → phone plays a **soft sound**.
+- [ ] KITCHEN: type `r 1` → phone **rings loud, vibrates**, orange box "**Table 1 — ready**".
 - [ ] Wait **2 minutes**, touch nothing → it rings **once more**.
-- [ ] On the phone tap the Shiro line → **Delivered** → it says "Delivered".
+- [ ] Phone: tap the Shiro line → **Delivered**.
 
-### Test 3: Phone locked (the most important one)
-- [ ] Phone: send **Tibs** to Table 1. Window 3: type `a 2`.
+### Test 3: Phone locked (the most important)
+- [ ] Phone: send **Tibs** to Table 1. KITCHEN: type `a 2`.
 - [ ] **Lock the phone**, put it in your pocket, wait **5 minutes**.
-- [ ] Window 3: type `r 2` → the phone in your pocket **rings and vibrates**.
-- [ ] Do it again, but wait **30 minutes** before typing `r`.
+- [ ] KITCHEN: type `r 2` → the phone in your pocket **rings and vibrates**.
+- [ ] Do it again, but wait **30 minutes**.
 
 ### Test 4: Undo
-- [ ] Send **Firfir**. Type `a 3`, then `r 3`, then quickly `u 3`.
+- [ ] Send **Firfir**. KITCHEN: `a 3`, then `r 3`, then quickly `u 3`.
 - [ ] Phone shows "**not ready yet**".
 
 ### Test 5: Mistakes
-- [ ] Send Shiro, and **before** typing `a`: tap it on the phone → **Cancel item** → it is crossed out.
-- [ ] Send Shiro, type `a N`. Tap it → **Void…** → write a reason → tap **Meron** → PIN `111111`
-      → "**Wrong manager PIN**". Try again with **246810** → it is crossed out.
+- [ ] Send Shiro. **Before** typing `a`: phone → tap it → **Cancel item** → crossed out.
+- [ ] Send Shiro, KITCHEN `a N`. Phone → tap it → **Void…** → write a reason → tap **Meron** →
+      PIN `111111` → "**Wrong manager PIN**". Again with **246810** → crossed out.
 
 ### Test 6: No internet
-- [ ] Turn the phone's **Wi-Fi off**. Send an order → it says "**Waiting for internet**".
-- [ ] Turn **Wi-Fi on** → it goes to Window 3 by itself.
+- [ ] Phone: **Wi-Fi off**. Send an order → "**Waiting for internet**".
+- [ ] **Wi-Fi on** → the order appears in the KITCHEN window by itself.
 
 ### Test 7: Close the table
-- [ ] Mark everything Delivered. On Table 1 tap **⋮** (top right) → **Close table** → **Close**.
-- [ ] You are back at the tables and Table 1 is free.
+- [ ] Everything Delivered. Phone: **⋮** (top right) → **Close table** → **Close**.
+- [ ] Back at the tables; Table 1 is free.
 
 ---
+
+## When you are finished
+Close both black windows (the X at the top right). That stops everything.
 
 ## Something wrong?
 
 | What you see | What to do |
 |---|---|
-| Phone: "No connection to the server" | Is Window 1 still open? Same Wi-Fi? Did you click **Allow access** in Step 1? |
-| Phone: the code doesn't work | Too old. Paste the Step 2 line again for a new code. |
-| No sound | Turn up the phone's **media** volume (play a video and press volume up). |
+| KITCHEN window: "The server is not running" | Did the SERVER window close or show red text? Copy its text and send it to Claude. |
+| Phone: "No connection to the server" | Is the SERVER window open? Phone on the same Wi-Fi (not mobile data)? |
+| Phone: the code doesn't work | Too old: close the KITCHEN window, double-click `phone-test` again. |
+| No sound | Turn up the phone's **media** volume (play a video, press volume up). |
 | No ring when locked | Phone Settings → Apps → **cafe_tablet** → Battery → **Unrestricted**. |
-| Red text "running scripts is disabled on this system" | Write `npx.cmd` (or `npm.cmd`) instead of `npx` (or `npm`). |
-| Window 3: "Not paired yet" | Paste the Step 2 line again, then Step 5 again. |
 
-When you finish, tell Claude: **your phone brand and model**, and **what happened in Test 3**.
+To copy text from a black window: select it with the mouse, press **Enter**, then paste with **Ctrl+V**.
+
+When you finish, tell Claude: **phone brand and model**, and **what happened in Test 3**.

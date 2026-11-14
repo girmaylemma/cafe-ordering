@@ -28,13 +28,18 @@ const START = String.raw`cd C:\Users\lenovo\Projects\cafe-ordering\server; npx.c
 /** The server's address: this PC (127.0.0.1), or the Wi-Fi address if it was started with --ip <that address>. */
 async function findServer() {
   if (process.env.DEV_API) return process.env.DEV_API; // only for testing this script
-  for (const host of ["127.0.0.1", ...wifiAddresses]) {
-    try {
-      await fetch(`http://${host}:8787/menu`, { signal: AbortSignal.timeout(3000) });
-      return `http://${host}:8787`;
-    } catch {
-      // not there: try the next address
+  // The server takes a few seconds to start: keep trying for up to 90 s.
+  for (let attempt = 0; attempt < 45; attempt++) {
+    for (const host of ["127.0.0.1", ...wifiAddresses]) {
+      try {
+        await fetch(`http://${host}:8787/menu`, { signal: AbortSignal.timeout(2000) });
+        return `http://${host}:8787`;
+      } catch {
+        // not there: try the next address
+      }
     }
+    if (attempt === 0) console.log("Waiting for the server to start...");
+    await new Promise((r) => setTimeout(r, 2000));
   }
   return null;
 }
