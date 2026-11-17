@@ -13,3 +13,6 @@ coverage/
 
 # Dashboard build output (admin/ builds into server/public/admin)
 server/public/admin/
+
+# dev kitchen script token (server/scripts/dev-kitchen.mjs)
+.dev-kitchen-token
