@@ -65,7 +65,7 @@ class _PinScreenState extends ConsumerState<PinScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Who are you?', style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
+        Text(context.l10n.pinTitle, style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
         const SizedBox(height: 16),
         Expanded(
           child: FutureBuilder<List<StaffMember>>(
@@ -109,7 +109,7 @@ class _PinScreenState extends ConsumerState<PinScreen> {
           inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(6)],
           textAlign: TextAlign.center,
           style: const TextStyle(fontSize: 32, letterSpacing: 12),
-          decoration: const InputDecoration(border: OutlineInputBorder(), labelText: 'PIN'),
+          decoration: InputDecoration(border: const OutlineInputBorder(), labelText: context.l10n.pinLabel),
           onSubmitted: (_) => _signIn(),
         ),
         if (error != null) ...[
@@ -117,8 +117,8 @@ class _PinScreenState extends ConsumerState<PinScreen> {
           Text(errorText(context.l10n, error, retryAfter: widget.state.retryAfter), style: TextStyle(color: Theme.of(context).colorScheme.error), textAlign: TextAlign.center),
         ],
         const SizedBox(height: 24),
-        FilledButton(onPressed: _busy ? null : _signIn, child: const Padding(padding: EdgeInsets.all(12), child: Text('Sign in'))),
-        TextButton(onPressed: () => setState(() => _selected = null), child: const Text('Not you? Choose another name')),
+        FilledButton(onPressed: _busy ? null : _signIn, child: Padding(padding: const EdgeInsets.all(12), child: Text(context.l10n.pinSignIn))),
+        TextButton(onPressed: () => setState(() => _selected = null), child: Text(context.l10n.pinNotYou)),
       ],
     );
   }

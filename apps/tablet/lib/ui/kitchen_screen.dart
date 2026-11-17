@@ -99,7 +99,7 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen> {
             child: FilledButton.tonalIcon(
               key: const Key('open-sold-out'),
               icon: const Icon(Icons.block),
-              label: const Text('Sold out'),
+              label: Text(context.l10n.kitchenSoldOutButton),
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(builder: (_) => SoldOutScreen(stationId: widget.device.stationId ?? '')),
               ),
@@ -114,7 +114,7 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen> {
               if (link != LinkState.online) const _NoConnection(),
               Expanded(
                 child: rounds.isEmpty
-                    ? Center(child: Text('No orders. New orders appear here by themselves.', style: Theme.of(context).textTheme.titleLarge))
+                    ? Center(child: Text(context.l10n.kitchenNoOrders, style: Theme.of(context).textTheme.titleLarge))
                     : SingleChildScrollView(
                         padding: const EdgeInsets.all(12),
                         child: Wrap(
@@ -280,17 +280,17 @@ class _TicketCard extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(color: colour ?? theme.colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)),
                     child: Text(
-                      _ageLabel(age),
+                      _ageLabel(context.l10n, age),
                       style: theme.textTheme.titleMedium?.copyWith(color: colour == null ? null : Colors.white, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
               ),
               Text(
-                [if (first.waiterName != null) first.waiterName!, if (round != null && round > 1) 'Round $round'].join(' · '),
+                [if (first.waiterName != null) first.waiterName!, if (round != null && round > 1) context.l10n.commonRound(round)].join(' · '),
                 style: theme.textTheme.titleMedium,
               ),
-              if (offline) _Flag('Sent while offline: it may already be made. Ask the waiter.', color: Colors.orange.shade800),
+              if (offline) _Flag(context.l10n.kitchenSentOffline, color: Colors.orange.shade800),
               const Divider(height: 20),
               for (final item in items)
                 _ItemRow(item: item, busy: busy.contains(item.id), canUndo: undoItemId == item.id, onTap: () => onTap(item), onUndo: () => onUndo(item.id)),
@@ -302,9 +302,9 @@ class _TicketCard extends StatelessWidget {
   }
 
   /// "7 min"; capped at "99+ min" (long past red), so the label always fits the card.
-  static String _ageLabel(Duration age) {
+  static String _ageLabel(AppLocalizations t, Duration age) {
     final minutes = age.inMinutes < 0 ? 0 : age.inMinutes;
-    return minutes > 99 ? '99+ min' : '$minutes min';
+    return minutes > 99 ? t.kitchenAgeOver99 : t.kitchenAgeMinutes(minutes);
   }
 
   /// The server's time on this tablet's clock, e.g. 14:05.
@@ -343,8 +343,8 @@ class _ItemRow extends StatelessWidget {
                 DishName(en: item.nameEn, am: item.nameAm, qty: item.qty, style: nameStyle),
                 if (item.optionsText != null) Text(item.optionsText!, style: theme.textTheme.titleMedium),
                 if (item.note != null) Text('“${item.note}”', style: theme.textTheme.titleMedium?.copyWith(fontStyle: FontStyle.italic)),
-                if (item.flag == 'sold_out') _Flag('SOLD OUT when ordered', color: theme.colorScheme.error),
-                if (item.flag == 'unavailable') _Flag('NOT ON THE MENU any more', color: theme.colorScheme.error),
+                if (item.flag == 'sold_out') _Flag(context.l10n.kitchenFlagSoldOut, color: theme.colorScheme.error),
+                if (item.flag == 'unavailable') _Flag(context.l10n.kitchenFlagUnavailable, color: theme.colorScheme.error),
               ],
             ),
           ),
@@ -352,8 +352,8 @@ class _ItemRow extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _action(theme),
-              if (canUndo && (item.state == 'accepted' || item.state == 'ready')) TextButton(onPressed: busy ? null : onUndo, child: const Text('Undo')),
+              _action(context, theme),
+              if (canUndo && (item.state == 'accepted' || item.state == 'ready')) TextButton(onPressed: busy ? null : onUndo, child: Text(context.l10n.commonUndo)),
             ],
           ),
         ],
@@ -361,29 +361,29 @@ class _ItemRow extends StatelessWidget {
     );
   }
 
-  Widget _action(ThemeData theme) {
+  Widget _action(BuildContext context, ThemeData theme) {
     const size = Size(130, 56); // big enough for wet or gloved hands (NFR usability)
     switch (item.state) {
       case 'sent':
         return FilledButton(
           style: FilledButton.styleFrom(minimumSize: size),
           onPressed: busy ? null : onTap,
-          child: const Text('Accept'),
+          child: Text(context.l10n.kitchenAccept),
         );
       case 'accepted':
         return FilledButton(
           style: FilledButton.styleFrom(minimumSize: size, backgroundColor: Colors.green.shade700),
           onPressed: busy ? null : onTap,
-          child: const Text('Ready'),
+          child: Text(context.l10n.kitchenReady),
         );
       case 'ready':
-        return const _Status('Waiting for pickup');
+        return _Status(context.l10n.kitchenWaitingPickup);
       case 'delivered':
-        return const _Status('Delivered');
+        return _Status(context.l10n.kitchenDelivered);
       case 'cancelled':
-        return _Status('CANCELLED', color: theme.colorScheme.error);
+        return _Status(context.l10n.kitchenCancelled, color: theme.colorScheme.error);
       case 'voided':
-        return _Status('VOIDED', color: theme.colorScheme.error);
+        return _Status(context.l10n.kitchenVoided, color: theme.colorScheme.error);
       default:
         return _Status(item.state);
     }
@@ -427,9 +427,9 @@ class _NoConnection extends StatelessWidget {
     width: double.infinity,
     color: Colors.red.shade700,
     padding: const EdgeInsets.all(14),
-    child: const Text(
-      'No connection: new orders cannot arrive. Talk to the waiters directly.',
-      style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+    child: Text(
+      context.l10n.kitchenNoConnection,
+      style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
     ),
   );
 }

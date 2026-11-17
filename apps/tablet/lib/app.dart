@@ -34,7 +34,7 @@ class CafeApp extends ConsumerWidget {
             SignedIn(:final user) => FloorMapScreen(user: user),
             StationReady(:final device) => KitchenScreen(device: device),
           },
-        AsyncError() => const _Placeholder(title: 'Something went wrong. Restart the app.'),
+        AsyncError() => const _Placeholder(),
         _ => const Scaffold(body: Center(child: CircularProgressIndicator())),
       },
     );
@@ -43,8 +43,7 @@ class CafeApp extends ConsumerWidget {
 
 /// Shown when something went wrong.
 class _Placeholder extends ConsumerWidget {
-  const _Placeholder({required this.title});
-  final String title;
+  const _Placeholder();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -53,7 +52,7 @@ class _Placeholder extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(title, style: Theme.of(context).textTheme.headlineMedium),
+            Text(context.l10n.appError, style: Theme.of(context).textTheme.headlineMedium),
           ],
         ),
       ),

@@ -40,14 +40,14 @@ class _SoldOutScreenState extends ConsumerState<SoldOutScreen> {
       children.add(_row(r.item.id, r.item.nameEn, r.item.nameAm, r.item.soldOut, theme));
     }
     return Scaffold(
-      appBar: AppBar(title: Text('Sold out: ${stationName(context.l10n, widget.stationId)}')),
+      appBar: AppBar(title: Text(context.l10n.soldOutTitle(stationName(context.l10n, widget.stationId)))),
       body: ListView(padding: const EdgeInsets.symmetric(vertical: 8), children: children),
     );
   }
 
   Widget _row(String id, String name, String? nameAm, bool soldOut, ThemeData theme) => ListTile(
         title: DishName(en: name, am: nameAm, style: theme.textTheme.titleLarge),
-        subtitle: soldOut ? Text('SOLD OUT', style: TextStyle(color: theme.colorScheme.error, fontWeight: FontWeight.bold)) : null,
+        subtitle: soldOut ? Text(context.l10n.soldOutLabel, style: TextStyle(color: theme.colorScheme.error, fontWeight: FontWeight.bold)) : null,
         trailing: Transform.scale(
           scale: 1.4, // big enough for wet or gloved hands
           child: Switch(
