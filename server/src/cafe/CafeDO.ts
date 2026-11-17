@@ -807,8 +807,9 @@ export class CafeDO extends DurableObject<Env> {
       )
       .toArray();
 
-    if (rows.length > MAX_CATCH_UP_EVENTS) return { type: "sync.result", events: [], reloadRequired: true };
-    return { type: "sync.result", events: rows.map(rowToWireEvent), reloadRequired: false };
+    const serverNow = Date.now();
+    if (rows.length > MAX_CATCH_UP_EVENTS) return { type: "sync.result", events: [], reloadRequired: true, serverNow };
+    return { type: "sync.result", events: rows.map(rowToWireEvent), reloadRequired: false, serverNow };
   }
 }
 

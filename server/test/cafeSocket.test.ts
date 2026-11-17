@@ -165,7 +165,7 @@ describe("CafeDO WebSocket", () => {
 
     kitchen.send({ type: "sync", since: 0 });
 
-    expect(await kitchen.next()).toEqual({ type: "sync.result", events: [], reloadRequired: true });
+    expect(await kitchen.next()).toEqual({ type: "sync.result", events: [], reloadRequired: true, serverNow: expect.any(Number) });
   });
 
   // ---------- bad input and security ----------

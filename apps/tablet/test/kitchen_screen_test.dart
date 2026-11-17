@@ -6,6 +6,7 @@ import 'package:cafe_tablet/data/database.dart';
 import 'package:cafe_tablet/providers.dart';
 import 'package:cafe_tablet/session/providers.dart';
 import 'package:cafe_tablet/session/work_session.dart';
+import 'package:cafe_tablet/sync/server_clock.dart';
 import 'package:cafe_tablet/ui/kitchen_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,6 +14,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+import 'alerts_test.dart' show FakeOutput;
 import 'fakes.dart';
 import 'tickets_db_test.dart' show sent;
 
@@ -33,11 +35,24 @@ Future<void> settled(WidgetTester tester) async {
   await tester.pump();
 }
 
+/// The tablet's clock in these tests (the server clock offset stays 0: no catch-up says otherwise).
+var clockNow = DateTime(2026, 11, 17, 12);
+int minutesAgo(num m) => clockNow.subtract(Duration(seconds: (m * 60).round())).millisecondsSinceEpoch;
+
 /// The kitchen screen with these events already received. Online unless [online] is false.
 Future<(AppDatabase, FakeSocket?)> pumpKitchen(WidgetTester tester, List<Map<String, dynamic>> events, {bool online = true}) async {
   final db = memoryDb();
   final socket = online ? FakeSocket() : null;
-  final session = WorkSession(api: api(), db: db, device: kitchen, deviceToken: 't', connect: FakeServer([?socket]).connect, delay: (_) async {});
+  final session = WorkSession(
+    api: api(),
+    db: db,
+    device: kitchen,
+    deviceToken: 't',
+    connect: FakeServer([?socket]).connect,
+    delay: (_) async {},
+    alertOutput: FakeOutput(),
+    clock: ServerClock(now: () => clockNow),
+  );
   await tester.runAsync(() async {
     for (final e in events) {
       await db.applyTicketEvent(e);
@@ -69,6 +84,77 @@ void push(FakeSocket socket, String itemId, String type, String to) => socket.re
 Map<String, dynamic> lastCommand(FakeSocket socket) => socket.sent.lastWhere((m) => m['type'] != 'sync');
 
 void main() {
+  setUp(() => clockNow = DateTime(2026, 11, 17, 12));
+
+  group('ticket timer (K-04)', () {
+    for (final (minutes, level) in [(9.9, 'normal'), (10, 'amber'), (14.9, 'amber'), (15, 'red'), (42, 'red')]) {
+      testWidgets('$minutes min since the server got it: $level', (tester) async {
+        await pumpKitchen(tester, [sent('i1', at: minutesAgo(minutes))]);
+        expect(find.byKey(Key('age-$level')), findsOneWidget);
+        expect(find.text('${minutes.floor()} min'), findsOneWidget);
+        await unmountAndFlush(tester);
+      });
+    }
+
+    testWidgets('it moves on by itself: 9 min becomes amber without any new event', (tester) async {
+      await pumpKitchen(tester, [sent('i1', at: minutesAgo(9.8))]);
+      expect(find.byKey(const Key('age-normal')), findsOneWidget);
+
+      clockNow = clockNow.add(const Duration(seconds: 30));
+      await tester.pump(const Duration(seconds: 30));
+
+      expect(find.byKey(const Key('age-amber')), findsOneWidget);
+      await unmountAndFlush(tester);
+    });
+
+    testWidgets('when everything left on the ticket is ready, the timer stops colouring', (tester) async {
+      final (_, socket) = await pumpKitchen(tester, [sent('i1', at: minutesAgo(20))]);
+      push(socket!, 'i1', 'item.ready', 'ready');
+      await settled(tester);
+
+      expect(find.byKey(const Key('age-red')), findsNothing);
+      expect(find.byKey(const Key('age-done')), findsOneWidget);
+      await unmountAndFlush(tester);
+    });
+  });
+
+  group('flash (K-02)', () {
+    testWidgets('a live new ticket flashes the screen for about 2 s', (tester) async {
+      final (_, socket) = await pumpKitchen(tester, []);
+      socket!.receive({'type': 'event', 'event': sent('i1', at: minutesAgo(0))});
+      await settled(tester);
+
+      expect(find.byKey(const Key('flash-newTicket')), findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
+      expect(find.byKey(const Key('flash-newTicket')), findsNothing);
+      await unmountAndFlush(tester);
+    });
+
+    testWidgets('a void flashes red', (tester) async {
+      final (_, socket) = await pumpKitchen(tester, [sent('i1'), sent('i2')]);
+      push(socket!, 'i1', 'item.voided', 'voided');
+      await settled(tester);
+
+      expect(find.byKey(const Key('flash-voided')), findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
+      await unmountAndFlush(tester);
+    });
+
+    testWidgets('the flash never blocks a tap underneath', (tester) async {
+      final (_, socket) = await pumpKitchen(tester, [sent('i1')]);
+      socket!.receive({'type': 'event', 'event': sent('i2', orderId: 'o2')});
+      await settled(tester);
+
+      await tester.tap(find.text('Accept').first);
+      await settled(tester);
+      expect(lastCommand(socket), containsPair('command', {'type': 'accept'}));
+      socket.ackLast({'ok': true}); // answer it, or the app's 10 s answer timer outlives the test
+      await settled(tester);
+      await tester.pump(const Duration(seconds: 11));
+      await unmountAndFlush(tester);
+    });
+  });
+
   testWidgets('no tickets: says that new orders appear by themselves', (tester) async {
     await pumpKitchen(tester, []);
     expect(find.textContaining('New orders appear here'), findsOneWidget);

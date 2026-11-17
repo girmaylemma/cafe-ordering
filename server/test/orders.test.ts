@@ -374,6 +374,20 @@ describe("sessions and orders", () => {
     });
   });
 
+  it("catch-up carries the server's clock, so a tablet with a wrong clock still shows true ticket ages (K-04)", async () => {
+    const cafe = await setup();
+    const kitchen = await connect(cafe, stationHeaders("kitchen"));
+    const before = Date.now();
+    kitchen.send({ type: "sync", since: 0 });
+
+    const result = await kitchen.next();
+
+    expect(result).toMatchObject({ type: "sync.result" });
+    const serverNow = (result as { serverNow?: number }).serverNow;
+    expect(serverNow).toBeGreaterThanOrEqual(before);
+    expect(serverNow).toBeLessThanOrEqual(Date.now());
+  });
+
   // ---------- who may send what ----------
   it("kitchen tablets and the live view cannot open tables or send rounds", async () => {
     const cafe = await setup();

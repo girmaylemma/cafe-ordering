@@ -55,14 +55,29 @@ void main() {
     c.start();
     await settle();
 
-    socket.receive({'type': 'sync.result', 'reloadRequired': false, 'events': [{'seq': 4, 'type': 'item.sent'}, {'seq': 5, 'type': 'item.accepted'}]});
+    socket.receive({'type': 'sync.result', 'reloadRequired': false, 'events': [{'seq': 4, 'type': 'item.sent'}, {'seq': 5, 'type': 'item.accepted'}], 'serverNow': 99000});
     socket.receive({'type': 'event', 'event': {'seq': 6, 'type': 'item.ready'}});
     await settle();
 
     expect(await db.lastSeq(), 6);
-    expect(pushes.map((p) => p['event']?['type'] ?? p['type']), ['item.sent', 'item.accepted', 'item.ready']);
+    // Catch-up ends with "synced", so a kitchen can ring ONCE for what arrived meanwhile (F3b).
+    expect(pushes.map((p) => p['event']?['type'] ?? p['type']), ['item.sent', 'item.accepted', 'synced', 'item.ready']);
     // Catch-up is history: marked, so the waiter's tablet doesn't ring for it (F2c2).
-    expect(pushes.map((p) => p['replay'] == true), [true, true, false]);
+    expect(pushes.map((p) => p['replay'] == true), [true, true, false, false]);
+  });
+
+  test('"synced" carries the server clock, for ticket timers (K-04)', () async {
+    final socket = FakeSocket();
+    final c = connection(FakeServer([socket]));
+    final pushes = <Map<String, dynamic>>[];
+    c.pushes.listen(pushes.add);
+    c.start();
+    await settle();
+
+    socket.receive({'type': 'sync.result', 'reloadRequired': false, 'events': <Object>[], 'serverNow': 1234567});
+    await settle();
+
+    expect(pushes.single, {'type': 'synced', 'serverNow': 1234567});
   });
 
   test('a catch-up that is too long asks the app to reload everything', () async {
@@ -73,10 +88,10 @@ void main() {
     c.start();
     await settle();
 
-    socket.receive({'type': 'sync.result', 'reloadRequired': true, 'events': []});
+    socket.receive({'type': 'sync.result', 'reloadRequired': true, 'events': [], 'serverNow': 1});
     await settle();
 
-    expect(pushes.single['type'], 'reload');
+    expect(pushes.map((p) => p['type']), ['reload', 'synced']);
   });
 
   test('after a drop: waiting commands fail, it reconnects with a growing wait, and syncs again', () async {

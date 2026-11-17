@@ -396,6 +396,10 @@ class AppDatabase extends _$AppDatabase {
         }
       });
 
+  /// Is any of these items still on the screen? (Finished rounds are deleted.)
+  Future<bool> anyTicket(Set<String> itemIds) async =>
+      (await (select(ticketItems)..where((t) => t.id.isIn(itemIds))..limit(1)).get()).isNotEmpty;
+
   /// The open tickets, oldest round first (by server time), each round's lines together.
   Stream<List<TicketItem>> watchTickets() => (select(ticketItems)
         ..orderBy([(t) => OrderingTerm.asc(t.receivedAt), (t) => OrderingTerm.asc(t.orderId), (t) => OrderingTerm.asc(t.rowId)]))

@@ -5,12 +5,14 @@ library;
 import 'dart:async';
 
 import '../alerts/keep_alive.dart';
+import '../alerts/kitchen_alerts.dart';
 import '../alerts/waiter_alerts.dart';
 import '../api/api_client.dart';
 import '../data/database.dart';
 import '../sync/commands.dart';
 import '../sync/connection.dart';
 import '../sync/outbox.dart';
+import '../sync/server_clock.dart';
 
 class WorkSession {
   WorkSession({
@@ -24,7 +26,8 @@ class WorkSession {
     String? userId,
     AlertOutput? alertOutput,
     KeepAlive? keepAlive,
-  }) {
+    ServerClock? clock,
+  }) : clock = clock ?? ServerClock() {
     connection = Connection(connect: connect, db: _db, delay: delay);
     // A round that waited offline: show its final answer on the table screen.
     outbox = Outbox(_db, connection, onAnswer: (key, result) {
@@ -33,10 +36,11 @@ class WorkSession {
     });
     commands = TableCommands(connection);
     stationCommands = StationCommands(connection);
-    // Only a signed-in waiter's tablet rings (a kitchen tablet has no user and no alerts).
+    // A signed-in waiter's tablet rings by the waiter rules, a kitchen tablet by the kitchen ones.
     alerts = userId == null || alertOutput == null
         ? null
         : WaiterAlerts(db: _db, myUserId: userId, output: alertOutput, staffName: staffName);
+    kitchenAlerts = device.kind != DeviceKind.station || alertOutput == null ? null : KitchenAlerts(db: _db, output: alertOutput);
     // Only a waiter's phone needs to stay awake for alerts (a kitchen tablet stays on screen).
     _keepAlive = alerts == null ? null : keepAlive;
   }
@@ -57,6 +61,12 @@ class WorkSession {
 
   /// The waiter's alerts (null on a kitchen tablet).
   late final WaiterAlerts? alerts;
+
+  /// New-ticket and void alerts (only on a kitchen or bar tablet, F3b).
+  late final KitchenAlerts? kitchenAlerts;
+
+  /// The server's time, learned on every catch-up: ticket timers use it (K-04).
+  final ServerClock clock;
 
   final _staff = <String, StaffMember>{};
   final _subscriptions = <StreamSubscription<Object?>>[];
@@ -97,6 +107,7 @@ class WorkSession {
     await outbox.stop();
     await connection.stop();
     alerts?.dispose();
+    kitchenAlerts?.dispose();
     await _keepAlive?.stop().catchError((Object _) {});
   }
 
@@ -126,12 +137,16 @@ class WorkSession {
         await _db.setSoldOut(push['menuItemId'] as String, push['soldOut'] as bool);
       case 'reload':
         await refresh();
+      case 'synced':
+        clock.learn(push['serverNow'] as int?);
       case 'event':
         final event = (push['event'] as Map).cast<String, dynamic>();
         // A kitchen tablet keeps tickets; a waiter's tablet keeps the lines of its tables.
         await (device.kind == DeviceKind.station ? _db.applyTicketEvent(event) : _db.applyItemEvent(event));
     }
-    await alerts?.onPush(push); // after the database: the rules read the item's current table
+    // After the database: the rules read the item's current table, or which tickets are open.
+    await alerts?.onPush(push);
+    await kitchenAlerts?.onPush(push);
   }
 
   Future<void> _accessEnded() async {

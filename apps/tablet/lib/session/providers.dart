@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../alerts/device_output.dart';
 import '../alerts/keep_alive.dart';
+import '../alerts/kitchen_alerts.dart';
 import '../alerts/waiter_alerts.dart';
 import '../api/api_client.dart';
 import '../auth/auth_controller.dart';
@@ -49,7 +50,7 @@ final workSessionProvider = FutureProvider<WorkSession?>((ref) async {
     connect: () => connectSocket(Uri.parse(apiBaseUrl), device.token, session?.sessionToken),
     onAccessEnded: auth.accessEnded,
     userId: session?.user.id,
-    alertOutput: session == null ? null : ref.read(alertOutputProvider),
+    alertOutput: ref.read(alertOutputProvider), // a waiter's or a kitchen's rules, by device kind
     keepAlive: session == null ? null : ref.read(keepAliveProvider),
   );
   ref.onDispose(work.stop);
@@ -71,6 +72,12 @@ final keepAliveProvider = Provider<KeepAlive>((ref) => ForegroundKeepAlive());
 final alertsProvider = StreamProvider<Alert>((ref) async* {
   final alerts = (await ref.watch(workSessionProvider.future))?.alerts;
   if (alerts != null) yield* alerts.alerts;
+});
+
+/// Flashes for the kitchen screen (none on a waiter's tablet).
+final kitchenFlashProvider = StreamProvider<KitchenFlash>((ref) async* {
+  final alerts = (await ref.watch(workSessionProvider.future))?.kitchenAlerts;
+  if (alerts != null) yield* alerts.flashes;
 });
 
 final linkStateProvider = StreamProvider<LinkState>((ref) async* {

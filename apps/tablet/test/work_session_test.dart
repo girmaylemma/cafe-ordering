@@ -199,6 +199,32 @@ void main() {
     expect(await db.select(db.orderLines).get(), isEmpty);
   });
 
+  test('real wiring on a kitchen tablet: a live new ticket rings, and catch-up teaches the server clock (F3b)', () async {
+    db = memoryDb();
+    final socket = FakeSocket();
+    final output = FakeOutput();
+    const kitchen = DeviceInfo(id: 'k1', name: 'Kitchen', kind: DeviceKind.station, stationId: 'kitchen');
+    final session = WorkSession(api: server.api(), db: db, device: kitchen, deviceToken: 't', connect: FakeServer([socket]).connect, delay: (_) async {}, alertOutput: output);
+    addTearDown(() async {
+      await session.stop();
+      await db.close();
+    });
+    await session.start();
+    await settle();
+
+    final serverNow = DateTime.now().millisecondsSinceEpoch + 6 * 60000; // the tablet is 6 min slow
+    socket.receive({'type': 'sync.result', 'reloadRequired': false, 'events': <Object>[], 'serverNow': serverNow});
+    socket.receive({'type': 'event', 'event': {
+      'seq': 1, 'orderId': 'o1', 'itemId': 'i1', 'stationId': 'kitchen', 'type': 'item.sent', 'from': null, 'to': 'sent', 'at': serverNow,
+      'details': {'tableId': 't7', 'tableName': 'Table 7', 'waiterName': 'Hana', 'round': 1, 'name': 'Shiro', 'nameAm': null, 'qty': 1, 'note': null, 'options': <Object>[]},
+    }});
+    await settle();
+
+    expect(output.rings, [AlertSound.loud]);
+    expect(session.alerts, isNull); // no waiter rules on a kitchen tablet
+    expect(session.clock.nowMs(), closeTo(serverNow, 2000));
+  });
+
   test('a round that waited offline shows its final answer: refused -> "needs attention", accepted -> sent', () async {
     final socket = FakeSocket();
     server.tableState = 'ordered'; // the table is still open (a free table would end the visit and clear its lines)
