@@ -360,6 +360,48 @@ class AppDatabase extends _$AppDatabase {
     }
   }
 
+  /// Replace the server-confirmed lines with a GET /lines download (after a too-long catch-up):
+  /// the lines of the tables this waiter holds now. Lines the server has not got yet (queued,
+  /// sending, needs attention) are never removed: they are orders that exist only here.
+  Future<void> replaceServerLines(List<Map<String, dynamic>> lines) => transaction(() async {
+        final ids = [for (final l in lines) l['itemId'] as String];
+        // Confirmed lines the server no longer gives: closed, or handed to another waiter.
+        await (delete(orderLines)..where((l) => l.sync.equals('sent') & l.id.isNotIn(ids))).go();
+        for (final l in lines) {
+          final id = l['itemId'] as String;
+          final d = (l['details'] as Map).cast<String, dynamic>();
+          final existing = await (select(orderLines)..where((o) => o.id.equals(id))).getSingleOrNull();
+          if (existing != null) {
+            // Keep what this tablet knows better (its display price, chosen option ids).
+            await (update(orderLines)..where((o) => o.id.equals(id))).write(OrderLinesCompanion(
+              tableId: Value(d['tableId'] as String),
+              round: Value(d['round'] as int?),
+              state: Value(l['state'] as String),
+              sync: const Value('sent'),
+              error: const Value(null),
+            ));
+            continue;
+          }
+          final options = ((d['options'] as List?) ?? const []).map((o) => (o as Map)['nameEn']).join(', ');
+          await into(orderLines).insert(OrderLinesCompanion.insert(
+            id: id,
+            orderId: l['orderId'] as String,
+            tableId: d['tableId'] as String,
+            menuItemId: (d['menuItemId'] as String?) ?? '',
+            nameEn: d['name'] as String,
+            nameAm: Value(d['nameAm'] as String?),
+            qty: d['qty'] as int,
+            note: Value(d['note'] as String?),
+            optionsText: Value(options.isEmpty ? null : options),
+            priceSantim: (d['priceSantim'] as int?) ?? 0, // display only; the server's price counts
+            round: Value(d['round'] as int?),
+            state: l['state'] as String,
+            sync: 'sent',
+            createdAt: (l['at'] as int) * 1000, // server ms -> microseconds, like the lines made here
+          ));
+        }
+      });
+
   // ---------- kitchen tickets (F3a) ----------
 
   static const _finished = ['delivered', 'cancelled', 'voided'];

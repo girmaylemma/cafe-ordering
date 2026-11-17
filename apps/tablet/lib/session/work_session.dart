@@ -20,6 +20,7 @@ class WorkSession {
     required this._db,
     required this.device,
     required this._deviceToken,
+    this._sessionToken,
     required SocketConnector connect,
     Future<void> Function(Duration)? delay,
     this._onAccessEnded,
@@ -48,6 +49,9 @@ class WorkSession {
   final ApiClient _api;
   final AppDatabase _db;
   final String _deviceToken;
+
+  /// The waiter's PIN session (null on a kitchen tablet): GET /lines answers per waiter.
+  final String? _sessionToken;
   final Future<void> Function()? _onAccessEnded;
   final DeviceInfo device;
   late final Connection connection;
@@ -137,7 +141,7 @@ class WorkSession {
         await _db.setSoldOut(push['menuItemId'] as String, push['soldOut'] as bool);
       case 'reload':
         await refresh();
-        if (device.kind == DeviceKind.station) await _reloadTickets();
+        await (device.kind == DeviceKind.station ? _reloadTickets() : _reloadLines());
       case 'synced':
         clock.learn(push['serverNow'] as int?);
       case 'event':
@@ -166,6 +170,25 @@ class WorkSession {
     final fresh = await _db.replaceTickets((download['tickets'] as List).cast<Map<String, dynamic>>());
     await _db.setLastSeq(download['seq'] as int); // may go back: what came after it is replayed
     if (fresh.isNotEmpty) kitchenAlerts?.newTicketsDownloaded();
+    await connection.resync();
+  }
+
+  /// The waiter's half of a reload: download the lines of this waiter's tables, the same way as
+  /// _reloadTickets (replace, continue catch-up from the download's seq, then resync).
+  Future<void> _reloadLines() async {
+    final sessionToken = _sessionToken;
+    if (sessionToken == null) return; // not signed in: this tablet has no tables
+    final Map<String, dynamic> download;
+    try {
+      download = await _api.lines(_deviceToken, sessionToken);
+    } on NetworkException {
+      return; // the next reconnect asks again (seq was not advanced)
+    } on ApiException catch (e) {
+      if (e.status == 401) await _accessEnded(); // the PIN session ended (or the device was revoked)
+      return;
+    }
+    await _db.replaceServerLines((download['lines'] as List).cast<Map<String, dynamic>>());
+    await _db.setLastSeq(download['seq'] as int); // may go back: what came after it is replayed
     await connection.resync();
   }
 

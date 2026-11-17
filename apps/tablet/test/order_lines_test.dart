@@ -1,4 +1,5 @@
 import 'package:cafe_tablet/data/database.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -111,5 +112,57 @@ void main() {
     ]);
     expect(await old.select(old.orderLines).get(), hasLength(1));
     expect((await old.pendingMessages()).single.key, 'o1'); // the waiting round survived the upgrade
+  });
+
+  group('replaceServerLines (a waiter tablet that missed too much reloads its lines)', () {
+    Map<String, dynamic> downloaded(String itemId, String state, {String orderId = 'o2', String tableId = 't8', int price = 32000}) => {
+          'itemId': itemId, 'orderId': orderId, 'state': state, 'at': 5000,
+          'details': {'tableId': tableId, 'round': 2, 'name': 'Tibs', 'nameAm': null, 'qty': 1, 'note': null, 'menuItemId': 'tibs', 'priceSantim': price,
+            'options': [{'nameEn': 'Spicy', 'nameAm': null}]},
+        };
+    OrderLinesCompanion local(String id, String sync, {String state = 'sent'}) => OrderLinesCompanion.insert(
+        id: id, orderId: 'o-$id', tableId: 't7', menuItemId: 'shiro', nameEn: 'Shiro', qty: 1, priceSantim: 18000, state: state, sync: sync, createdAt: 1);
+
+    test('adds lines it missed, with the server price, state and table', () async {
+      await db.replaceServerLines([downloaded('i2', 'ready')]);
+
+      final l = await line('i2');
+      expect([l.orderId, l.tableId, l.nameEn, l.qty, l.optionsText, l.round, l.priceSantim, l.menuItemId], ['o2', 't8', 'Tibs', 1, 'Spicy', 2, 32000, 'tibs']);
+      expect([l.state, l.sync, l.createdAt], ['ready', 'sent', 5000 * 1000]); // createdAt is in microseconds
+    });
+
+    test('updates lines it has: new state and table, but keeps its own price and options', () async {
+      await db.addLocalLines([local('i1', 'sent').copyWith(optionIds: const Value('["large"]'))]);
+
+      await db.replaceServerLines([downloaded('i1', 'delivered', orderId: 'o-i1', tableId: 't9', price: 99)]);
+
+      final l = await line('i1');
+      expect([l.state, l.tableId, l.sync], ['delivered', 't9', 'sent']);
+      expect([l.priceSantim, l.optionIds, l.menuItemId], [18000, '["large"]', 'shiro']);
+    });
+
+    test('removes confirmed lines the server no longer gives (closed or handed-over tables)', () async {
+      await db.addLocalLines([local('gone', 'sent', state: 'accepted')]);
+
+      await db.replaceServerLines([downloaded('i2', 'sent')]);
+
+      expect((await db.select(db.orderLines).get()).map((l) => l.id), ['i2']);
+    });
+
+    test('NEVER removes lines the server has not got yet: queued, sending, needs attention', () async {
+      await db.addLocalLines([local('q', 'queued'), local('s', 'sending'), local('n', 'needs_attention')]);
+
+      await db.replaceServerLines([]);
+
+      expect({for (final l in await db.select(db.orderLines).get()) l.id: l.sync}, {'q': 'queued', 's': 'sending', 'n': 'needs_attention'});
+    });
+
+    test('a sending line the server already has becomes sent', () async {
+      await db.addLocalLines([local('i1', 'sending')]);
+
+      await db.replaceServerLines([downloaded('i1', 'accepted', orderId: 'o-i1')]);
+
+      expect([(await line('i1')).sync, (await line('i1')).state], ['sent', 'accepted']);
+    });
   });
 }

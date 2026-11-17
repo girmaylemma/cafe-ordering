@@ -107,6 +107,10 @@ class ApiClient {
   /// Only when catch-up was too long to replay (reload).
   Future<Map<String, dynamic>> tickets(String deviceToken) => _send('GET', '/tickets', deviceToken: deviceToken);
 
+  /// The lines of the signed-in waiter's open tables, when catch-up is too long (reload).
+  Future<Map<String, dynamic>> lines(String deviceToken, String sessionToken) =>
+      _send('GET', '/lines', deviceToken: deviceToken, sessionToken: sessionToken);
+
   Future<Map<String, dynamic>> _send(
     String method,
     String path, {

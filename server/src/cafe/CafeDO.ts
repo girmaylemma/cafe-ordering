@@ -46,6 +46,7 @@ import { refreshTableStates, setSoldOut, soldOutNotice, tablesOfItems } from "./
 import { createOption, createOptionGroup, listOptionGroups, updateOption, updateOptionGroup } from "./options";
 import { closeSession, openSession, sendOrder } from "./orders";
 import { mergeSession, moveSession, transferSession } from "./tableMoves";
+import { waiterLines } from "./lines";
 import { stationTickets } from "./tickets";
 import {
   isId,
@@ -378,6 +379,23 @@ export class CafeDO extends DurableObject<Env> {
     if (device === null) return { ok: false, error: "UNAUTHORIZED_DEVICE" };
     if (device.kind !== "station" || device.station_id === null) return { ok: false, error: "NOT_A_STATION_DEVICE" };
     return { ok: true, ...stationTickets(this.ctx.storage.sql, device.venue_id, device.station_id) };
+  }
+
+  /** GET /lines: the signed-in waiter's open tables, for a waiter tablet that must reload. */
+  async tabletLines(
+    deviceToken: string,
+    sessionToken: string,
+  ): Promise<({ ok: true } & ReturnType<typeof waiterLines>) | Fail<"UNAUTHORIZED_DEVICE" | "NOT_A_WAITER_DEVICE" | "SESSION_ENDED">> {
+    const deviceTokenHash = await sha256Hex(deviceToken);
+    const sessionHash = await sha256Hex(sessionToken);
+    // After the awaits, everything below is synchronous.
+    const sql = this.ctx.storage.sql;
+    const device = findPairedDevice(sql, deviceTokenHash);
+    if (device === null) return { ok: false, error: "UNAUTHORIZED_DEVICE" };
+    if (device.kind !== "waiter") return { ok: false, error: "NOT_A_WAITER_DEVICE" };
+    const session = findLiveSession(sql, sessionHash, device.id, Date.now());
+    if (session === null) return { ok: false, error: "SESSION_ENDED" };
+    return { ok: true, ...waiterLines(sql, device.venue_id, session.userId) };
   }
 
   /** Run a dashboard action as `actorId`, who must be an active manager or owner here. One synchronous step. */
