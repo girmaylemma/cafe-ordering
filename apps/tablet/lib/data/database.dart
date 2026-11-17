@@ -363,24 +363,8 @@ class AppDatabase extends _$AppDatabase {
         final mine = update(ticketItems)..where((t) => t.id.equals(id));
         switch (e['type']) {
           case 'item.sent':
-            final options = ((d['options'] as List?) ?? const []).map((o) => (o as Map)['nameEn']).join(', ');
             await into(ticketItems).insert(
-              TicketItemsCompanion.insert(
-                id: id,
-                orderId: e['orderId'] as String,
-                tableLabel: d['tableName'] as String,
-                waiterName: Value(d['waiterName'] as String?),
-                round: Value(d['round'] as int?),
-                nameEn: d['name'] as String,
-                nameAm: Value(d['nameAm'] as String?),
-                qty: d['qty'] as int,
-                note: Value(d['note'] as String?),
-                optionsText: Value(options.isEmpty ? null : options),
-                flag: Value(d['flag'] as String?),
-                sentWhileOffline: d['sentWhileOffline'] == true,
-                state: e['to'] as String,
-                receivedAt: e['at'] as int,
-              ),
+              _ticketRow(id, e['orderId'] as String, d, state: e['to'] as String, receivedAt: e['at'] as int),
               mode: InsertMode.insertOrIgnore, // catch-up may repeat an event we already have
             );
           case 'item.table_changed':
@@ -395,6 +379,41 @@ class AppDatabase extends _$AppDatabase {
             if (open.isEmpty) await (delete(ticketItems)..where((t) => t.orderId.equals(orderId))).go();
         }
       });
+
+  /// Replace every ticket with a GET /tickets download (after a too-long catch-up). Returns the
+  /// item ids that were not on the screen before (so the kitchen can ring for them).
+  Future<Set<String>> replaceTickets(List<Map<String, dynamic>> tickets) => transaction(() async {
+        final before = (await select(ticketItems).get()).map((t) => t.id).toSet();
+        await delete(ticketItems).go();
+        for (final t in tickets) {
+          final d = (t['details'] as Map).cast<String, dynamic>();
+          await into(ticketItems).insert(
+            _ticketRow(t['itemId'] as String, t['orderId'] as String, d, state: t['state'] as String, receivedAt: t['receivedAt'] as int),
+          );
+        }
+        return tickets.map((t) => t['itemId'] as String).toSet().difference(before);
+      });
+
+  /// One ticket row from the `item.sent` snapshot (an event's details, or a download's).
+  TicketItemsCompanion _ticketRow(String id, String orderId, Map<String, dynamic> d, {required String state, required int receivedAt}) {
+    final options = ((d['options'] as List?) ?? const []).map((o) => (o as Map)['nameEn']).join(', ');
+    return TicketItemsCompanion.insert(
+      id: id,
+      orderId: orderId,
+      tableLabel: d['tableName'] as String,
+      waiterName: Value(d['waiterName'] as String?),
+      round: Value(d['round'] as int?),
+      nameEn: d['name'] as String,
+      nameAm: Value(d['nameAm'] as String?),
+      qty: d['qty'] as int,
+      note: Value(d['note'] as String?),
+      optionsText: Value(options.isEmpty ? null : options),
+      flag: Value(d['flag'] as String?),
+      sentWhileOffline: d['sentWhileOffline'] == true,
+      state: state,
+      receivedAt: receivedAt,
+    );
+  }
 
   /// Is any of these items still on the screen? (Finished rounds are deleted.)
   Future<bool> anyTicket(Set<String> itemIds) async =>

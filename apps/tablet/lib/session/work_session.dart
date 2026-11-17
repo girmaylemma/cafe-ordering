@@ -137,6 +137,7 @@ class WorkSession {
         await _db.setSoldOut(push['menuItemId'] as String, push['soldOut'] as bool);
       case 'reload':
         await refresh();
+        if (device.kind == DeviceKind.station) await _reloadTickets();
       case 'synced':
         clock.learn(push['serverNow'] as int?);
       case 'event':
@@ -147,6 +148,25 @@ class WorkSession {
     // After the database: the rules read the item's current table, or which tickets are open.
     await alerts?.onPush(push);
     await kitchenAlerts?.onPush(push);
+  }
+
+  /// Too much was missed to replay (more than the server's catch-up limit): download the open
+  /// tickets instead, then continue catch-up from the download's seq, so anything that happened
+  /// while the download travelled is replayed (events are safe to apply twice).
+  Future<void> _reloadTickets() async {
+    final Map<String, dynamic> download;
+    try {
+      download = await _api.tickets(_deviceToken);
+    } on NetworkException {
+      return; // the next reconnect asks again (seq was not advanced)
+    } on ApiException catch (e) {
+      if (e.status == 401) await _accessEnded();
+      return;
+    }
+    final fresh = await _db.replaceTickets((download['tickets'] as List).cast<Map<String, dynamic>>());
+    await _db.setLastSeq(download['seq'] as int); // may go back: what came after it is replayed
+    if (fresh.isNotEmpty) kitchenAlerts?.newTicketsDownloaded();
+    await connection.resync();
   }
 
   Future<void> _accessEnded() async {

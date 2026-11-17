@@ -120,6 +120,15 @@ class Connection {
     });
   }
 
+  /// Ask for catch-up again from the stored seq (after a kitchen replaced its tickets with a
+  /// download: events that happened while it travelled are replayed). Offline: the next connect
+  /// syncs anyway.
+  Future<void> resync() async {
+    final socket = _socket;
+    if (_state != LinkState.online || socket == null) return;
+    socket.send(jsonEncode({'type': 'sync', 'since': await _db.lastSeq()}));
+  }
+
   Future<void> _loop() async {
     while (_running && _state != LinkState.signedOut) {
       _set(LinkState.connecting);

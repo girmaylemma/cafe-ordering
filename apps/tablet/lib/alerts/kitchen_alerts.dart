@@ -54,6 +54,10 @@ class KitchenAlerts {
     }
   }
 
+  /// After a too-long outage the tickets are downloaded instead of replayed: ring once if the
+  /// download brought rounds this tablet had not shown yet.
+  void newTicketsDownloaded() => _alert(KitchenFlash.newTicket);
+
   void _alert(KitchenFlash kind) {
     final now = _now();
     final last = _lastAlert[kind];

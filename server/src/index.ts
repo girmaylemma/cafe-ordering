@@ -6,6 +6,7 @@
  *   POST /devices/pair    { code }            -> { token, device }   pair a tablet with a one-time code
  *   GET  /menu            Bearer device       -> { categories, items }  active menu, both names
  *   GET  /tables          Bearer device       -> { tables }          active tables with free/open state
+ *   GET  /tickets         Bearer station     -> { tickets, seq }    open rounds, when catch-up is too long
  *   GET  /staff           Bearer device       -> { staff }           names for the PIN screen
  *   POST /auth/pin        Bearer device       -> { sessionToken, user, expiresAt }
  *   POST /auth/sign-out   Bearer device + X-Staff-Session -> 204
@@ -44,6 +45,14 @@ export default {
         return withCafe(request, env, async (cafe, token) => {
           const result = await cafe.tabletTables(token);
           return result.ok ? json(200, { tables: result.tables }) : json(401, { error: result.error });
+        });
+      case "GET /tickets":
+        return withCafe(request, env, async (cafe, token) => {
+          const result = await cafe.tabletTickets(token);
+          if (!result.ok) return json(result.error === "NOT_A_STATION_DEVICE" ? 403 : 401, { error: result.error });
+          // details travel as text from the Durable Object (see tickets.ts); tablets get objects.
+          const tickets = result.tickets.map((t) => ({ ...t, details: JSON.parse(t.details) as unknown }));
+          return json(200, { tickets, seq: result.seq });
         });
       case "GET /staff":
         return withCafe(request, env, async (cafe, token) => {

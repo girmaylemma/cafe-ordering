@@ -46,6 +46,7 @@ import { refreshTableStates, setSoldOut, soldOutNotice, tablesOfItems } from "./
 import { createOption, createOptionGroup, listOptionGroups, updateOption, updateOptionGroup } from "./options";
 import { closeSession, openSession, sendOrder } from "./orders";
 import { mergeSession, moveSession, transferSession } from "./tableMoves";
+import { stationTickets } from "./tickets";
 import {
   isId,
   MAX_CATCH_UP_EVENTS,
@@ -367,6 +368,16 @@ export class CafeDO extends DurableObject<Env> {
   async tabletTables(deviceToken: string): Promise<{ ok: true; tables: ReturnType<typeof tabletTables> } | Fail<"UNAUTHORIZED_DEVICE">> {
     const device = findPairedDevice(this.ctx.storage.sql, await sha256Hex(deviceToken));
     return device === null ? { ok: false, error: "UNAUTHORIZED_DEVICE" } : { ok: true, tables: tabletTables(this.ctx.storage.sql, device.venue_id) };
+  }
+
+  /** GET /tickets for a kitchen or bar tablet: its open rounds, when catch-up is too long (F3a fix). */
+  async tabletTickets(
+    deviceToken: string,
+  ): Promise<({ ok: true } & ReturnType<typeof stationTickets>) | Fail<"UNAUTHORIZED_DEVICE" | "NOT_A_STATION_DEVICE">> {
+    const device = findPairedDevice(this.ctx.storage.sql, await sha256Hex(deviceToken));
+    if (device === null) return { ok: false, error: "UNAUTHORIZED_DEVICE" };
+    if (device.kind !== "station" || device.station_id === null) return { ok: false, error: "NOT_A_STATION_DEVICE" };
+    return { ok: true, ...stationTickets(this.ctx.storage.sql, device.venue_id, device.station_id) };
   }
 
   /** Run a dashboard action as `actorId`, who must be an active manager or owner here. One synchronous step. */

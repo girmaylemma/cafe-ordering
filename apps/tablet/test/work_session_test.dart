@@ -37,6 +37,9 @@ class _Server {
   int menuDownloads = 0;
   int tableDownloads = 0;
   bool revoked = false;
+  List<Map<String, dynamic>> tickets = [];
+  int ticketSeq = 0;
+  int ticketDownloads = 0;
 
   ApiClient api() => ApiClient(
         MockClient((r) async {
@@ -51,6 +54,9 @@ class _Server {
               return http.Response(jsonEncode(tablesJson(tableState)), 200);
             case '/staff':
               return http.Response(jsonEncode({'staff': [{'id': 'hana', 'name': 'Hana', 'role': 'waiter'}]}), 200);
+            case '/tickets':
+              ticketDownloads++;
+              return http.Response(jsonEncode({'tickets': tickets, 'seq': ticketSeq}), 200);
           }
           return http.Response('{}', 404);
         }),
@@ -197,6 +203,81 @@ void main() {
 
     expect((await db.watchTickets().first).single.state, 'accepted');
     expect(await db.select(db.orderLines).get(), isEmpty);
+  });
+
+  group('a kitchen tablet that missed too much (reload, the F3a gap)', () {
+    Map<String, dynamic> ticket(String itemId, String state, {String orderId = 'o2'}) => {
+          'itemId': itemId, 'orderId': orderId, 'state': state, 'receivedAt': 5000,
+          'details': {'tableId': 't8', 'tableName': 'Table 8', 'waiterName': 'Hana', 'round': 1, 'name': 'Tibs', 'nameAm': null, 'qty': 1, 'note': null, 'options': <Object>[], 'sentWhileOffline': false},
+        };
+
+    Future<(WorkSession, FakeSocket, FakeOutput)> kitchenSession() async {
+      db = memoryDb();
+      final socket = FakeSocket();
+      final output = FakeOutput();
+      const kitchen = DeviceInfo(id: 'k1', name: 'Kitchen', kind: DeviceKind.station, stationId: 'kitchen');
+      final session = WorkSession(api: server.api(), db: db, device: kitchen, deviceToken: 't', connect: FakeServer([socket]).connect, delay: (_) async {}, alertOutput: output);
+      addTearDown(() async {
+        await session.stop();
+        await db.close();
+      });
+      await session.start();
+      await settle();
+      return (session, socket, output);
+    }
+
+    test('downloads the open tickets and REPLACES what it showed (stale rounds go)', () async {
+      final (_, socket, _) = await kitchenSession();
+      await db.applyTicketEvent({
+        'orderId': 'old', 'itemId': 'stale', 'type': 'item.sent', 'to': 'sent', 'at': 1,
+        'details': {'tableName': 'Table 7', 'name': 'Shiro', 'qty': 1},
+      });
+      server.tickets = [ticket('i2', 'accepted'), ticket('i3', 'cancelled')];
+      server.ticketSeq = 900;
+
+      socket.receive({'type': 'sync.result', 'reloadRequired': true, 'events': <Object>[], 'serverNow': 1});
+      await settle();
+
+      final shown = await db.watchTickets().first;
+      expect({for (final t in shown) t.id: t.state}, {'i2': 'accepted', 'i3': 'cancelled'});
+      expect(shown.first.tableLabel, 'Table 8');
+      expect(shown.first.receivedAt, 5000);
+    });
+
+    test('then continues catch-up from the download, so nothing during the download is lost', () async {
+      final (_, socket, _) = await kitchenSession();
+      server.ticketSeq = 900;
+
+      socket.receive({'type': 'sync.result', 'reloadRequired': true, 'events': <Object>[], 'serverNow': 1});
+      await settle();
+
+      expect(await db.lastSeq(), 900);
+      expect(socket.sent.where((m) => m['type'] == 'sync').map((m) => m['since']), [0, 900]);
+    });
+
+    test('new tickets in the download ring once; a download with nothing new stays silent', () async {
+      final (_, socket, output) = await kitchenSession();
+      server.tickets = [ticket('i2', 'sent'), ticket('i3', 'sent')];
+
+      socket.receive({'type': 'sync.result', 'reloadRequired': true, 'events': <Object>[], 'serverNow': 1});
+      await settle();
+      expect(output.rings, [AlertSound.loud]);
+
+      await Future<void>.delayed(const Duration(milliseconds: 3100)); // past the quiet gap
+      socket.receive({'type': 'sync.result', 'reloadRequired': true, 'events': <Object>[], 'serverNow': 2});
+      await settle();
+      expect(output.rings, hasLength(1)); // the same tickets again: nothing new
+    });
+
+    test('a waiter tablet never downloads tickets', () async {
+      final socket = FakeSocket();
+      await start([socket]);
+
+      socket.receive({'type': 'sync.result', 'reloadRequired': true, 'events': <Object>[], 'serverNow': 1});
+      await settle();
+
+      expect(server.ticketDownloads, 0);
+    });
   });
 
   test('real wiring on a kitchen tablet: a live new ticket rings, and catch-up teaches the server clock (F3b)', () async {
