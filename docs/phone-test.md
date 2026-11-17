@@ -115,42 +115,101 @@ Tick each box when it works. If not, write down what you did and what you saw.
 
 ---
 
-## Part 4: The real kitchen screen (needs a second phone or tablet)
+## Part 4: The real kitchen screen (needs TWO devices)
 
-The **same app** becomes the kitchen screen when you pair it with the **KITCHEN** code.
-Install `app-debug.apk` on the second device the same way as in Part 2.
+In this part you use **two devices** and **one PC**:
 
-1. Second device: open **cafe_tablet** → type the **KITCHEN PAIRING CODE** from Part 1.
-   (Expired? Close the KITCHEN window, double-click `phone-test` again, use the new code.)
-2. ✅ The top bar says **Kitchen**, and the screen says
-   "No orders. New orders appear here by themselves."
+| Name in this guide | Which device | What it is |
+|---|---|---|
+| **PHONE** | your phone (the Oppo) | the waiter |
+| **KITCHEN** | a second phone or tablet (any Android) | the kitchen screen |
+| **PC** | your computer | the server. You only start it. |
 
-The pretend kitchen (black window) keeps working too: both see the same orders. Use the real
-screen for these tests.
+> 🚫 **Don't type in the black KITCHEN window on the PC during Part 4.** It is a pretend kitchen,
+> and it would accept orders before your real KITCHEN device can.
 
-### Test 8: A new order
-- [ ] Phone: send **2× Shiro** to Table 2.
-- [ ] Kitchen screen: a **sound** plays, the screen **flashes**, a card shows **Table 2**,
-      **Hana**, **2× Shiro**.
+Every step below starts with **where** you do it. Tick each box. If something is different from
+"✅ You should see", **stop, write down the step number and what you saw**, and go on to the next test.
 
-### Test 9: Accept, Ready and Undo
-- [ ] Kitchen screen: tap **Accept** → the phone plays a soft sound.
-- [ ] Tap **Ready** → the phone **rings**. The kitchen line says **Waiting for pickup**.
-- [ ] Send another dish, tap **Accept**, then **Undo** within 10 seconds → back to **Accept**.
-- [ ] After 10 seconds the **Undo** button is gone.
+### Step A: Get ready (once, about 10 minutes)
 
-### Test 10: Timers (needs 15 minutes)
-- [ ] Send a dish, don't accept it. After **10 minutes** the card's border turns **amber**.
-- [ ] After **15 minutes** it turns **red**.
+- [ ] **A1. Both devices:** connect to the **same Wi-Fi as the PC**. Not mobile data.
+- [ ] **A2. KITCHEN device:** if `cafe_tablet` is already on it, **uninstall it first**
+      (hold the icon → **Uninstall**). A device paired as a waiter stays a waiter.
+- [ ] **A3. Both devices:** install the **new** `app-debug.apk` (built 17 Nov), the same way as in Part 2.
+      On the PHONE choose **Update**. Your old pairing stays.
+- [ ] **A4. PC:** double-click `phone-test` (as in Part 1). Write down the **KITCHEN PAIRING CODE**.
+      You have **10 minutes** to use it.
+- [ ] **A5. KITCHEN device:** open **cafe_tablet**. You see "**Pair this tablet**".
+      Type the KITCHEN code → tap **Pair**.
+      ✅ You should see a top bar that says **Kitchen**, and the text
+      "No orders. New orders appear here by themselves."
+- [ ] **A6. KITCHEN device:** turn the **media volume** up to the top (play a video, press volume up).
+- [ ] **A7. PHONE:** open **cafe_tablet**. If it asks for a code, use the **PHONE PAIRING CODE**.
+      Tap **Hana**, PIN **1234**. ✅ You see the tables.
+- [ ] **A8.** Put both devices **next to each other** on the table, screens up.
+
+### Test 8: A new order arrives
+
+| # | Where | Do | ✅ You should see |
+|---|---|---|---|
+| 8.1 | PHONE | Tap **Table 2** → **Add items** → **Food** → tap **Shiro** two times → **Send to kitchen** | the phone says Sent |
+| 8.2 | KITCHEN | Just watch, touch nothing | within 1 second: a **sound**, the screen **flashes**, and a card: **Table 2**, **Hana**, **2× Shiro** with an **Accept** button |
+
+- [ ] Test 8 works
+
+### Test 9: Accept, Ready, Undo
+
+| # | Where | Do | ✅ You should see |
+|---|---|---|---|
+| 9.1 | KITCHEN | Tap **Accept** on Shiro | the button changes to **Ready**, and an **Undo** button appears |
+| 9.2 | PHONE | Just listen | a **soft sound** |
+| 9.3 | KITCHEN | Tap **Ready** | the line says **Waiting for pickup** |
+| 9.4 | PHONE | Just watch | it **rings loud**, orange box "**Table 2 — ready**" |
+| 9.5 | PHONE | Tap the Shiro line → **Delivered** | on the KITCHEN, the Table 2 card **disappears** |
+| 9.6 | PHONE | Send **Tibs** to Table 2 | KITCHEN shows the new card |
+| 9.7 | KITCHEN | Tap **Accept**, then **within 10 seconds** tap **Undo** | the **Accept** button is back |
+| 9.8 | KITCHEN | Tap **Accept** again and **wait 15 seconds**, touch nothing | the **Undo** button is **gone** |
+
+- [ ] Test 9 works
+
+### Test 10: Timers (takes 15 minutes, so do it while you do Test 11 and 12)
+
+| # | Where | Do | ✅ You should see |
+|---|---|---|---|
+| 10.1 | PHONE | Send **Firfir** to **Table 3**. **Don't** accept it on the KITCHEN | a new card, normal border |
+| 10.2 | KITCHEN | Wait **10 minutes** | the Table 3 card's border is **amber (orange-yellow)** |
+| 10.3 | KITCHEN | Wait **5 more minutes** (15 in total) | the border is **red** |
+
+- [ ] Test 10 works
 
 ### Test 11: Sold out
-- [ ] Kitchen screen: tap **Sold out** (top right) → switch **Tibs** on → it says **SOLD OUT**.
-- [ ] Phone: Tibs is **greyed out** in the menu. Switch it off again → Tibs is back.
 
-### Test 12: Stays on, and reconnects
-- [ ] Leave the kitchen screen alone for 5 minutes: the screen **does not turn off**.
-- [ ] Kitchen device: **Wi-Fi off** → red bar "**No connection**". Phone: send a dish.
-- [ ] Kitchen device: **Wi-Fi on** → the dish appears by itself, with **one** sound.
+| # | Where | Do | ✅ You should see |
+|---|---|---|---|
+| 11.1 | KITCHEN | Tap **Sold out** (top right) → switch **Tibs** on | under Tibs it says **SOLD OUT** in red |
+| 11.2 | PHONE | Tap a table → **Add items** → **Food** | **Tibs is grey**, tapping it does nothing |
+| 11.3 | KITCHEN | Switch **Tibs** off → tap the back arrow ← | back at the orders |
+| 11.4 | PHONE | Look at the menu again | Tibs is **normal** again, you can tap it |
+
+- [ ] Test 11 works
+
+### Test 12: Screen stays on, and the kitchen catches up after no internet
+
+| # | Where | Do | ✅ You should see |
+|---|---|---|---|
+| 12.1 | KITCHEN | Touch nothing for **5 minutes** | the screen **stays on** (doesn't go dark) |
+| 12.2 | KITCHEN | Turn **Wi-Fi off** | a **red bar** at the top: "No connection: new orders cannot arrive…" |
+| 12.3 | PHONE | Send **Shiro** to **Table 1** | KITCHEN shows **nothing new** (it has no internet) |
+| 12.4 | KITCHEN | Turn **Wi-Fi on**, wait up to 30 seconds | the red bar goes away, the Table 1 card appears, **one** sound (not many) |
+
+- [ ] Test 12 works
+
+### Finished Part 4
+
+Write down for Claude:
+1. The **KITCHEN device's brand and model** (Settings → About phone).
+2. Which steps did **not** match "✅ You should see" (for example "9.4: no ring"), and what you saw instead.
 
 ---
 
@@ -166,6 +225,8 @@ Close both black windows (the X at the top right). That stops everything.
 | Phone: the code doesn't work | Too old: close the KITCHEN window, double-click `phone-test` again. |
 | No sound | Turn up the phone's **media** volume (play a video, press volume up). |
 | No ring when locked | Phone Settings → Apps → **cafe_tablet** → Battery → **Unrestricted**. |
+| KITCHEN device shows **staff names or tables**, not "Kitchen" | It was paired with the PHONE code. Uninstall the app on it, install again, use the **KITCHEN** code (step A2–A5). |
+| KITCHEN device: no new orders, no red bar | Did someone type `a` in the black window? Don't use it in Part 4. |
 
 To copy text from a black window: select it with the mouse, press **Enter**, then paste with **Ctrl+V**.
 
