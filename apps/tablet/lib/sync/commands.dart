@@ -65,6 +65,11 @@ class StationCommands extends _LiveCommands {
 
   /// Undo this station's last tap on the item; the server refuses it after 10 s (UNDO_EXPIRED).
   Future<ActionResult> undo(String itemId) => _item(itemId, {'type': 'undo'});
+
+  /// Mark one of this station's menu items sold out, or back in stock (K-05). Back in stock is
+  /// also the undo of a wrong sold-out tap.
+  Future<ActionResult> soldOut(String menuItemId, {required bool soldOut}) =>
+      _send({'type': 'menu.sold_out', 'menuItemId': menuItemId, 'soldOut': soldOut});
 }
 
 /// Sends one command and waits for the server's answer. Never queues (see the top of this file).

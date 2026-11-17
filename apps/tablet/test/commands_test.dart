@@ -182,6 +182,19 @@ void main() {
       });
     }
 
+    test('sold out sends menu.sold_out with its own key (back in stock is the same with false)', () async {
+      final socket = FakeSocket();
+      await setUp_(socket);
+
+      final (result, sent) = await answered(socket, () => StationCommands(connection).soldOut('shiro', soldOut: true), {'ok': true});
+
+      expect(result.ok, isTrue);
+      expect(sent, containsPair('type', 'menu.sold_out'));
+      expect(sent['menuItemId'], 'shiro');
+      expect(sent['soldOut'], true);
+      expect(sent['idempotencyKey'], isA<String>());
+    });
+
     test('an undo after 10 s is refused by the server: the screen gets UNDO_EXPIRED', () async {
       final socket = FakeSocket();
       await setUp_(socket);

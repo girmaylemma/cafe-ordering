@@ -115,6 +115,25 @@ void main() {
     expect(await db.watchTickets().first, isEmpty);
   });
 
+  test("a station's menu: only its own items, by category order, then item order", () async {
+    await db.replaceMenu({
+      'categories': [
+        {'id': 'drinks', 'nameEn': 'Drinks', 'nameAm': null, 'sortOrder': 0},
+        {'id': 'food', 'nameEn': 'Food', 'nameAm': null, 'sortOrder': 1},
+      ],
+      'items': [
+        for (final (id, cat, station, sort) in [('tibs', 'food', 'kitchen', 2), ('shiro', 'food', 'kitchen', 1), ('tea', 'drinks', 'bar', 0), ('soup', 'drinks', 'kitchen', 5)])
+          {'id': id, 'categoryId': cat, 'nameEn': id, 'nameAm': null, 'priceSantim': 100, 'stationId': station, 'fasting': false, 'soldOut': id == 'tibs', 'sortOrder': sort, 'optionGroupIds': <String>[]},
+      ],
+      'optionGroups': <Object>[],
+    });
+
+    final menu = await db.watchStationMenu('kitchen').first;
+
+    expect(menu.map((r) => '${r.category?.nameEn}/${r.item.id}'), ['Drinks/soup', 'Food/shiro', 'Food/tibs']);
+    expect(menu.last.item.soldOut, isTrue);
+  });
+
   test('upgrading from schema 4 keeps the waiter lines and adds the kitchen tickets table', () async {
     final old = AppDatabase(NativeDatabase.memory(setup: (raw) {
       raw.execute('''

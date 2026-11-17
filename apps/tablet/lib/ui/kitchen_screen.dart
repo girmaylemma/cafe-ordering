@@ -10,6 +10,7 @@ import '../session/providers.dart';
 import '../sync/commands.dart';
 import '../sync/connection.dart';
 import '../texts.dart';
+import 'sold_out_screen.dart';
 
 /// How long the kitchen can undo its last tap (K-06; the server checks it, D-05).
 const undoWindow = Duration(seconds: 10);
@@ -74,7 +75,22 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen> {
 
     final flash = _flash;
     return Scaffold(
-      appBar: AppBar(title: Text(stationNames[widget.device.stationId] ?? widget.device.name)),
+      appBar: AppBar(
+        title: Text(stationNames[widget.device.stationId] ?? widget.device.name),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: FilledButton.tonalIcon(
+              key: const Key('open-sold-out'),
+              icon: const Icon(Icons.block),
+              label: const Text('Sold out'),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => SoldOutScreen(stationId: widget.device.stationId ?? '')),
+              ),
+            ),
+          ),
+        ],
+      ),
       body: Stack(
         children: [
           Column(

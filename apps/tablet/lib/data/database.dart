@@ -278,6 +278,14 @@ class AppDatabase extends _$AppDatabase {
   Stream<List<CafeTable>> watchTables() =>
       (select(cafeTables)..orderBy([(t) => OrderingTerm.asc(t.sortOrder), (t) => OrderingTerm.asc(t.name)])).watch();
 
+  /// One station's menu items with their category, in the manager's order (the sold-out list, F3c).
+  Stream<List<({MenuItem item, Category? category})>> watchStationMenu(String stationId) {
+    final query = select(menuItems).join([leftOuterJoin(categories, categories.id.equalsExp(menuItems.categoryId))])
+      ..where(menuItems.stationId.equals(stationId))
+      ..orderBy([OrderingTerm.asc(categories.sortOrder), OrderingTerm.asc(menuItems.sortOrder), OrderingTerm.asc(menuItems.nameEn)]);
+    return query.watch().map((rows) => [for (final r in rows) (item: r.readTable(menuItems), category: r.readTableOrNull(categories))]);
+  }
+
   /// A `menu.sold_out` push.
   Future<void> setSoldOut(String menuItemId, bool soldOut) =>
       (update(menuItems)..where((i) => i.id.equals(menuItemId))).write(MenuItemsCompanion(soldOut: Value(soldOut)));

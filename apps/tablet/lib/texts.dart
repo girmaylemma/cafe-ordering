@@ -66,6 +66,8 @@ String errorText(String code, {Duration? retryAfter}) {
       return 'This item belongs to another station.';
     case 'ITEM_NOT_FOUND':
       return 'The server does not know this item.';
+    case 'MENU_ITEM_NOT_FOUND':
+      return 'This item is no longer on the menu.';
     default:
       return 'Something went wrong ($code). Try again.';
   }
