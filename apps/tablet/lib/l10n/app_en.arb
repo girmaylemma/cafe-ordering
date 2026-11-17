@@ -1,0 +1,5 @@
+{
+  "@@locale": "en",
+  "appTitle": "Café",
+  "@appTitle": { "description": "The app's name (Android task switcher)." }
+}

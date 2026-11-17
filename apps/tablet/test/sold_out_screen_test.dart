@@ -64,7 +64,7 @@ Future<(AppDatabase, FakeSocket?)> openSoldOut(WidgetTester tester, {bool online
       databaseProvider.overrideWithValue(db),
       workSessionProvider.overrideWith((ref) async => session),
     ],
-    child: const MaterialApp(home: KitchenScreen(device: kitchen)),
+    child: localizedApp(home: const KitchenScreen(device: kitchen)),
   ));
   await settled(tester);
   await tester.tap(find.byKey(const Key('open-sold-out')));

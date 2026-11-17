@@ -74,7 +74,7 @@ Future<(AppDatabase, FakeSocket?)> pumpOrder(WidgetTester tester, {required bool
 
   await tester.pumpWidget(ProviderScope(
     overrides: [databaseProvider.overrideWithValue(db), workSessionProvider.overrideWith((ref) async => session)],
-    child: MaterialApp(
+    child: localizedApp(
       home: Builder(
         builder: (context) => Scaffold(
           body: TextButton(

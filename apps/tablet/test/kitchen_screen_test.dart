@@ -90,7 +90,7 @@ Future<(AppDatabase, FakeSocket?)> pumpKitchen(WidgetTester tester, List<Map<Str
       workSessionProvider.overrideWith((ref) async => session),
       screenAwakeProvider.overrideWithValue(screenAwake),
     ],
-    child: const MaterialApp(home: KitchenScreen(device: kitchen)),
+    child: localizedApp(home: const KitchenScreen(device: kitchen)),
   ));
   await settled(tester);
   return (db, socket);

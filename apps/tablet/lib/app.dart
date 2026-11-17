@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'auth/auth_controller.dart';
+import 'l10n/l10n.dart';
 import 'ui/alert_banner.dart';
 import 'ui/floor_map_screen.dart';
 import 'ui/kitchen_screen.dart';
 import 'ui/pair_screen.dart';
 import 'ui/pin_screen.dart';
+
+/// The app's look. Ethiopic letters fall back to the bundled font, whatever the device has.
+ThemeData appTheme() => ThemeData(colorSchemeSeed: const Color(0xFF0B6E4F), useMaterial3: true, fontFamilyFallback: const [ethiopicFont]);
 
 /// Root widget: shows the right screen for who is using this tablet.
 class CafeApp extends ConsumerWidget {
@@ -16,8 +20,12 @@ class CafeApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authControllerProvider);
     return MaterialApp(
-      title: 'Café',
-      theme: ThemeData(colorSchemeSeed: const Color(0xFF0B6E4F), useMaterial3: true),
+      onGenerateTitle: (context) => context.l10n.appTitle,
+      // English until F4b lets each person choose (design: café default, then the waiter's own).
+      locale: const Locale('en'),
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      theme: appTheme(),
       builder: (context, child) => AlertBanner(child: child!), // over every screen (F2c2)
       home: switch (auth) {
         AsyncData(:final value) => switch (value) {

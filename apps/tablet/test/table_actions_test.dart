@@ -95,7 +95,7 @@ Future<(AppDatabase, FakeSocket?)> pumpTable(WidgetTester tester, List<OrderLine
       workSessionProvider.overrideWith((ref) async => session),
       currentUserProvider.overrideWithValue(user),
     ],
-    child: MaterialApp(
+    child: localizedApp(
       home: Builder(
         builder: (context) => Scaffold(
           body: TextButton(

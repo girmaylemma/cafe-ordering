@@ -38,7 +38,7 @@ Future<AppDatabase> pumpTable(WidgetTester tester, List<OrderLinesCompanion> lin
   addTearDown(db.close);
   await tester.pumpWidget(ProviderScope(
     overrides: [databaseProvider.overrideWithValue(db), workSessionProvider.overrideWith((ref) async => null)],
-    child: const MaterialApp(home: TableScreen(tableId: 't7')),
+    child: localizedApp(home: const TableScreen(tableId: 't7')),
   ));
   await tester.runAsync(settle);
   await tester.pumpAndSettle();

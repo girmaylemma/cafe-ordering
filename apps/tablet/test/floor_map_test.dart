@@ -64,7 +64,7 @@ Future<(AppDatabase, FakeSocket?)> pumpFloor(WidgetTester tester, {required bool
       databaseProvider.overrideWithValue(db),
       workSessionProvider.overrideWith((ref) async => session),
     ],
-    child: const MaterialApp(home: FloorMapScreen(user: hana)),
+    child: localizedApp(home: const FloorMapScreen(user: hana)),
   ));
   await tester.runAsync(settle);
   await tester.pumpAndSettle();

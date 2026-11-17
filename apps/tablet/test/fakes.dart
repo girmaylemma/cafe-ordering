@@ -5,12 +5,22 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:cafe_tablet/data/database.dart';
+import 'package:cafe_tablet/l10n/l10n.dart';
 import 'package:cafe_tablet/sync/connection.dart';
 import 'package:drift/native.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 AppDatabase memoryDb() => AppDatabase(NativeDatabase.memory());
+
+/// A MaterialApp with the app's texts, in English unless a test asks for Amharic (F4a).
+Widget localizedApp({required Widget home, Locale locale = const Locale('en'), TransitionBuilder? builder}) => MaterialApp(
+      locale: locale,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      builder: builder,
+      home: home,
+    );
 
 class FakeSocket implements Socket {
   final _incoming = StreamController<String>();
