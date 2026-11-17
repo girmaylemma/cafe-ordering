@@ -13,9 +13,12 @@ import 'package:flutter_test/flutter_test.dart';
 
 AppDatabase memoryDb() => AppDatabase(NativeDatabase.memory());
 
-/// A MaterialApp with the app's texts, in English unless a test asks for Amharic (F4a).
-Widget localizedApp({required Widget home, Locale locale = const Locale('en'), TransitionBuilder? builder}) => MaterialApp(
-      locale: locale,
+/// The language test screens use when a test doesn't name one (amharic_screens_test sets 'am').
+Locale testLocale = const Locale('en');
+
+/// A MaterialApp with the app's texts, in [testLocale] unless a test asks for another (F4a).
+Widget localizedApp({required Widget home, Locale? locale, TransitionBuilder? builder}) => MaterialApp(
+      locale: locale ?? testLocale,
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       builder: builder,

@@ -32,7 +32,8 @@ final menu = {
 
 ApiClient api() => ApiClient(
       MockClient((r) async => switch (r.url.path) {
-            '/menu' => http.Response(jsonEncode(menu), 200),
+            // UTF-8 bytes like the real server: http.Response(String) only takes Latin-1, not Amharic.
+            '/menu' => http.Response.bytes(utf8.encode(jsonEncode(menu)), 200, headers: {'content-type': 'application/json'}),
             '/tables' => http.Response(jsonEncode({'tables': <Object>[]}), 200),
             '/staff' => http.Response(jsonEncode({'staff': <Object>[]}), 200),
             _ => http.Response('{}', 404),

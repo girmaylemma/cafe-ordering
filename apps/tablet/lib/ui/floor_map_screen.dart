@@ -201,9 +201,9 @@ class _TableCard extends StatelessWidget {
       'delivered' => (scheme.secondaryContainer, scheme.onSecondaryContainer),
       _ => (scheme.primaryContainer, scheme.onPrimaryContainer),
     };
-    return SizedBox(
-      width: 150,
-      height: 110,
+    // At least 110 tall; taller when large text needs it (Ethiopic letters need more line height).
+    return ConstrainedBox(
+      constraints: const BoxConstraints.tightFor(width: 150).copyWith(minHeight: 110),
       child: Material(
         color: background,
         shape: RoundedRectangleBorder(
@@ -217,9 +217,9 @@ class _TableCard extends StatelessWidget {
             padding: const EdgeInsets.all(10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(table.name, style: TextStyle(color: foreground, fontSize: 18, fontWeight: FontWeight.bold)),
-                const Spacer(),
                 Text(
                   _stateLabel(context.l10n, table.state),
                   style: TextStyle(color: foreground, fontWeight: ready ? FontWeight.w900 : FontWeight.w500, fontSize: ready ? 18 : 14),

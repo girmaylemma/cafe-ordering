@@ -160,14 +160,24 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
               ),
             ),
           Expanded(
-            child: GridView.extent(
-              maxCrossAxisExtent: 180,
-              childAspectRatio: 1.4,
-              padding: const EdgeInsets.all(8),
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-              children: [for (final item in shown) _itemTile(item, soldOut.contains(item.id), menu)],
-            ),
+            // Tiles as wide as a 180-wide grid's, but as tall as their names need (F4a): a long
+            // Amharic name is never cut off. Short names keep the old tile size (minimum height).
+            child: LayoutBuilder(builder: (context, box) {
+              const gap = 8.0, padding = 8.0;
+              final usable = box.maxWidth - 2 * padding;
+              final columns = (usable / (180 + gap)).ceil().clamp(1, 99);
+              final width = (usable - gap * (columns - 1)) / columns;
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(padding),
+                child: Wrap(
+                  spacing: gap,
+                  runSpacing: gap,
+                  children: [
+                    for (final item in shown) SizedBox(width: width, child: _itemTile(item, soldOut.contains(item.id), menu, minHeight: width / 1.4)),
+                  ],
+                ),
+              );
+            }),
           ),
           _summary(context),
         ],
@@ -180,7 +190,7 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
         child: ChoiceChip(label: Text(label), selected: id == current, onSelected: (_) => setState(() => _tab = id)),
       );
 
-  Widget _itemTile(MenuItem item, bool soldOut, _Menu menu) {
+  Widget _itemTile(MenuItem item, bool soldOut, _Menu menu, {required double minHeight}) {
     final scheme = Theme.of(context).colorScheme;
     return Material(
       key: Key('menu-${item.id}'),
@@ -189,15 +199,19 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: soldOut ? null : () => _tapItem(item, menu),
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              DishName(en: item.nameEn, am: item.nameAm, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: soldOut ? scheme.outline : null)),
-              const Spacer(),
-              Text(soldOut ? context.l10n.orderSoldOut : formatEtb(item.priceSantim), style: TextStyle(color: soldOut ? scheme.error : scheme.primary)),
-            ],
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: minHeight),
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DishName(en: item.nameEn, am: item.nameAm, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: soldOut ? scheme.outline : null)),
+                const SizedBox(height: 8),
+                Text(soldOut ? context.l10n.orderSoldOut : formatEtb(item.priceSantim), style: TextStyle(color: soldOut ? scheme.error : scheme.primary)),
+              ],
+            ),
           ),
         ),
       ),

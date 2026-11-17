@@ -22,7 +22,7 @@ class CafeApp extends ConsumerWidget {
     return MaterialApp(
       onGenerateTitle: (context) => context.l10n.appTitle,
       // English until F4b lets each person choose (design: café default, then the waiter's own).
-      locale: const Locale('en'),
+      locale: ref.watch(appLocaleProvider),
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       theme: appTheme(),

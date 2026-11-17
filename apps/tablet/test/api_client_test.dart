@@ -107,5 +107,21 @@ void main() {
 
     expect(((menu['items'] as List).single as Map)['nameAm'], 'ሽሮ');
   });
+
+  test('Amharic names arrive intact: JSON is read as UTF-8 even without a charset (F4a)', () async {
+    // What the real server sends: UTF-8 bytes, Content-Type 'application/json' with no charset.
+    final api = ApiClient(
+      MockClient((_) async => http.Response.bytes(
+            utf8.encode(jsonEncode({'categories': <Object>[], 'items': [{'nameAm': 'ሽሮ ወጥ'}], 'optionGroups': <Object>[]})),
+            200,
+            headers: {'content-type': 'application/json'},
+          )),
+      Uri.parse('http://server:8787'),
+    );
+
+    final menu = await api.menu('t');
+
+    expect(((menu['items'] as List).single as Map)['nameAm'], 'ሽሮ ወጥ');
+  });
 }
 
