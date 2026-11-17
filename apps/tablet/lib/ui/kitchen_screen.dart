@@ -10,6 +10,7 @@ import '../session/providers.dart';
 import '../sync/commands.dart';
 import '../sync/connection.dart';
 import '../texts.dart';
+import 'screen_awake.dart';
 import 'sold_out_screen.dart';
 
 /// How long the kitchen can undo its last tap (K-06; the server checks it, D-05).
@@ -44,14 +45,19 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen> {
   static const _flashBlinks = 3;
   static const _flashStep = Duration(milliseconds: 300);
 
+  /// Read once: `ref` may not be used any more in dispose().
+  late final ScreenAwake _awake = ref.read(screenAwakeProvider);
+
   @override
   void initState() {
     super.initState();
     _ticker; // start it
+    unawaited(_awake.keepOn()); // K-07: the kitchen screen never sleeps
   }
 
   @override
   void dispose() {
+    unawaited(_awake.allowSleep());
     _ticker.cancel();
     _undoTimer?.cancel();
     _flashTimer?.cancel();
@@ -74,7 +80,8 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen> {
     }
 
     final flash = _flash;
-    return Scaffold(
+    // K-07: read from 2 m. Text is at least 1.3x normal; a tablet set even larger keeps its size.
+    return MediaQuery.withClampedTextScaling(minScaleFactor: 1.3, child: Scaffold(
       appBar: AppBar(
         title: Text(stationNames[widget.device.stationId] ?? widget.device.name),
         actions: [
@@ -135,7 +142,7 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen> {
             ),
         ],
       ),
-    );
+    ));
   }
 
   void _startFlash(KitchenFlash kind) {
@@ -239,7 +246,7 @@ class _TicketCard extends StatelessWidget {
         ? ('amber', Colors.amber.shade700)
         : ('normal', null);
     return SizedBox(
-      width: 380,
+      width: 440, // with 1.3x text (K-07): two cards side by side on a 10-inch tablet
       child: Card(
         margin: EdgeInsets.zero,
         // A late ticket is seen from across the kitchen: its whole border takes the colour.
@@ -264,7 +271,7 @@ class _TicketCard extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(color: colour ?? theme.colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(8)),
                     child: Text(
-                      '${age.inMinutes < 0 ? 0 : age.inMinutes} min',
+                      _ageLabel(age),
                       style: theme.textTheme.titleMedium?.copyWith(color: colour == null ? null : Colors.white, fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -283,6 +290,12 @@ class _TicketCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// "7 min"; capped at "99+ min" (long past red), so the label always fits the card.
+  static String _ageLabel(Duration age) {
+    final minutes = age.inMinutes < 0 ? 0 : age.inMinutes;
+    return minutes > 99 ? '99+ min' : '$minutes min';
   }
 
   /// The server's time on this tablet's clock, e.g. 14:05.

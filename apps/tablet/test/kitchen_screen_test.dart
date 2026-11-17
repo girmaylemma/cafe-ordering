@@ -8,6 +8,7 @@ import 'package:cafe_tablet/session/providers.dart';
 import 'package:cafe_tablet/session/work_session.dart';
 import 'package:cafe_tablet/sync/server_clock.dart';
 import 'package:cafe_tablet/ui/kitchen_screen.dart';
+import 'package:cafe_tablet/ui/screen_awake.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -34,6 +35,25 @@ Future<void> settled(WidgetTester tester) async {
   await tester.runAsync(settle);
   await tester.pump();
 }
+
+/// Records whether the kitchen screen asked to stay on (the real one is the wakelock plugin).
+class FakeScreenAwake implements ScreenAwake {
+  bool on = false;
+  final calls = <String>[];
+  @override
+  Future<void> keepOn() async {
+    on = true;
+    calls.add('on');
+  }
+
+  @override
+  Future<void> allowSleep() async {
+    on = false;
+    calls.add('off');
+  }
+}
+
+late FakeScreenAwake screenAwake;
 
 /// The tablet's clock in these tests (the server clock offset stays 0: no catch-up says otherwise).
 var clockNow = DateTime(2026, 11, 17, 12);
@@ -68,6 +88,7 @@ Future<(AppDatabase, FakeSocket?)> pumpKitchen(WidgetTester tester, List<Map<Str
     overrides: [
       databaseProvider.overrideWithValue(db),
       workSessionProvider.overrideWith((ref) async => session),
+      screenAwakeProvider.overrideWithValue(screenAwake),
     ],
     child: const MaterialApp(home: KitchenScreen(device: kitchen)),
   ));
@@ -84,7 +105,51 @@ void push(FakeSocket socket, String itemId, String type, String to) => socket.re
 Map<String, dynamic> lastCommand(FakeSocket socket) => socket.sent.lastWhere((m) => m['type'] != 'sync');
 
 void main() {
-  setUp(() => clockNow = DateTime(2026, 11, 17, 12));
+  setUp(() {
+    clockNow = DateTime(2026, 11, 17, 12);
+    screenAwake = FakeScreenAwake();
+  });
+
+  group('readable and always on (K-07)', () {
+    testWidgets('the screen stays on while the kitchen screen is shown, and may sleep after', (tester) async {
+      await pumpKitchen(tester, []);
+      expect(screenAwake.on, isTrue);
+
+      await unmountAndFlush(tester);
+      expect(screenAwake.calls, ['on', 'off']);
+    });
+
+    testWidgets('text is at least 1.3x larger than normal, to be read from 2 m', (tester) async {
+      await pumpKitchen(tester, [sent('i1')]);
+
+      final scaler = MediaQuery.textScalerOf(tester.element(find.text('2× Shiro')));
+      expect(scaler.scale(20), greaterThanOrEqualTo(26));
+      await unmountAndFlush(tester);
+    });
+
+    testWidgets('a tablet already set to huge text keeps its own (larger) size', (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await pumpKitchen(tester, [sent('i1')]);
+
+      final scaler = MediaQuery.textScalerOf(tester.element(find.text('2× Shiro')));
+      expect(scaler.scale(20), 40);
+      await unmountAndFlush(tester);
+    });
+
+    testWidgets('a full ticket still fits a 10-inch tablet without overflowing', (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await pumpKitchen(tester, [
+        sent('i1', extra: {'flag': 'sold_out', 'sentWhileOffline': true, 'note': 'no onion, extra spicy, well done please'}),
+        sent('i2', extra: {'name': 'Special family tibs with injera'}),
+      ]);
+
+      expect(tester.takeException(), isNull); // a RenderFlex overflow would be thrown here
+      await unmountAndFlush(tester);
+    });
+  });
 
   group('ticket timer (K-04)', () {
     for (final (minutes, level) in [(9.9, 'normal'), (10, 'amber'), (14.9, 'amber'), (15, 'red'), (42, 'red')]) {
@@ -95,6 +160,13 @@ void main() {
         await unmountAndFlush(tester);
       });
     }
+
+    testWidgets('a very old ticket shows "99+ min" so the label always fits', (tester) async {
+      await pumpKitchen(tester, [sent('i1', at: minutesAgo(600))]);
+      expect(find.text('99+ min'), findsOneWidget);
+      expect(find.byKey(const Key('age-red')), findsOneWidget);
+      await unmountAndFlush(tester);
+    });
 
     testWidgets('it moves on by itself: 9 min becomes amber without any new event', (tester) async {
       await pumpKitchen(tester, [sent('i1', at: minutesAgo(9.8))]);
