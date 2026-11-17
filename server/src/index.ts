@@ -8,7 +8,7 @@
  *   GET  /tables          Bearer device       -> { tables }          active tables with free/open state
  *   GET  /tickets         Bearer station     -> { tickets, seq }    open rounds, when catch-up is too long
  *   GET  /lines           Bearer device + X-Staff-Session -> { lines, seq }  the waiter's open tables, same reason
- *   GET  /staff           Bearer device       -> { staff }           names for the PIN screen
+ *   GET  /staff           Bearer device       -> { staff, language } names (+ each one's language) and the café's language
  *   POST /auth/pin        Bearer device       -> { sessionToken, user, expiresAt }
  *   POST /auth/sign-out   Bearer device + X-Staff-Session -> 204
  *   GET  /ws              Bearer device (+ X-Staff-Session for waiters), Upgrade: websocket
@@ -67,7 +67,7 @@ export default {
       case "GET /staff":
         return withCafe(request, env, async (cafe, token) => {
           const result = await cafe.listStaff(token);
-          return result.ok ? json(200, { staff: result.staff }) : json(401, { error: result.error });
+          return result.ok ? json(200, { staff: result.staff, language: result.language }) : json(401, { error: result.error });
         });
       case "POST /auth/pin":
         return withCafe(request, env, async (cafe, token) => {

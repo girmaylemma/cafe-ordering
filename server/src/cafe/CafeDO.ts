@@ -48,6 +48,7 @@ import { closeSession, openSession, sendOrder } from "./orders";
 import { mergeSession, moveSession, transferSession } from "./tableMoves";
 import { waiterLines } from "./lines";
 import { stationTickets } from "./tickets";
+import { cafeLanguage, setStaffLanguage, type Language } from "./language";
 import {
   isId,
   MAX_CATCH_UP_EVENTS,
@@ -512,16 +513,17 @@ export class CafeDO extends DurableObject<Env> {
   /** The sign-in screen's list of names (active staff only, no PIN data). */
   async listStaff(
     deviceToken: string,
-  ): Promise<{ ok: true; staff: Array<{ id: string; name: string; role: StaffRole }> } | Fail<"UNAUTHORIZED_DEVICE">> {
+  ): Promise<{ ok: true; staff: Array<{ id: string; name: string; role: StaffRole; language: Language | null }>; language: Language } | Fail<"UNAUTHORIZED_DEVICE">> {
     const device = findPairedDevice(this.ctx.storage.sql, await sha256Hex(deviceToken));
     if (device === null) return { ok: false, error: "UNAUTHORIZED_DEVICE" };
     const staff = this.ctx.storage.sql
-      .exec<{ id: string; name: string; role: StaffRole }>(
-        "SELECT id, name, role FROM staff WHERE venue_id = ? AND active = 1 ORDER BY name",
+      .exec<{ id: string; name: string; role: StaffRole; language: Language | null }>(
+        "SELECT id, name, role, language FROM staff WHERE venue_id = ? AND active = 1 ORDER BY name",
         device.venue_id,
       )
       .toArray();
-    return { ok: true, staff };
+    // The café's language travels with the names: the PIN screen shows it (F4b).
+    return { ok: true, staff, language: cafeLanguage(this.ctx.storage.sql, device.venue_id) };
   }
 
   /**
@@ -888,9 +890,13 @@ function toRunnable(
     return { key: message.idempotencyKey, fingerprintSource: { message, actor }, handler: (sql, now) => setSoldOut(sql, venueId, station, message, now) };
   }
 
-  // Sessions and rounds are waiter actions only.
+  // Sessions, rounds and one's own language are staff actions only.
   if (actor.kind !== "staff") return null;
   const waiterId = actor.userId;
+  if (message.type === "staff.language") {
+    // Always the connection's own user: nobody sets another person's language.
+    return { key: message.idempotencyKey, fingerprintSource: { message, actor }, handler: (sql) => setStaffLanguage(sql, venueId, waiterId, message.language) };
+  }
   const fingerprintSource = { message, actor };
   switch (message.type) {
     case "session.open":

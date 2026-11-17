@@ -130,9 +130,10 @@ describe("PIN sign-in", () => {
     expect(await cafe.listStaff(device.token)).toEqual({
       ok: true,
       staff: [
-        { id: "hana", name: "Hana", role: "waiter" },
-        { id: "meron", name: "Meron", role: "waiter" },
+        { id: "hana", name: "Hana", role: "waiter", language: null },
+        { id: "meron", name: "Meron", role: "waiter", language: null },
       ],
+      language: "en", // F4b: the café's language travels with the names
     });
   });
 });

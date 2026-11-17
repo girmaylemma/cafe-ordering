@@ -136,7 +136,7 @@ describe("device tokens", () => {
   it("GET /staff lists the café's staff for a paired device", async () => {
     const { token } = await pairedToken();
     const response = await call("GET", "/staff", { headers: bearer(token) });
-    expect(await response.json()).toEqual({ staff: [{ id: "hana", name: "Hana", role: "waiter" }] });
+    expect(await response.json()).toEqual({ staff: [{ id: "hana", name: "Hana", role: "waiter", language: null }], language: "en" });
   });
 });
 

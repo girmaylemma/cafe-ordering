@@ -104,4 +104,14 @@ export const CAFE_MIGRATIONS: readonly Migration[] = [
       "ALTER TABLE order_items ADD COLUMN options_changed INTEGER NOT NULL DEFAULT 0 CHECK (options_changed IN (0, 1))",
     ],
   },
+  {
+    version: 6,
+    description: "languages: the café's default and each person's own (F4b)",
+    statements: [
+      // Existing cafés keep English until a manager changes it (F4c).
+      "ALTER TABLE venue ADD COLUMN language TEXT NOT NULL DEFAULT 'en' CHECK (language IN ('am', 'en'))",
+      // NULL = follow the café's language; a waiter sets their own from the tablet.
+      "ALTER TABLE staff ADD COLUMN language TEXT CHECK (language IN ('am', 'en'))",
+    ],
+  },
 ];
