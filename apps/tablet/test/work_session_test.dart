@@ -40,6 +40,11 @@ class _Server {
   List<Map<String, dynamic>> tickets = [];
   int ticketSeq = 0;
   int ticketDownloads = 0;
+  List<Map<String, dynamic>> lines = [];
+  int lineSeq = 0;
+  int lineDownloads = 0;
+  String? lineSessionHeader;
+  bool sessionEnded = false;
 
   ApiClient api() => ApiClient(
         MockClient((r) async {
@@ -57,6 +62,11 @@ class _Server {
             case '/tickets':
               ticketDownloads++;
               return http.Response(jsonEncode({'tickets': tickets, 'seq': ticketSeq}), 200);
+            case '/lines':
+              lineDownloads++;
+              lineSessionHeader = r.headers['X-Staff-Session'];
+              if (sessionEnded) return http.Response('{"error":"SESSION_ENDED"}', 401);
+              return http.Response(jsonEncode({'lines': lines, 'seq': lineSeq}), 200);
           }
           return http.Response('{}', 404);
         }),
@@ -78,6 +88,7 @@ void main() {
       db: db,
       device: waiter,
       deviceToken: 't',
+      sessionToken: 'pin-session',
       connect: fakeServer.connect,
       delay: (_) async {},
       onAccessEnded: () async => accessEnded++,
@@ -277,6 +288,63 @@ void main() {
       await settle();
 
       expect(server.ticketDownloads, 0);
+    });
+  });
+
+  group('a waiter tablet that missed too much (reload, the waiter gap)', () {
+    Map<String, dynamic> downloadedLine(String itemId, String state) => {
+          'itemId': itemId, 'orderId': 'o2', 'state': state, 'at': 5000,
+          'details': {'tableId': 't7', 'round': 2, 'name': 'Tibs', 'nameAm': null, 'qty': 1, 'note': null, 'menuItemId': 'tibs', 'priceSantim': 32000, 'options': <Object>[]},
+        };
+    Future<void> reload(FakeSocket socket) async {
+      socket.receive({'type': 'sync.result', 'reloadRequired': true, 'events': <Object>[], 'serverNow': 1});
+      await settle();
+    }
+
+    test('downloads the lines of its tables (with its PIN session) and shows their states now', () async {
+      final socket = FakeSocket();
+      await start([socket]);
+      server.lines = [downloadedLine('i2', 'ready')];
+
+      await reload(socket);
+
+      expect(server.lineSessionHeader, 'pin-session');
+      expect({for (final l in await db.select(db.orderLines).get()) l.id: l.state}, {'i2': 'ready'});
+    });
+
+    test('then continues catch-up from the download: no endless reload on every reconnect', () async {
+      final socket = FakeSocket();
+      await start([socket]);
+      server.lineSeq = 900;
+
+      await reload(socket);
+
+      expect(await db.lastSeq(), 900);
+      expect(socket.sent.where((m) => m['type'] == 'sync').map((m) => m['since']), [0, 900]);
+    });
+
+    test('offline during the download: nothing changes, and the next reconnect asks again', () async {
+      final socket = FakeSocket();
+      await start([socket]);
+      server
+        ..lineSeq = 900
+        ..offline = true;
+
+      await reload(socket);
+
+      expect(await db.lastSeq(), 0); // not advanced: the next catch-up is still too long, so it reloads again
+      expect(socket.sent.where((m) => m['type'] == 'sync').map((m) => m['since']), [0]);
+    });
+
+    test('an ended PIN session ends access (back to the PIN screen)', () async {
+      final socket = FakeSocket();
+      await start([socket]);
+      server.sessionEnded = true;
+
+      await reload(socket);
+
+      expect(accessEnded, 1);
+      expect(await db.lastSeq(), 0);
     });
   });
 

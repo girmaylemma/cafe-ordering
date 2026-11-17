@@ -47,6 +47,7 @@ final workSessionProvider = FutureProvider<WorkSession?>((ref) async {
     db: ref.read(databaseProvider),
     device: device.info,
     deviceToken: device.token,
+    sessionToken: session?.sessionToken,
     connect: () => connectSocket(Uri.parse(apiBaseUrl), device.token, session?.sessionToken),
     onAccessEnded: auth.accessEnded,
     userId: session?.user.id,

@@ -7,6 +7,7 @@
  *   GET  /menu            Bearer device       -> { categories, items }  active menu, both names
  *   GET  /tables          Bearer device       -> { tables }          active tables with free/open state
  *   GET  /tickets         Bearer station     -> { tickets, seq }    open rounds, when catch-up is too long
+ *   GET  /lines           Bearer device + X-Staff-Session -> { lines, seq }  the waiter's open tables, same reason
  *   GET  /staff           Bearer device       -> { staff }           names for the PIN screen
  *   POST /auth/pin        Bearer device       -> { sessionToken, user, expiresAt }
  *   POST /auth/sign-out   Bearer device + X-Staff-Session -> 204
@@ -53,6 +54,15 @@ export default {
           // details travel as text from the Durable Object (see tickets.ts); tablets get objects.
           const tickets = result.tickets.map((t) => ({ ...t, details: JSON.parse(t.details) as unknown }));
           return json(200, { tickets, seq: result.seq });
+        });
+      case "GET /lines":
+        return withCafe(request, env, async (cafe, token) => {
+          // Missing header: the same answer as an ended session (the tablet asks for the PIN again).
+          const result = await cafe.tabletLines(token, request.headers.get("X-Staff-Session") ?? "");
+          if (!result.ok) return json(result.error === "NOT_A_WAITER_DEVICE" ? 403 : 401, { error: result.error });
+          // details travel as text from the Durable Object (see lines.ts); tablets get objects.
+          const lines = result.lines.map((l) => ({ ...l, details: JSON.parse(l.details) as unknown }));
+          return json(200, { lines, seq: result.seq });
         });
       case "GET /staff":
         return withCafe(request, env, async (cafe, token) => {
