@@ -6,6 +6,7 @@ import 'package:cafe_tablet/auth/auth_controller.dart';
 import 'package:cafe_tablet/auth/credentials.dart';
 import 'package:cafe_tablet/providers.dart';
 import 'package:cafe_tablet/session/providers.dart';
+import 'package:cafe_tablet/ui/kitchen_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -112,6 +113,8 @@ void main() {
     final store = MemoryCredentialStore();
     await store.saveDevice(PairedDevice.fromJson('t', kitchenDevice));
     await pumpApp(tester, fakeApi({}), store);
-    expect(find.text('Kitchen station'), findsOneWidget);
+    expect(find.byType(KitchenScreen), findsOneWidget);
+    expect(find.text('Kitchen'), findsOneWidget); // the station's name in the title
+    await unmountAndFlush(tester); // the kitchen screen watches the database
   });
 }

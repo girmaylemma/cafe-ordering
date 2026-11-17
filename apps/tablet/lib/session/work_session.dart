@@ -32,6 +32,7 @@ class WorkSession {
       unawaited(_db.setLinesSync(key, ok ? 'sent' : 'needs_attention', error: ok ? null : '${result['error']}'));
     });
     commands = TableCommands(connection);
+    stationCommands = StationCommands(connection);
     // Only a signed-in waiter's tablet rings (a kitchen tablet has no user and no alerts).
     alerts = userId == null || alertOutput == null
         ? null
@@ -50,6 +51,9 @@ class WorkSession {
 
   /// Actions that need a connection (delivered, cancel, void, close, move, merge, hand over).
   late final TableCommands commands;
+
+  /// A kitchen or bar tablet's taps: accept, ready, undo (F3a).
+  late final StationCommands stationCommands;
 
   /// The waiter's alerts (null on a kitchen tablet).
   late final WaiterAlerts? alerts;
@@ -123,7 +127,9 @@ class WorkSession {
       case 'reload':
         await refresh();
       case 'event':
-        await _db.applyItemEvent((push['event'] as Map).cast<String, dynamic>());
+        final event = (push['event'] as Map).cast<String, dynamic>();
+        // A kitchen tablet keeps tickets; a waiter's tablet keeps the lines of its tables.
+        await (device.kind == DeviceKind.station ? _db.applyTicketEvent(event) : _db.applyItemEvent(event));
     }
     await alerts?.onPush(push); // after the database: the rules read the item's current table
   }

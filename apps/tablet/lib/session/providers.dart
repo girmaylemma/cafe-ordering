@@ -82,4 +82,7 @@ final linkStateProvider = StreamProvider<LinkState>((ref) async* {
 
 final tablesProvider = StreamProvider<List<CafeTable>>((ref) => ref.watch(databaseProvider).watchTables());
 
+/// A kitchen or bar tablet's open tickets, oldest first (F3a).
+final ticketsProvider = StreamProvider<List<TicketItem>>((ref) => ref.watch(databaseProvider).watchTickets());
+
 final unsentCountProvider = StreamProvider<int>((ref) => ref.watch(databaseProvider).watchUnsentCount());

@@ -1,0 +1,285 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../api/api_client.dart';
+import '../data/database.dart';
+import '../session/providers.dart';
+import '../sync/commands.dart';
+import '../sync/connection.dart';
+import '../texts.dart';
+
+/// How long the kitchen can undo its last tap (K-06; the server checks it, D-05).
+const undoWindow = Duration(seconds: 10);
+
+/// The kitchen or bar tablet's only screen (F3a): one card per round, oldest first, with a big
+/// Accept / Ready button per item (K-01, K-03). The card changes ONLY when the server's event
+/// arrives, so the screen always shows what the waiters see.
+class KitchenScreen extends ConsumerStatefulWidget {
+  const KitchenScreen({super.key, required this.device});
+  final DeviceInfo device;
+
+  @override
+  ConsumerState<KitchenScreen> createState() => _KitchenScreenState();
+}
+
+class _KitchenScreenState extends ConsumerState<KitchenScreen> {
+  /// Items with a tap on its way to the server (their button is disabled meanwhile).
+  final _busy = <String>{};
+
+  /// The item whose last tap can still be undone, and the timer that ends that chance.
+  String? _undoItemId;
+  Timer? _undoTimer;
+
+  @override
+  void dispose() {
+    _undoTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = ref.watch(ticketsProvider).value ?? const <TicketItem>[];
+    final link = ref.watch(linkStateProvider).value ?? LinkState.connecting;
+
+    // One card per round, in the order the database gives (oldest round first).
+    final rounds = <String, List<TicketItem>>{};
+    for (final item in items) {
+      rounds.putIfAbsent(item.orderId, () => []).add(item);
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: Text(stationNames[widget.device.stationId] ?? widget.device.name)),
+      body: Column(
+        children: [
+          if (link != LinkState.online) const _NoConnection(),
+          Expanded(
+            child: rounds.isEmpty
+                ? Center(child: Text('No orders. New orders appear here by themselves.', style: Theme.of(context).textTheme.titleLarge))
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.all(12),
+                    child: Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        for (final round in rounds.values)
+                          _TicketCard(
+                            key: Key('ticket-${round.first.orderId}'),
+                            items: round,
+                            busy: _busy,
+                            undoItemId: _undoItemId,
+                            onTap: _tap,
+                            onUndo: _undo,
+                          ),
+                      ],
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _tap(TicketItem item) async {
+    final commands = ref.read(workSessionProvider).value?.stationCommands;
+    if (commands == null) return;
+    final action = item.state == 'sent' ? commands.accept : commands.ready;
+    final result = await _run(item.id, () => action(item.id));
+    if (result.ok) _offerUndo(item.id);
+  }
+
+  Future<void> _undo(String itemId) async {
+    final commands = ref.read(workSessionProvider).value?.stationCommands;
+    if (commands == null) return;
+    _clearUndo(); // one undo per tap, whatever the answer
+    await _run(itemId, () => commands.undo(itemId));
+  }
+
+  /// Send one tap, keep its button disabled meanwhile, and say why if it was refused.
+  Future<ActionResult> _run(String itemId, Future<ActionResult> Function() send) async {
+    setState(() => _busy.add(itemId));
+    final result = await send();
+    if (!mounted) return result;
+    setState(() => _busy.remove(itemId));
+    if (!result.ok) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(result.error!, retryAfter: result.retryAfter))));
+    }
+    return result;
+  }
+
+  void _offerUndo(String itemId) {
+    _undoTimer?.cancel();
+    setState(() => _undoItemId = itemId);
+    _undoTimer = Timer(undoWindow, () {
+      if (mounted) setState(_clearUndo);
+    });
+  }
+
+  void _clearUndo() {
+    _undoTimer?.cancel();
+    _undoItemId = null;
+  }
+}
+
+class _TicketCard extends StatelessWidget {
+  const _TicketCard({super.key, required this.items, required this.busy, required this.undoItemId, required this.onTap, required this.onUndo});
+  final List<TicketItem> items;
+  final Set<String> busy;
+  final String? undoItemId;
+  final void Function(TicketItem) onTap;
+  final void Function(String) onUndo;
+
+  @override
+  Widget build(BuildContext context) {
+    final first = items.first;
+    final theme = Theme.of(context);
+    final round = first.round;
+    final offline = items.any((i) => i.sentWhileOffline);
+    return SizedBox(
+      width: 380,
+      child: Card(
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(child: Text(first.tableLabel, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold))),
+                  Text(_clock(first.receivedAt), style: theme.textTheme.titleMedium),
+                ],
+              ),
+              Text(
+                [if (first.waiterName != null) first.waiterName!, if (round != null && round > 1) 'Round $round'].join(' · '),
+                style: theme.textTheme.titleMedium,
+              ),
+              if (offline)
+                _Flag('Sent while offline: it may already be made. Ask the waiter.', color: Colors.orange.shade800),
+              const Divider(height: 20),
+              for (final item in items)
+                _ItemRow(item: item, busy: busy.contains(item.id), canUndo: undoItemId == item.id, onTap: () => onTap(item), onUndo: () => onUndo(item.id)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The server's time on this tablet's clock, e.g. 14:05.
+  static String _clock(int ms) {
+    final t = DateTime.fromMillisecondsSinceEpoch(ms);
+    return '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+  }
+}
+
+class _ItemRow extends StatelessWidget {
+  const _ItemRow({required this.item, required this.busy, required this.canUndo, required this.onTap, required this.onUndo});
+  final TicketItem item;
+  final bool busy;
+  final bool canUndo;
+  final VoidCallback onTap;
+  final VoidCallback onUndo;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final gone = item.state == 'cancelled' || item.state == 'voided';
+    final nameStyle = theme.textTheme.titleLarge?.copyWith(
+      fontWeight: FontWeight.w600,
+      decoration: gone ? TextDecoration.lineThrough : null,
+      color: gone ? theme.disabledColor : null,
+    );
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('${item.qty}× ${item.nameEn}', style: nameStyle),
+                if (item.optionsText != null) Text(item.optionsText!, style: theme.textTheme.titleMedium),
+                if (item.note != null) Text('“${item.note}”', style: theme.textTheme.titleMedium?.copyWith(fontStyle: FontStyle.italic)),
+                if (item.flag == 'sold_out') _Flag('SOLD OUT when ordered', color: theme.colorScheme.error),
+                if (item.flag == 'unavailable') _Flag('NOT ON THE MENU any more', color: theme.colorScheme.error),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              _action(theme),
+              if (canUndo && (item.state == 'accepted' || item.state == 'ready'))
+                TextButton(onPressed: busy ? null : onUndo, child: const Text('Undo')),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _action(ThemeData theme) {
+    const size = Size(130, 56); // big enough for wet or gloved hands (NFR usability)
+    switch (item.state) {
+      case 'sent':
+        return FilledButton(style: FilledButton.styleFrom(minimumSize: size), onPressed: busy ? null : onTap, child: const Text('Accept'));
+      case 'accepted':
+        return FilledButton(
+          style: FilledButton.styleFrom(minimumSize: size, backgroundColor: Colors.green.shade700),
+          onPressed: busy ? null : onTap,
+          child: const Text('Ready'),
+        );
+      case 'ready':
+        return const _Status('Waiting for pickup');
+      case 'delivered':
+        return const _Status('Delivered');
+      case 'cancelled':
+        return _Status('CANCELLED', color: theme.colorScheme.error);
+      case 'voided':
+        return _Status('VOIDED', color: theme.colorScheme.error);
+      default:
+        return _Status(item.state);
+    }
+  }
+}
+
+class _Status extends StatelessWidget {
+  const _Status(this.text, {this.color});
+  final String text;
+  final Color? color;
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: 130,
+        child: Text(text, textAlign: TextAlign.end, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: color, fontWeight: FontWeight.bold)),
+      );
+}
+
+class _Flag extends StatelessWidget {
+  const _Flag(this.text, {required this.color});
+  final String text;
+  final Color color;
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Text(text, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+      );
+}
+
+/// K-03 / design §9: without a connection the kitchen sees nothing new, so staff must talk.
+class _NoConnection extends StatelessWidget {
+  const _NoConnection();
+  @override
+  Widget build(BuildContext context) => Container(
+        width: double.infinity,
+        color: Colors.red.shade700,
+        padding: const EdgeInsets.all(14),
+        child: const Text(
+          'No connection: new orders cannot arrive. Talk to the waiters directly.',
+          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+      );
+}

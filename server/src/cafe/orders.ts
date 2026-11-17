@@ -242,6 +242,8 @@ export function sendOrder(
       conflict,
       options: opts.chosen.map((c) => ({ nameEn: c.nameEn, nameAm: c.nameAm })),
       optionsChanged: opts.changed,
+      // K-03: queued while the internet was down, so the kitchen may already have made it.
+      sentWhileOffline: message.queuedOffline,
     };
     const seq = insertEvent(sql, {
       venueId,

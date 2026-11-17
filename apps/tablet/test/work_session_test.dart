@@ -174,6 +174,31 @@ void main() {
     expect({for (final l in lines) l.id: l.state}, {'i1': 'ready', 'i2': 'sent'});
   });
 
+  test('on a kitchen tablet, item events become tickets (never waiter lines)', () async {
+    db = memoryDb();
+    final socket = FakeSocket();
+    const kitchen = DeviceInfo(id: 'k1', name: 'Kitchen', kind: DeviceKind.station, stationId: 'kitchen');
+    final session = WorkSession(api: server.api(), db: db, device: kitchen, deviceToken: 't', connect: FakeServer([socket]).connect, delay: (_) async {});
+    addTearDown(() async {
+      await session.stop();
+      await db.close();
+    });
+    await session.start();
+    await settle();
+
+    socket.receive({'type': 'sync.result', 'reloadRequired': false, 'events': [
+      {
+        'seq': 1, 'orderId': 'o1', 'itemId': 'i1', 'stationId': 'kitchen', 'type': 'item.sent', 'from': null, 'to': 'sent', 'at': 1000,
+        'details': {'tableId': 't7', 'tableName': 'Table 7', 'waiterName': 'Hana', 'round': 1, 'name': 'Shiro', 'nameAm': null, 'qty': 1, 'note': null, 'options': <Object>[]},
+      },
+    ]});
+    socket.receive({'type': 'event', 'event': {'seq': 2, 'orderId': 'o1', 'itemId': 'i1', 'stationId': 'kitchen', 'type': 'item.accepted', 'from': 'sent', 'to': 'accepted', 'at': 2000}});
+    await settle();
+
+    expect((await db.watchTickets().first).single.state, 'accepted');
+    expect(await db.select(db.orderLines).get(), isEmpty);
+  });
+
   test('a round that waited offline shows its final answer: refused -> "needs attention", accepted -> sent', () async {
     final socket = FakeSocket();
     server.tableState = 'ordered'; // the table is still open (a free table would end the visit and clear its lines)

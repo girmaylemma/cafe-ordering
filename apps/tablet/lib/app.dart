@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'auth/auth_controller.dart';
-import 'texts.dart';
 import 'ui/alert_banner.dart';
 import 'ui/floor_map_screen.dart';
+import 'ui/kitchen_screen.dart';
 import 'ui/pair_screen.dart';
 import 'ui/pin_screen.dart';
 
@@ -24,7 +24,7 @@ class CafeApp extends ConsumerWidget {
             Unpaired(:final error) => PairScreen(error: error),
             NeedsSignIn() => PinScreen(key: ValueKey(value.device.id), state: value),
             SignedIn(:final user) => FloorMapScreen(user: user),
-            StationReady(:final device) => _Placeholder(title: '${stationNames[device.stationId] ?? device.stationId} station'),
+            StationReady(:final device) => KitchenScreen(device: device),
           },
         AsyncError() => const _Placeholder(title: 'Something went wrong. Restart the app.'),
         _ => const Scaffold(body: Center(child: CircularProgressIndicator())),
@@ -33,7 +33,7 @@ class CafeApp extends ConsumerWidget {
   }
 }
 
-/// Placeholder for the kitchen home screen (built in F3) and for errors.
+/// Shown when something went wrong.
 class _Placeholder extends ConsumerWidget {
   const _Placeholder({required this.title});
   final String title;

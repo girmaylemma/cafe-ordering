@@ -137,6 +137,37 @@ class OrderLines extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// A kitchen or bar tablet's open tickets (F3a, K-01): one row per item, built only from item
+/// events (the ticket snapshot travels in `item.sent`). Kept apart from [OrderLines] because the
+/// kitchen forgets a round as soon as it is finished, while a waiter keeps it until the table is free.
+class TicketItems extends Table {
+  TextColumn get id => text()();
+  TextColumn get orderId => text()();
+  /// The table's name as shown (Table 7); renamed by a table move. (`tableName` is taken by drift.)
+  TextColumn get tableLabel => text()();
+  TextColumn get waiterName => text().nullable()();
+  IntColumn get round => integer().nullable()();
+  TextColumn get nameEn => text()();
+  TextColumn get nameAm => text().nullable()();
+  IntColumn get qty => integer()();
+  TextColumn get note => text().nullable()();
+  TextColumn get optionsText => text().nullable()();
+
+  /// sold_out or unavailable when it was ordered (K-03): kept, never dropped (D-17).
+  TextColumn get flag => text().nullable()();
+
+  /// Queued on a waiter tablet while the internet was down: the kitchen may already have made it.
+  BoolColumn get sentWhileOffline => boolean()();
+
+  /// The server's item state: sent, accepted, ready, delivered, cancelled, voided.
+  TextColumn get state => text()();
+
+  /// Server time in ms (received_at decides order and timers, never the device clock).
+  IntColumn get receivedAt => integer()();
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// Items this tablet ordered recently: the Favourites tab (W-04, D-80). Kept 14 days.
 class OrderHistory extends Table {
   IntColumn get id => integer().autoIncrement()();
@@ -151,13 +182,13 @@ class KeyValues extends Table {
   Set<Column> get primaryKey => {key};
 }
 
-@DriftDatabase(tables: [Categories, MenuItems, OptionGroups, OptionChoices, CafeTables, OutboxEntries, KeyValues, OrderLines, OrderHistory])
+@DriftDatabase(tables: [Categories, MenuItems, OptionGroups, OptionChoices, CafeTables, OutboxEntries, KeyValues, OrderLines, OrderHistory, TicketItems])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? driftDatabase(name: 'cafe'));
 
   /// Bump on every schema change and add a step below. Never edit an earlier step.
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -168,6 +199,7 @@ class AppDatabase extends _$AppDatabase {
           // F2c: order again. Schema 1 just created order_lines WITH this column (createTable uses
           // today's definition); schemas 2 and 3 have the table without it.
           if (from >= 2 && from < 4) await m.addColumn(orderLines, orderLines.optionIds);
+          if (from < 5) await m.createTable(ticketItems); // F3a: kitchen tickets
         },
       );
 
@@ -319,6 +351,55 @@ class AppDatabase extends _$AppDatabase {
         await (update(orderLines)..where((l) => l.id.equals(id))).write(OrderLinesCompanion(state: Value(e['to'] as String)));
     }
   }
+
+  // ---------- kitchen tickets (F3a) ----------
+
+  static const _finished = ['delivered', 'cancelled', 'voided'];
+
+  /// Apply one item event on a kitchen or bar tablet (live push or catch-up; safe to repeat).
+  Future<void> applyTicketEvent(Map<String, dynamic> e) => transaction(() async {
+        final id = e['itemId'] as String;
+        final d = (e['details'] as Map?)?.cast<String, dynamic>() ?? const <String, dynamic>{};
+        final mine = update(ticketItems)..where((t) => t.id.equals(id));
+        switch (e['type']) {
+          case 'item.sent':
+            final options = ((d['options'] as List?) ?? const []).map((o) => (o as Map)['nameEn']).join(', ');
+            await into(ticketItems).insert(
+              TicketItemsCompanion.insert(
+                id: id,
+                orderId: e['orderId'] as String,
+                tableLabel: d['tableName'] as String,
+                waiterName: Value(d['waiterName'] as String?),
+                round: Value(d['round'] as int?),
+                nameEn: d['name'] as String,
+                nameAm: Value(d['nameAm'] as String?),
+                qty: d['qty'] as int,
+                note: Value(d['note'] as String?),
+                optionsText: Value(options.isEmpty ? null : options),
+                flag: Value(d['flag'] as String?),
+                sentWhileOffline: d['sentWhileOffline'] == true,
+                state: e['to'] as String,
+                receivedAt: e['at'] as int,
+              ),
+              mode: InsertMode.insertOrIgnore, // catch-up may repeat an event we already have
+            );
+          case 'item.table_changed':
+            await mine.write(TicketItemsCompanion(tableLabel: Value(d['tableName'] as String)));
+          default:
+            // accepted, ready, delivered, cancelled, voided, undone (ignored for an unknown item)
+            await mine.write(TicketItemsCompanion(state: Value(e['to'] as String)));
+            // A finished round leaves the screen (and the database).
+            final orderId = e['orderId'] as String?;
+            if (orderId == null) return;
+            final open = await (select(ticketItems)..where((t) => t.orderId.equals(orderId) & t.state.isNotIn(_finished))).get();
+            if (open.isEmpty) await (delete(ticketItems)..where((t) => t.orderId.equals(orderId))).go();
+        }
+      });
+
+  /// The open tickets, oldest round first (by server time), each round's lines together.
+  Stream<List<TicketItem>> watchTickets() => (select(ticketItems)
+        ..orderBy([(t) => OrderingTerm.asc(t.receivedAt), (t) => OrderingTerm.asc(t.orderId), (t) => OrderingTerm.asc(t.rowId)]))
+      .watch();
 
   /// The current visit's lines of one table, round by round (unconfirmed rounds last).
   Stream<List<OrderLine>> watchLines(String tableId) => (select(orderLines)

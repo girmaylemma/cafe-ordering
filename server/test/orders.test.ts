@@ -87,7 +87,7 @@ describe("sessions and orders", () => {
       from: null,
       to: "sent",
       stationId: "kitchen",
-      details: { tableId: "table-7", tableName: "Table 7", waiterId: "hana", round: 1, name: "Shiro", qty: 2, note: "no onion", flag: null, conflict: null },
+      details: { tableId: "table-7", tableName: "Table 7", waiterId: "hana", round: 1, name: "Shiro", qty: 2, note: "no onion", flag: null, conflict: null, sentWhileOffline: false },
     });
     expect(events(await bar.drain())).toMatchObject([{ type: "item.sent", details: { name: "Macchiato" } }]);
   });
@@ -153,12 +153,15 @@ describe("sessions and orders", () => {
   it("stores a queued round as sent while offline, with the device time kept for information", async () => {
     const cafe = await setup();
     const hana = await connect(cafe, staffHeaders("hana"));
+    const kitchen = await connect(cafe, stationHeaders("kitchen"));
     const sessionId = await openTable(hana);
     const before = Date.now();
     const deviceTime = before - 15 * 60_000; // taken 15 minutes ago
 
     hana.send(orderMessage(sessionId, [{ menuItemId: "menu-shiro" }], { createdAt: deviceTime, queuedOffline: true }));
     await hana.ack();
+    // K-03: the ticket says so, because the kitchen may already have made it from a shout.
+    expect(events(await kitchen.drain())).toMatchObject([{ type: "item.sent", details: { sentWhileOffline: true } }]);
 
     const [row] = await sql<{ created_at: number; received_at: number; sent_while_offline: number }>(
       cafe,
