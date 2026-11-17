@@ -7,12 +7,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'fakes.dart';
+
 Future<StreamController<Alert>> pumpBanner(WidgetTester tester) async {
   final alerts = StreamController<Alert>();
   addTearDown(alerts.close);
   await tester.pumpWidget(ProviderScope(
     overrides: [alertsProvider.overrideWith((ref) => alerts.stream)],
-    child: MaterialApp(
+    child: localizedApp(
       builder: (context, child) => AlertBanner(child: child!),
       home: const Scaffold(body: Text('any screen')),
     ),

@@ -1,0 +1,6 @@
+# Flutter gen-l10n (F4a, D-90): texts live in lib/l10n/app_en.arb (template) and app_am.arb.
+# `flutter pub get` regenerates lib/l10n/app_localizations*.dart (not committed).
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+nullable-getter: false

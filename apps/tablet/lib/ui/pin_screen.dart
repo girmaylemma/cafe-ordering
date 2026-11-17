@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/api_client.dart';
 import '../auth/auth_controller.dart';
+import '../l10n/l10n.dart';
 import '../texts.dart';
 
 /// Waiter sign-in: tap your name, type your PIN (checked only by the server, D-10).
@@ -64,13 +65,13 @@ class _PinScreenState extends ConsumerState<PinScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Who are you?', style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
+        Text(context.l10n.pinTitle, style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
         const SizedBox(height: 16),
         Expanded(
           child: FutureBuilder<List<StaffMember>>(
             future: _staff,
             builder: (context, snapshot) {
-              if (snapshot.hasError) return Center(child: Text(errorText('NETWORK')));
+              if (snapshot.hasError) return Center(child: Text(errorText(context.l10n, 'NETWORK')));
               final staff = snapshot.data;
               if (staff == null) return const Center(child: CircularProgressIndicator());
               return ListView(
@@ -108,16 +109,16 @@ class _PinScreenState extends ConsumerState<PinScreen> {
           inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(6)],
           textAlign: TextAlign.center,
           style: const TextStyle(fontSize: 32, letterSpacing: 12),
-          decoration: const InputDecoration(border: OutlineInputBorder(), labelText: 'PIN'),
+          decoration: InputDecoration(border: const OutlineInputBorder(), labelText: context.l10n.pinLabel),
           onSubmitted: (_) => _signIn(),
         ),
         if (error != null) ...[
           const SizedBox(height: 12),
-          Text(errorText(error, retryAfter: widget.state.retryAfter), style: TextStyle(color: Theme.of(context).colorScheme.error), textAlign: TextAlign.center),
+          Text(errorText(context.l10n, error, retryAfter: widget.state.retryAfter), style: TextStyle(color: Theme.of(context).colorScheme.error), textAlign: TextAlign.center),
         ],
         const SizedBox(height: 24),
-        FilledButton(onPressed: _busy ? null : _signIn, child: const Padding(padding: EdgeInsets.all(12), child: Text('Sign in'))),
-        TextButton(onPressed: () => setState(() => _selected = null), child: const Text('Not you? Choose another name')),
+        FilledButton(onPressed: _busy ? null : _signIn, child: Padding(padding: const EdgeInsets.all(12), child: Text(context.l10n.pinSignIn))),
+        TextButton(onPressed: () => setState(() => _selected = null), child: Text(context.l10n.pinNotYou)),
       ],
     );
   }

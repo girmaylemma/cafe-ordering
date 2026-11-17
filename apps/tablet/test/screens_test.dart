@@ -9,6 +9,7 @@ import 'package:cafe_tablet/session/providers.dart';
 import 'package:cafe_tablet/ui/kitchen_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -29,7 +30,7 @@ ApiClient fakeApi(Map<String, (int, Object) Function(Map<String, dynamic>)> rout
       Uri.parse('http://server'),
     );
 
-Future<void> pumpApp(WidgetTester tester, ApiClient api, MemoryCredentialStore store) async {
+Future<void> pumpApp(WidgetTester tester, ApiClient api, MemoryCredentialStore store, {List<Override> extra = const []}) async {
   await tester.pumpWidget(ProviderScope(
     overrides: [
       apiClientProvider.overrideWithValue(api),
@@ -37,6 +38,7 @@ Future<void> pumpApp(WidgetTester tester, ApiClient api, MemoryCredentialStore s
       databaseProvider.overrideWithValue(memoryDb()),
       // No real WebSocket in widget tests: the floor map's live session is tested in floor_map_test.dart.
       workSessionProvider.overrideWith((ref) async => null),
+      ...extra,
     ],
     child: const CafeApp(),
   ));

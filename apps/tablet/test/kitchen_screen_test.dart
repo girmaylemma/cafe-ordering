@@ -90,7 +90,7 @@ Future<(AppDatabase, FakeSocket?)> pumpKitchen(WidgetTester tester, List<Map<Str
       workSessionProvider.overrideWith((ref) async => session),
       screenAwakeProvider.overrideWithValue(screenAwake),
     ],
-    child: const MaterialApp(home: KitchenScreen(device: kitchen)),
+    child: localizedApp(home: const KitchenScreen(device: kitchen)),
   ));
   await settled(tester);
   return (db, socket);
@@ -108,6 +108,14 @@ void main() {
   setUp(() {
     clockNow = DateTime(2026, 11, 17, 12);
     screenAwake = FakeScreenAwake();
+  });
+
+  testWidgets('a ticket line shows both dish names (F4a)', (tester) async {
+    await pumpKitchen(tester, [sent('i1')]);
+
+    expect(find.text('2× Shiro'), findsOneWidget);
+    expect(find.text('ሽሮ'), findsOneWidget);
+    await unmountAndFlush(tester);
   });
 
   group('readable and always on (K-07)', () {

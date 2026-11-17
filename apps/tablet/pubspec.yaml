@@ -13,9 +13,12 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_foreground_task: ^11.0.3
+  flutter_localizations:
+    sdk: flutter
   flutter_riverpod: ^3.5.0
   flutter_secure_storage: ^11.2.0
   http: ^1.6.0
+  intl: any
   uuid: ^4.6.0
   vibration: ^3.2.1
   wakelock_plus: ^1.8.2
@@ -30,5 +33,14 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  # Texts from lib/l10n/*.arb (l10n.yaml).
+  generate: true
   assets:
     - assets/sounds/
+  # Ethiopic letters in a font of our own, so no tablet shows empty boxes (design.md 5, D-90).
+  fonts:
+    - family: NotoSansEthiopic
+      fonts:
+        - asset: assets/fonts/NotoSansEthiopic-Regular.ttf
+        - asset: assets/fonts/NotoSansEthiopic-Bold.ttf
+          weight: 700

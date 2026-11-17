@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers.dart';
 import '../session/providers.dart';
+import '../l10n/l10n.dart';
 import '../texts.dart';
+import 'dish_name.dart';
 
 /// This station's items, each with a big switch: available or SOLD OUT (K-05, F3c). Waiters see
 /// the item greyed out within a second. The switch moves only when the server's push arrives,
@@ -35,17 +37,17 @@ class _SoldOutScreenState extends ConsumerState<SoldOutScreen> {
         ));
       }
       heading = category;
-      children.add(_row(r.item.id, r.item.nameEn, r.item.soldOut, theme));
+      children.add(_row(r.item.id, r.item.nameEn, r.item.nameAm, r.item.soldOut, theme));
     }
     return Scaffold(
-      appBar: AppBar(title: Text('Sold out: ${stationNames[widget.stationId] ?? widget.stationId}')),
+      appBar: AppBar(title: Text(context.l10n.soldOutTitle(stationName(context.l10n, widget.stationId)))),
       body: ListView(padding: const EdgeInsets.symmetric(vertical: 8), children: children),
     );
   }
 
-  Widget _row(String id, String name, bool soldOut, ThemeData theme) => ListTile(
-        title: Text(name, style: theme.textTheme.titleLarge),
-        subtitle: soldOut ? Text('SOLD OUT', style: TextStyle(color: theme.colorScheme.error, fontWeight: FontWeight.bold)) : null,
+  Widget _row(String id, String name, String? nameAm, bool soldOut, ThemeData theme) => ListTile(
+        title: DishName(en: name, am: nameAm, style: theme.textTheme.titleLarge),
+        subtitle: soldOut ? Text(context.l10n.soldOutLabel, style: TextStyle(color: theme.colorScheme.error, fontWeight: FontWeight.bold)) : null,
         trailing: Transform.scale(
           scale: 1.4, // big enough for wet or gloved hands
           child: Switch(
@@ -65,7 +67,7 @@ class _SoldOutScreenState extends ConsumerState<SoldOutScreen> {
     if (!mounted) return;
     setState(() => _busy.remove(menuItemId));
     if (!result.ok) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(result.error!, retryAfter: result.retryAfter))));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(context.l10n, result.error!, retryAfter: result.retryAfter))));
     }
   }
 }

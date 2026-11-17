@@ -8,21 +8,26 @@ import '../ordering/order_draft.dart';
 import '../providers.dart';
 import '../session/providers.dart';
 import '../sync/commands.dart';
+import '../l10n/l10n.dart';
+import '../l10n/names.dart';
 import '../texts.dart';
 import 'order_screen.dart';
 import 'void_dialog.dart';
+import 'dish_name.dart';
 
 final _linesProvider = StreamProvider.family<List<OrderLine>, String>((ref, tableId) => ref.watch(databaseProvider).watchLines(tableId));
 final _tableProvider = StreamProvider.family<CafeTable?, String>((ref, tableId) => ref.watch(databaseProvider).watchTable(tableId));
 
-const _stateLabels = {
-  'sent': 'Sent ✓',
-  'accepted': 'Accepted',
-  'ready': 'READY',
-  'delivered': 'Delivered',
-  'cancelled': 'Cancelled',
-  'voided': 'Voided',
-};
+/// A line's state in the user's language; an unknown state shows as it is.
+String _stateLabel(AppLocalizations t, String state) => switch (state) {
+      'sent' => t.lineStateSent,
+      'accepted' => t.lineStateAccepted,
+      'ready' => t.lineStateReady,
+      'delivered' => t.lineStateDelivered,
+      'cancelled' => t.lineStateCancelled,
+      'voided' => t.lineStateVoided,
+      _ => state,
+    };
 
 const _approverRoles = {'manager', 'owner'};
 
@@ -53,20 +58,20 @@ class TableScreen extends ConsumerWidget {
               key: const Key('table-actions'),
               onSelected: (action) => _tableAction(context, ref, table, sessionId, action),
               itemBuilder: (_) => [
-                for (final a in _TableAction.values) PopupMenuItem(value: a, child: Text(a.label)),
+                for (final a in _TableAction.values) PopupMenuItem(value: a, child: Text(a.label(context.l10n))),
               ],
             ),
         ],
       ),
       body: lines.isEmpty
-          ? const Center(child: Text('Nothing ordered yet.'))
+          ? Center(child: Text(context.l10n.tableNothingOrdered))
           : ListView(
               padding: const EdgeInsets.all(12),
               children: [
                 for (final MapEntry(key: round, value: items) in rounds.entries) ...[
                   Padding(
                     padding: const EdgeInsets.fromLTRB(4, 12, 4, 4),
-                    child: Text(round == null ? 'New round' : 'Round $round', style: Theme.of(context).textTheme.titleMedium),
+                    child: Text(round == null ? context.l10n.tableNewRound : context.l10n.commonRound(round), style: Theme.of(context).textTheme.titleMedium),
                   ),
                   for (final l in items) _LineTile(key: Key('line-${l.id}'), line: l, onTap: () => _lineActions(context, ref, l)),
                 ],
@@ -77,7 +82,7 @@ class TableScreen extends ConsumerWidget {
           padding: const EdgeInsets.all(12),
           child: FilledButton.icon(
             icon: const Icon(Icons.add),
-            label: const Padding(padding: EdgeInsets.all(12), child: Text('Add items')),
+            label: Padding(padding: const EdgeInsets.all(12), child: Text(context.l10n.tableAddItems)),
             onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => OrderScreen(tableId: tableId))),
           ),
         ),
@@ -103,9 +108,9 @@ class TableScreen extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(title: Text('${line.qty}× ${line.nameEn}', style: Theme.of(sheet).textTheme.titleMedium)),
+            ListTile(title: DishName(en: line.nameEn, am: line.nameAm, qty: line.qty, style: Theme.of(sheet).textTheme.titleMedium)),
             for (final a in actions)
-              ListTile(minTileHeight: 56, leading: Icon(a.icon), title: Text(a.label), onTap: () => Navigator.of(sheet).pop(a)),
+              ListTile(minTileHeight: 56, leading: Icon(a.icon), title: Text(a.label(context.l10n)), onTap: () => Navigator.of(sheet).pop(a)),
           ],
         ),
       ),
@@ -122,7 +127,7 @@ class TableScreen extends ConsumerWidget {
       case _LineAction.orderAgain:
         await _orderAgain(context, ref, line);
       case _LineAction.dismiss:
-        final sure = await _confirm(context, 'Remove this round?', 'It never reached the kitchen. Its items will be removed from this table.', 'Remove');
+        final sure = await _confirm(context, context.l10n.tableRemoveRoundTitle, context.l10n.tableRemoveRoundBody, context.l10n.tableRemove);
         if (sure) await ref.read(databaseProvider).dismissRound(line.orderId);
     }
   }
@@ -133,7 +138,7 @@ class TableScreen extends ConsumerWidget {
     final me = ref.read(currentUserProvider);
     await showVoidDialog(
       context,
-      itemName: line.nameEn,
+      itemName: primaryName(line.nameEn, line.nameAm, Localizations.localeOf(context).languageCode),
       signedInAsManager: me != null && _approverRoles.contains(me.role),
       managers: [for (final s in work.staff) if (_approverRoles.contains(s.role)) s],
       send: (reason, approval) => work.commands.voidItem(line.id, reason: reason, approval: approval),
@@ -167,14 +172,14 @@ class TableScreen extends ConsumerWidget {
     switch (action) {
       case _TableAction.move:
         final free = [for (final t in await db.watchTables().first) if (t.state == 'free') (t.id, t.name)];
-        final to = context.mounted ? await _pick(context, 'Move ${table.name} to', free) : null;
+        final to = context.mounted ? await _pick(context, context.l10n.tableMoveTo(table.name), free) : null;
         command = to == null ? null : (c) => c.move(sessionId, toTableId: to);
       case _TableAction.merge:
         final open = [
           for (final t in await db.watchTables().first)
             if (t.id != table.id && t.sessionId != null && t.state != 'free') (t.sessionId!, t.name),
         ];
-        final into = context.mounted ? await _pick(context, 'Merge ${table.name} into', open) : null;
+        final into = context.mounted ? await _pick(context, context.l10n.tableMergeInto(table.name), open) : null;
         command = into == null ? null : (c) => c.merge(sessionId, intoSessionId: into);
       case _TableAction.handOver:
         final work = await ref.read(workSessionProvider.future);
@@ -184,10 +189,10 @@ class TableScreen extends ConsumerWidget {
             for (final s in work.staff)
               if (s.role == 'waiter' && s.id != me?.id) (s.id, s.name),
         ];
-        final to = context.mounted ? await _pick(context, 'Hand ${table.name} over to', waiters) : null;
+        final to = context.mounted ? await _pick(context, context.l10n.tableHandOverTo(table.name), waiters) : null;
         command = to == null ? null : (c) => c.handOver(sessionId, toWaiterId: to);
       case _TableAction.close:
-        final sure = await _confirm(context, 'Close ${table.name}?', 'The table becomes free for the next guests.', 'Close');
+        final sure = await _confirm(context, context.l10n.tableCloseTitle(table.name), context.l10n.tableCloseBody, context.l10n.tableClose);
         command = sure ? (c) => c.close(sessionId) : null;
     }
     if (command == null || !context.mounted) return;
@@ -202,7 +207,7 @@ class TableScreen extends ConsumerWidget {
     final work = await ref.read(workSessionProvider.future);
     final result = work == null ? const ActionResult.failed('NEEDS_CONNECTION') : await action(work.commands);
     if (!result.ok && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(result.error!, retryAfter: result.retryAfter))));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(context.l10n, result.error!, retryAfter: result.retryAfter))));
     }
     return result.ok;
   }
@@ -214,7 +219,7 @@ class TableScreen extends ConsumerWidget {
             shrinkWrap: true,
             children: [
               ListTile(title: Text(title, style: Theme.of(sheet).textTheme.titleMedium)),
-              if (choices.isEmpty) const ListTile(title: Text('None available right now.')),
+              if (choices.isEmpty) ListTile(title: Text(context.l10n.tableNoneAvailable)),
               for (final (id, name) in choices) ListTile(minTileHeight: 56, title: Text(name), onTap: () => Navigator.of(sheet).pop(id)),
             ],
           ),
@@ -228,7 +233,7 @@ class TableScreen extends ConsumerWidget {
           title: Text(title),
           content: Text(body),
           actions: [
-            TextButton(onPressed: () => Navigator.of(dialog).pop(false), child: const Text('Back')),
+            TextButton(onPressed: () => Navigator.of(dialog).pop(false), child: Text(context.l10n.commonBack)),
             FilledButton(onPressed: () => Navigator.of(dialog).pop(true), child: Text(yes)),
           ],
         ),
@@ -237,25 +242,36 @@ class TableScreen extends ConsumerWidget {
 }
 
 enum _LineAction {
-  delivered('Delivered', Icons.check_circle),
-  cancel('Cancel item', Icons.cancel),
-  voidItem('Void…', Icons.block),
-  orderAgain('Order again', Icons.replay),
-  dismiss('Dismiss', Icons.delete_outline);
+  delivered(Icons.check_circle),
+  cancel(Icons.cancel),
+  voidItem(Icons.block),
+  orderAgain(Icons.replay),
+  dismiss(Icons.delete_outline);
 
-  const _LineAction(this.label, this.icon);
-  final String label;
+  const _LineAction(this.icon);
   final IconData icon;
+
+  String label(AppLocalizations t) => switch (this) {
+        delivered => t.lineActionDelivered,
+        cancel => t.lineActionCancel,
+        voidItem => t.lineActionVoid,
+        orderAgain => t.lineActionOrderAgain,
+        dismiss => t.lineActionDismiss,
+      };
 }
 
 enum _TableAction {
-  move('Move to another table'),
-  merge('Merge into another table'),
-  handOver('Hand over to…'),
-  close('Close table');
+  move,
+  merge,
+  handOver,
+  close;
 
-  const _TableAction(this.label);
-  final String label;
+  String label(AppLocalizations t) => switch (this) {
+        move => t.tableActionMove,
+        merge => t.tableActionMerge,
+        handOver => t.tableActionHandOver,
+        close => t.tableActionClose,
+      };
 }
 
 class _LineTile extends StatelessWidget {
@@ -271,10 +287,10 @@ class _LineTile extends StatelessWidget {
 
     // The server hasn't confirmed it: show where it is on its way. Otherwise the kitchen's state.
     final (label, color) = switch (line.sync) {
-      'queued' => ('Waiting for internet', scheme.error),
-      'sending' => ('Sending…', scheme.outline),
-      'needs_attention' => ('Not sent: ${errorText(line.error ?? 'UNKNOWN')}', scheme.error),
-      _ => (_stateLabels[line.state] ?? line.state, line.state == 'ready' ? Colors.orange.shade800 : scheme.primary),
+      'queued' => (context.l10n.lineWaitingInternet, scheme.error),
+      'sending' => (context.l10n.lineSending, scheme.outline),
+      'needs_attention' => (context.l10n.lineNotSent(errorText(context.l10n, line.error ?? 'UNKNOWN')), scheme.error),
+      _ => (_stateLabel(context.l10n, line.state), line.state == 'ready' ? Colors.orange.shade800 : scheme.primary),
     };
 
     return Card(
@@ -282,7 +298,7 @@ class _LineTile extends StatelessWidget {
         minTileHeight: 56,
         onTap: onTap,
         leading: Text('${line.qty}×', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        title: Text(line.nameEn, style: struck ? const TextStyle(decoration: TextDecoration.lineThrough) : null),
+        title: DishName(en: line.nameEn, am: line.nameAm, struck: struck),
         subtitle: details.isEmpty ? null : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [for (final d in details) Text(d)]),
         trailing: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 180),

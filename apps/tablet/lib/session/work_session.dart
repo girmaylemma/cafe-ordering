@@ -9,6 +9,7 @@ import '../alerts/kitchen_alerts.dart';
 import '../alerts/waiter_alerts.dart';
 import '../api/api_client.dart';
 import '../data/database.dart';
+import '../l10n/l10n.dart';
 import '../sync/commands.dart';
 import '../sync/connection.dart';
 import '../sync/outbox.dart';
@@ -28,6 +29,7 @@ class WorkSession {
     AlertOutput? alertOutput,
     KeepAlive? keepAlive,
     ServerClock? clock,
+    AppLocalizations Function() texts = englishTexts,
   }) : clock = clock ?? ServerClock() {
     connection = Connection(connect: connect, db: _db, delay: delay);
     // A round that waited offline: show its final answer on the table screen.
@@ -40,7 +42,7 @@ class WorkSession {
     // A signed-in waiter's tablet rings by the waiter rules, a kitchen tablet by the kitchen ones.
     alerts = userId == null || alertOutput == null
         ? null
-        : WaiterAlerts(db: _db, myUserId: userId, output: alertOutput, staffName: staffName);
+        : WaiterAlerts(db: _db, myUserId: userId, output: alertOutput, staffName: staffName, texts: texts);
     kitchenAlerts = device.kind != DeviceKind.station || alertOutput == null ? null : KitchenAlerts(db: _db, output: alertOutput);
     // Only a waiter's phone needs to stay awake for alerts (a kitchen tablet stays on screen).
     _keepAlive = alerts == null ? null : keepAlive;

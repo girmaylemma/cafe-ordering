@@ -12,6 +12,9 @@ import '../providers.dart';
 import '../session/providers.dart';
 import '../session/work_session.dart';
 import '../sync/outbox.dart';
+import '../l10n/l10n.dart';
+import '../l10n/names.dart';
+import 'dish_name.dart';
 
 /// Everything the order screen needs, read once from the tablet's database (no network, CLAUDE.md).
 class _Menu {
@@ -96,13 +99,13 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
       ],
       option: (id) {
         final o = options[id];
-        return o == null ? null : DraftOption(id: o.id, groupId: o.groupId, nameEn: o.nameEn, extraSantim: o.extraSantim);
+        return o == null ? null : DraftOption(id: o.id, groupId: o.groupId, nameEn: o.nameEn, nameAm: o.nameAm, extraSantim: o.extraSantim);
       },
     );
     if (skipped.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Not added (sold out or changed): ${skipped.join(', ')}')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.orderNotAdded(skipped.join(', ')))));
       });
     }
   }
@@ -139,7 +142,7 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
         title: TextField(
           key: const Key('menu-search'),
           controller: _search,
-          decoration: const InputDecoration(hintText: 'Search the menu', border: InputBorder.none, prefixIcon: Icon(Icons.search)),
+          decoration: InputDecoration(hintText: context.l10n.orderSearch, border: InputBorder.none, prefixIcon: const Icon(Icons.search)),
         ),
       ),
       body: Column(
@@ -151,20 +154,30 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                 children: [
-                  if (menu.favourites.isNotEmpty) _tabChip('fav', 'Favourites', tab),
+                  if (menu.favourites.isNotEmpty) _tabChip('fav', context.l10n.orderFavourites, tab),
                   for (final c in menu.categories) _tabChip(c.id, c.nameEn, tab),
                 ],
               ),
             ),
           Expanded(
-            child: GridView.extent(
-              maxCrossAxisExtent: 180,
-              childAspectRatio: 1.4,
-              padding: const EdgeInsets.all(8),
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-              children: [for (final item in shown) _itemTile(item, soldOut.contains(item.id), menu)],
-            ),
+            // Tiles as wide as a 180-wide grid's, but as tall as their names need (F4a): a long
+            // Amharic name is never cut off. Short names keep the old tile size (minimum height).
+            child: LayoutBuilder(builder: (context, box) {
+              const gap = 8.0, padding = 8.0;
+              final usable = box.maxWidth - 2 * padding;
+              final columns = (usable / (180 + gap)).ceil().clamp(1, 99);
+              final width = (usable - gap * (columns - 1)) / columns;
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(padding),
+                child: Wrap(
+                  spacing: gap,
+                  runSpacing: gap,
+                  children: [
+                    for (final item in shown) SizedBox(width: width, child: _itemTile(item, soldOut.contains(item.id), menu, minHeight: width / 1.4)),
+                  ],
+                ),
+              );
+            }),
           ),
           _summary(context),
         ],
@@ -177,7 +190,7 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
         child: ChoiceChip(label: Text(label), selected: id == current, onSelected: (_) => setState(() => _tab = id)),
       );
 
-  Widget _itemTile(MenuItem item, bool soldOut, _Menu menu) {
+  Widget _itemTile(MenuItem item, bool soldOut, _Menu menu, {required double minHeight}) {
     final scheme = Theme.of(context).colorScheme;
     return Material(
       key: Key('menu-${item.id}'),
@@ -186,16 +199,19 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: soldOut ? null : () => _tapItem(item, menu),
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(item.nameEn, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: soldOut ? scheme.outline : null)),
-              if (item.nameAm != null) Text(item.nameAm!, style: TextStyle(color: scheme.outline)),
-              const Spacer(),
-              Text(soldOut ? 'Sold out' : formatEtb(item.priceSantim), style: TextStyle(color: soldOut ? scheme.error : scheme.primary)),
-            ],
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: minHeight),
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DishName(en: item.nameEn, am: item.nameAm, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: soldOut ? scheme.outline : null)),
+                const SizedBox(height: 8),
+                Text(soldOut ? context.l10n.orderSoldOut : formatEtb(item.priceSantim), style: TextStyle(color: soldOut ? scheme.error : scheme.primary)),
+              ],
+            ),
           ),
         ),
       ),
@@ -243,14 +259,14 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('${l.qty}× ${l.item.nameEn}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                                DishName(en: l.item.nameEn, am: l.item.nameAm, qty: l.qty, style: const TextStyle(fontWeight: FontWeight.w600)),
                                 if (l.optionsText != null) Text(l.optionsText!),
                                 if (l.note != null) Text(l.note!, style: const TextStyle(fontStyle: FontStyle.italic)),
                               ],
                             ),
                           ),
-                          IconButton(tooltip: 'One less', icon: const Icon(Icons.remove_circle_outline), onPressed: () => _minus(l)),
-                          IconButton(tooltip: 'One more', icon: const Icon(Icons.add_circle_outline), onPressed: () => _draft.increment(l.key)),
+                          IconButton(tooltip: context.l10n.orderOneLess, icon: const Icon(Icons.remove_circle_outline), onPressed: () => _minus(l)),
+                          IconButton(tooltip: context.l10n.orderOneMore, icon: const Icon(Icons.add_circle_outline), onPressed: () => _draft.increment(l.key)),
                         ],
                       ),
                   ],
@@ -259,11 +275,11 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
               if (!_draft.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Text('Total ${formatEtb(_draft.totalSantim)} ETB', textAlign: TextAlign.right, style: Theme.of(context).textTheme.titleMedium),
+                  child: Text(context.l10n.orderTotal(formatEtb(_draft.totalSantim)), textAlign: TextAlign.right, style: Theme.of(context).textTheme.titleMedium),
                 ),
               FilledButton(
                 onPressed: _draft.isEmpty ? null : _send,
-                child: const Padding(padding: EdgeInsets.all(12), child: Text('Send to kitchen')),
+                child: Padding(padding: const EdgeInsets.all(12), child: Text(context.l10n.orderSend)),
               ),
             ],
           ),
@@ -277,8 +293,8 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
     _draft.decrement(line.key);
     if (removing) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('${line.item.nameEn} removed'),
-        action: SnackBarAction(label: 'Undo', onPressed: _draft.undoRemove),
+        content: Text(context.l10n.orderRemoved(primaryName(line.item.nameEn, line.item.nameAm, Localizations.localeOf(context).languageCode))),
+        action: SnackBarAction(label: context.l10n.commonUndo, onPressed: _draft.undoRemove),
       ));
     }
   }
@@ -291,7 +307,7 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
     final table = await db.tableById(widget.tableId);
     final sessionId = table?.sessionId;
     if (work == null || sessionId == null) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('This table is not open.')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.orderTableNotOpen)));
       return;
     }
 
@@ -375,7 +391,7 @@ class _OptionsSheetState extends State<_OptionsSheet> {
         if (group.maxChoices != 1) return; // full
         _chosen.removeWhere((c) => c.groupId == group.id); // "choose 1" acts like radio buttons
       }
-      _chosen.add(DraftOption(id: option.id, groupId: group.id, nameEn: option.nameEn, extraSantim: option.extraSantim));
+      _chosen.add(DraftOption(id: option.id, groupId: group.id, nameEn: option.nameEn, nameAm: option.nameAm, extraSantim: option.extraSantim));
     });
   }
 
@@ -394,16 +410,16 @@ class _OptionsSheetState extends State<_OptionsSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(widget.item.nameEn, style: Theme.of(context).textTheme.titleLarge),
+          DishName(en: widget.item.nameEn, am: widget.item.nameAm, style: Theme.of(context).textTheme.titleLarge),
           for (final g in widget.groups) ...[
             const SizedBox(height: 12),
-            Text('${g.nameEn}${g.minChoices > 0 ? ' (required)' : ''}', style: Theme.of(context).textTheme.titleSmall),
+            Text(g.minChoices > 0 ? context.l10n.orderRequired(g.nameEn) : g.nameEn, style: Theme.of(context).textTheme.titleSmall),
             Wrap(
               spacing: 8,
               children: [
                 for (final o in widget.options[g.id] ?? const <OptionChoice>[])
                   FilterChip(
-                    label: Text(o.extraSantim > 0 ? '${o.nameEn} (+${formatEtb(o.extraSantim)})' : o.nameEn),
+                    label: Text(o.extraSantim > 0 ? '${optionLabel(o.nameEn, o.nameAm)} (+${formatEtb(o.extraSantim)})' : optionLabel(o.nameEn, o.nameAm)),
                     selected: _chosen.any((c) => c.id == o.id),
                     onSelected: (_) => _toggle(g, o),
                   ),
@@ -411,12 +427,12 @@ class _OptionsSheetState extends State<_OptionsSheet> {
             ),
           ],
           const SizedBox(height: 12),
-          TextField(controller: _note, maxLength: 200, decoration: const InputDecoration(labelText: 'Note (optional)', border: OutlineInputBorder())),
-          if (missing.isNotEmpty) Text('Choose: ${missing.join(', ')}', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+          TextField(controller: _note, maxLength: 200, decoration: InputDecoration(labelText: context.l10n.orderNote, border: const OutlineInputBorder())),
+          if (missing.isNotEmpty) Text(context.l10n.orderChoose(missing.join(', ')), style: TextStyle(color: Theme.of(context).colorScheme.error)),
           const SizedBox(height: 8),
           FilledButton(
             onPressed: missing.isEmpty ? () => Navigator.pop(context, (List<DraftOption>.of(_chosen), _note.text)) : null,
-            child: const Padding(padding: EdgeInsets.all(12), child: Text('Add')),
+            child: Padding(padding: const EdgeInsets.all(12), child: Text(context.l10n.orderAdd)),
           ),
         ],
       ),

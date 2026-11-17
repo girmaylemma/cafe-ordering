@@ -9,6 +9,7 @@ import '../providers.dart';
 import '../session/providers.dart';
 import '../sync/connection.dart';
 import '../sync/outbox.dart';
+import '../l10n/l10n.dart';
 import '../texts.dart';
 import 'table_screen.dart';
 
@@ -37,7 +38,7 @@ class _FloorMapScreenState extends ConsumerState<FloorMapScreen> {
     // Areas in the manager's table order; tables without an area go under "Tables".
     final areas = <String, List<CafeTable>>{};
     for (final t in shown) {
-      areas.putIfAbsent(t.area ?? 'Tables', () => []).add(t);
+      areas.putIfAbsent(t.area ?? context.l10n.floorDefaultArea, () => []).add(t);
     }
 
     return Scaffold(
@@ -46,12 +47,12 @@ class _FloorMapScreenState extends ConsumerState<FloorMapScreen> {
         actions: [
           FilterChip(
             key: const Key('filter-mine'),
-            label: const Text('Mine'),
+            label: Text(context.l10n.floorMine),
             selected: _mineOnly,
             onSelected: (v) => setState(() => _mineOnly = v),
           ),
           IconButton(
-            tooltip: 'Sign out',
+            tooltip: context.l10n.floorSignOut,
             icon: const Icon(Icons.logout),
             onPressed: () => ref.read(authControllerProvider.notifier).signOut(),
           ),
@@ -60,7 +61,7 @@ class _FloorMapScreenState extends ConsumerState<FloorMapScreen> {
       body: Column(
         children: [
           _ConnectionBanner(link: link, unsent: unsent),
-          if (signOutError != null) _Warning(errorText(signOutError)),
+          if (signOutError != null) _Warning(errorText(context.l10n, signOutError)),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.all(12),
@@ -100,8 +101,8 @@ class _FloorMapScreenState extends ConsumerState<FloorMapScreen> {
       await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TableScreen(tableId: t.id)));
       return;
     }
-    final holder = ref.read(workSessionProvider).value?.staffName(t.waiterId) ?? 'another waiter';
-    messenger.showSnackBar(SnackBar(content: Text("${t.name} is $holder's table.")));
+    final holder = ref.read(workSessionProvider).value?.staffName(t.waiterId) ?? context.l10n.floorAnotherWaiter;
+    messenger.showSnackBar(SnackBar(content: Text(context.l10n.floorTableOfOther(t.name, holder))));
   }
 
   Future<void> _openTable(CafeTable t) async {
@@ -124,7 +125,7 @@ class _FloorMapScreenState extends ConsumerState<FloorMapScreen> {
     if (result case Sent(:final result) when result['ok'] == false) {
       await work.refresh(); // undo the optimistic "seated"
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText('${result['error']}'))));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(context.l10n, '${result['error']}'))));
       }
     }
   }
@@ -147,12 +148,12 @@ class _GuestsDialogState extends State<_GuestsDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Open ${widget.table.name}'),
+      title: Text(context.l10n.floorOpenTitle(widget.table.name)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Guests (optional)'),
+          Text(context.l10n.floorGuests),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -165,21 +166,23 @@ class _GuestsDialogState extends State<_GuestsDialog> {
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-        FilledButton(onPressed: () => Navigator.pop(context, _Guests(_count)), child: const Text('Open table')),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(context.l10n.commonCancel)),
+        FilledButton(onPressed: () => Navigator.pop(context, _Guests(_count)), child: Text(context.l10n.floorOpenButton)),
       ],
     );
   }
 }
 
-const _stateLabels = {
-  'free': 'Free',
-  'seated': 'Seated',
-  'ordered': 'Ordered',
-  'accepted': 'Accepted',
-  'ready': 'READY',
-  'delivered': 'Delivered',
-};
+/// A table card's state in the user's language; an unknown state shows as it is.
+String _stateLabel(AppLocalizations t, String state) => switch (state) {
+      'free' => t.tableStateFree,
+      'seated' => t.tableStateSeated,
+      'ordered' => t.tableStateOrdered,
+      'accepted' => t.tableStateAccepted,
+      'ready' => t.tableStateReady,
+      'delivered' => t.tableStateDelivered,
+      _ => state,
+    };
 
 class _TableCard extends StatelessWidget {
   const _TableCard({super.key, required this.table, required this.mine, required this.waiterName, required this.onTap});
@@ -198,9 +201,9 @@ class _TableCard extends StatelessWidget {
       'delivered' => (scheme.secondaryContainer, scheme.onSecondaryContainer),
       _ => (scheme.primaryContainer, scheme.onPrimaryContainer),
     };
-    return SizedBox(
-      width: 150,
-      height: 110,
+    // At least 110 tall; taller when large text needs it (Ethiopic letters need more line height).
+    return ConstrainedBox(
+      constraints: const BoxConstraints.tightFor(width: 150).copyWith(minHeight: 110),
       child: Material(
         color: background,
         shape: RoundedRectangleBorder(
@@ -214,15 +217,15 @@ class _TableCard extends StatelessWidget {
             padding: const EdgeInsets.all(10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(table.name, style: TextStyle(color: foreground, fontSize: 18, fontWeight: FontWeight.bold)),
-                const Spacer(),
                 Text(
-                  _stateLabels[table.state] ?? table.state,
+                  _stateLabel(context.l10n, table.state),
                   style: TextStyle(color: foreground, fontWeight: ready ? FontWeight.w900 : FontWeight.w500, fontSize: ready ? 18 : 14),
                 ),
                 if (table.waiterId != null)
-                  Text(mine ? 'Mine' : (waiterName ?? ''), style: TextStyle(color: foreground, fontSize: 12)),
+                  Text(mine ? context.l10n.floorMine : (waiterName ?? ''), style: TextStyle(color: foreground, fontSize: 12)),
               ],
             ),
           ),
@@ -240,9 +243,10 @@ class _ConnectionBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (link == LinkState.online && unsent == 0) return const SizedBox.shrink();
+    final t = context.l10n;
     final text = link == LinkState.online
-        ? 'Sending $unsent waiting order(s)…'
-        : 'Waiting for internet. Orders are kept on this tablet and sent automatically.${unsent > 0 ? ' ($unsent waiting)' : ''}';
+        ? t.floorSending(unsent)
+        : (unsent > 0 ? t.floorOfflineWaiting(unsent) : t.floorOffline);
     return _Warning(text);
   }
 }

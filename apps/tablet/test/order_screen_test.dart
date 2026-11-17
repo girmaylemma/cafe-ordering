@@ -74,7 +74,7 @@ Future<(AppDatabase, FakeSocket?)> pumpOrder(WidgetTester tester, {required bool
 
   await tester.pumpWidget(ProviderScope(
     overrides: [databaseProvider.overrideWithValue(db), workSessionProvider.overrideWith((ref) async => session)],
-    child: MaterialApp(
+    child: localizedApp(
       home: Builder(
         builder: (context) => Scaffold(
           body: TextButton(
@@ -109,6 +109,18 @@ void main() {
 
     expect(find.descendant(of: summary(), matching: find.text('2× Shiro')), findsOneWidget);
     expect(find.descendant(of: summary(), matching: find.text('Total 360.00 ETB')), findsOneWidget);
+    await unmountAndFlush(tester);
+  });
+
+  testWidgets('the order summary shows both dish names (F4a)', (tester) async {
+    await pumpOrder(tester, online: true);
+    await tester.tap(find.text('Food'));
+    await tester.pumpAndSettle();
+
+    await tapItem(tester, 'shiro');
+
+    expect(find.descendant(of: summary(), matching: find.text('1× Shiro')), findsOneWidget);
+    expect(find.descendant(of: summary(), matching: find.text('ሽሮ')), findsOneWidget);
     await unmountAndFlush(tester);
   });
 

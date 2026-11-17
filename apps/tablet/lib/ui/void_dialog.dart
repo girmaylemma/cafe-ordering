@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../api/api_client.dart';
 import '../sync/commands.dart';
+import '../l10n/l10n.dart';
 import '../texts.dart';
 
 /// Void an item the kitchen already accepted (D-57): a reason, and a manager's approval.
@@ -72,7 +73,7 @@ class _VoidDialogState extends State<_VoidDialog> {
     }
     setState(() {
       _sending = false;
-      _error = errorText(result.error!, retryAfter: result.retryAfter);
+      _error = errorText(context.l10n, result.error!, retryAfter: result.retryAfter);
       _pin.clear(); // never leave a PIN on screen after a refusal
     });
   }
@@ -80,7 +81,7 @@ class _VoidDialogState extends State<_VoidDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Void ${widget.itemName}'),
+      title: Text(context.l10n.voidTitle(widget.itemName)),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -90,11 +91,11 @@ class _VoidDialogState extends State<_VoidDialog> {
               key: const Key('void-reason'),
               controller: _reason,
               maxLength: 200,
-              decoration: const InputDecoration(labelText: 'Reason (e.g. customer left, wrong item)'),
+              decoration: InputDecoration(labelText: context.l10n.voidReason),
             ),
             if (!widget.signedInAsManager) ...[
               const SizedBox(height: 8),
-              const Text('Manager'),
+              Text(context.l10n.voidManager),
               Wrap(
                 spacing: 8,
                 children: [
@@ -102,7 +103,7 @@ class _VoidDialogState extends State<_VoidDialog> {
                     ChoiceChip(label: Text(m.name), selected: _managerId == m.id, onSelected: (_) => setState(() => _managerId = m.id)),
                 ],
               ),
-              if (widget.managers.isEmpty) const Text('No manager found. Connect to the internet and try again.'),
+              if (widget.managers.isEmpty) Text(context.l10n.voidNoManager),
               TextField(
                 key: const Key('void-pin'),
                 controller: _pin,
@@ -110,7 +111,7 @@ class _VoidDialogState extends State<_VoidDialog> {
                 keyboardType: TextInputType.number,
                 maxLength: 6,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(labelText: "Manager's 6-digit PIN"),
+                decoration: InputDecoration(labelText: context.l10n.voidManagerPin),
               ),
             ],
             if (_error != null) Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
@@ -118,8 +119,8 @@ class _VoidDialogState extends State<_VoidDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: _sending ? null : () => Navigator.of(context).pop(false), child: const Text('Back')),
-        FilledButton(onPressed: _ready ? _submit : null, child: const Text('Void item')),
+        TextButton(onPressed: _sending ? null : () => Navigator.of(context).pop(false), child: Text(context.l10n.commonBack)),
+        FilledButton(onPressed: _ready ? _submit : null, child: Text(context.l10n.voidButton)),
       ],
     );
   }

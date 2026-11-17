@@ -6,6 +6,8 @@ library;
 
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
+import '../l10n/l10n.dart';
+
 abstract class KeepAlive {
   /// Ask for what it needs (once), then start. Call while the app is on screen (sign-in):
   /// Android 12+ refuses to start a foreground service from the background.
@@ -18,8 +20,10 @@ abstract class KeepAlive {
 }
 
 class ForegroundKeepAlive implements KeepAlive {
-  static const _title = 'Café: alerts are on';
-  static const _idle = 'Keep the app open in the background. Do not swipe it away.';
+  ForegroundKeepAlive({this._texts = englishTexts});
+
+  /// The notification's language (F4a: English; F4b chooses).
+  final AppLocalizations Function() _texts;
 
   @override
   Future<void> start() async {
@@ -35,8 +39,8 @@ class ForegroundKeepAlive implements KeepAlive {
     FlutterForegroundTask.init(
       androidNotificationOptions: AndroidNotificationOptions(
         channelId: 'cafe_alerts',
-        channelName: 'Café alerts',
-        channelDescription: 'Shows that Ready alerts are on, and the latest alert.',
+        channelName: _texts().keepAliveChannelName,
+        channelDescription: _texts().keepAliveChannelDescription,
         onlyAlertOnce: true, // the app plays its own sounds; the notification stays quiet
       ),
       iosNotificationOptions: const IOSNotificationOptions(showNotification: false, playSound: false),
@@ -54,15 +58,15 @@ class ForegroundKeepAlive implements KeepAlive {
     await FlutterForegroundTask.startService(
       serviceId: 7,
       serviceTypes: [ForegroundServiceTypes.specialUse],
-      notificationTitle: _title,
-      notificationText: _idle,
+      notificationTitle: _texts().keepAliveTitle,
+      notificationText: _texts().keepAliveIdle,
     );
   }
 
   @override
   Future<void> show(String text) async {
     if (await FlutterForegroundTask.isRunningService) {
-      await FlutterForegroundTask.updateService(notificationTitle: _title, notificationText: text);
+      await FlutterForegroundTask.updateService(notificationTitle: _texts().keepAliveTitle, notificationText: text);
     }
   }
 

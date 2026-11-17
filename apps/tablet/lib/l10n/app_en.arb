@@ -1,0 +1,724 @@
+{
+  "@@locale": "en",
+  "appTitle": "Café",
+  "@appTitle": {
+    "description": "The app's name (Android task switcher)."
+  },
+  "errorInvalidCode": "That code didn't work. Check it, or ask the manager for a new one.",
+  "@errorInvalidCode": {
+    "description": "Pairing screen: the 6-digit pairing code was wrong or expired."
+  },
+  "errorRateLimited": "Too many wrong codes. Wait a while, or ask the manager.",
+  "@errorRateLimited": {
+    "description": "Pairing screen: too many wrong pairing codes from this network."
+  },
+  "errorNetwork": "No connection to the server. Check the Wi-Fi.",
+  "@errorNetwork": {
+    "description": "Any screen: the server cannot be reached."
+  },
+  "errorUnauthorizedDevice": "This tablet was removed by the manager. Pair it again.",
+  "@errorUnauthorizedDevice": {
+    "description": "Pairing screen: the manager revoked this tablet in the dashboard."
+  },
+  "errorInvalidCredentials": "Wrong PIN. Try again.",
+  "@errorInvalidCredentials": {
+    "description": "PIN screen: the waiter typed a wrong PIN."
+  },
+  "errorLocked": "Locked for {minutes} minutes after too many wrong PINs.",
+  "@errorLocked": {
+    "description": "PIN screen: sign-in locked after 5 wrong PINs.",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "errorSessionEnded": "You were signed out (the manager ended it, or the shift session expired). Sign in again.",
+  "@errorSessionEnded": {
+    "description": "PIN screen: the waiter's sign-in ended."
+  },
+  "errorTableAlreadyOpen": "Someone else just opened this table.",
+  "@errorTableAlreadyOpen": {
+    "description": "Floor map: two waiters opened the same table at once."
+  },
+  "errorUnsentRounds": "Some orders have not reached the kitchen yet. Wait for the connection before signing out.",
+  "@errorUnsentRounds": {
+    "description": "Floor map: sign-out is blocked while orders wait offline."
+  },
+  "errorNotAWaiterDevice": "This is a kitchen tablet: nobody signs in on it.",
+  "@errorNotAWaiterDevice": {
+    "description": "PIN screen: someone tried to sign in on a kitchen tablet."
+  },
+  "errorNeedsConnection": "Needs internet: this cannot wait offline. Try again when the connection is back.",
+  "@errorNeedsConnection": {
+    "description": "Table actions (close, move, void...) tapped while offline."
+  },
+  "errorNoAnswer": "No answer from the server. Check the table: it may have worked. If not, try again.",
+  "@errorNoAnswer": {
+    "description": "Any action: the server did not answer in time."
+  },
+  "errorNeedsManagerVoid": "The kitchen already accepted it. Ask a manager to void it.",
+  "@errorNeedsManagerVoid": {
+    "description": "Table screen: cancel tapped after the kitchen accepted the item."
+  },
+  "errorNotAllowedFromState": "Not possible any more: the item changed. Look at its state now.",
+  "@errorNotAllowedFromState": {
+    "description": "Any item action: the item's state changed meanwhile."
+  },
+  "errorItemsNotFinished": "Some items are not finished yet. Mark them delivered, cancelled or voided first.",
+  "@errorItemsNotFinished": {
+    "description": "Table screen: closing a table that still has open items."
+  },
+  "errorNotYourTable": "This table belongs to another waiter.",
+  "@errorNotYourTable": {
+    "description": "Table screen: acting on another waiter's table."
+  },
+  "errorSessionClosed": "This table was already closed.",
+  "@errorSessionClosed": {
+    "description": "Table screen: the table visit is already closed."
+  },
+  "errorSessionNotFound": "The server does not know this table visit yet. Wait a moment and try again.",
+  "@errorSessionNotFound": {
+    "description": "Table screen: the table was opened offline and has not reached the server yet."
+  },
+  "errorTableNotFound": "That table no longer exists.",
+  "@errorTableNotFound": {
+    "description": "Move/merge: the target table was removed."
+  },
+  "errorStaffNotFound": "That waiter is not active any more.",
+  "@errorStaffNotFound": {
+    "description": "Hand-over: the chosen waiter was deactivated."
+  },
+  "errorManagerPinInvalid": "Wrong manager PIN. Try again.",
+  "@errorManagerPinInvalid": {
+    "description": "Void dialog: the manager typed a wrong PIN."
+  },
+  "errorManagerApprovalRequired": "A manager must approve this.",
+  "@errorManagerApprovalRequired": {
+    "description": "Void dialog: a waiter tried to void without a manager PIN."
+  },
+  "errorManagerLocked": "Manager PIN locked for {minutes} minutes after too many wrong tries.",
+  "@errorManagerLocked": {
+    "description": "Void dialog: the manager's PIN is locked after wrong tries.",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "errorVoidNeedsReason": "Write why the item is voided.",
+  "@errorVoidNeedsReason": {
+    "description": "Void dialog: the reason is empty."
+  },
+  "errorUndoExpired": "Too late to undo (more than 10 seconds).",
+  "@errorUndoExpired": {
+    "description": "Kitchen: Undo tapped after 10 seconds."
+  },
+  "errorNothingToUndo": "Nothing to undo on this item any more.",
+  "@errorNothingToUndo": {
+    "description": "Kitchen: Undo tapped but there is nothing to undo."
+  },
+  "errorWrongStation": "This item belongs to another station.",
+  "@errorWrongStation": {
+    "description": "Kitchen: the item belongs to the bar (or the other way round)."
+  },
+  "errorItemNotFound": "The server does not know this item.",
+  "@errorItemNotFound": {
+    "description": "Kitchen or table: the item is unknown to the server."
+  },
+  "errorMenuItemNotFound": "This item is no longer on the menu.",
+  "@errorMenuItemNotFound": {
+    "description": "Sold-out list: the menu item was removed."
+  },
+  "errorUnknown": "Something went wrong ({code}). Try again.",
+  "@errorUnknown": {
+    "description": "Any screen: an error code the app does not know; {code} helps support.",
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "stationKitchen": "Kitchen",
+  "@stationKitchen": {
+    "description": "Name of the kitchen station (kitchen screen title)."
+  },
+  "stationBar": "Bar",
+  "@stationBar": {
+    "description": "Name of the bar station (bar screen title)."
+  },
+  "appError": "Something went wrong. Restart the app.",
+  "@appError": {
+    "description": "Whole screen: the app could not start."
+  },
+  "commonCancel": "Cancel",
+  "@commonCancel": {
+    "description": "Button: close a dialog without doing anything."
+  },
+  "commonBack": "Back",
+  "@commonBack": {
+    "description": "Button: leave a dialog without doing anything."
+  },
+  "commonUndo": "Undo",
+  "@commonUndo": {
+    "description": "Button: take back the last tap (kitchen, removed order line)."
+  },
+  "commonRound": "Round {round}",
+  "@commonRound": {
+    "description": "Heading: the Nth round of orders at a table (table screen, kitchen ticket).",
+    "placeholders": {
+      "round": {
+        "type": "int"
+      }
+    }
+  },
+  "pairTitle": "Pair this tablet",
+  "@pairTitle": {
+    "description": "Pairing screen title (first start)."
+  },
+  "pairHelp": "Ask the manager to add it in the dashboard, then type the 6-digit code.",
+  "@pairHelp": {
+    "description": "Pairing screen: how to get a pairing code."
+  },
+  "pairButton": "Pair",
+  "@pairButton": {
+    "description": "Pairing screen button."
+  },
+  "pinTitle": "Who are you?",
+  "@pinTitle": {
+    "description": "PIN screen title above the staff names."
+  },
+  "pinLabel": "PIN",
+  "@pinLabel": {
+    "description": "PIN screen: label of the PIN field."
+  },
+  "pinSignIn": "Sign in",
+  "@pinSignIn": {
+    "description": "PIN screen button."
+  },
+  "pinNotYou": "Not you? Choose another name",
+  "@pinNotYou": {
+    "description": "PIN screen: go back to the list of names."
+  },
+  "floorDefaultArea": "Tables",
+  "@floorDefaultArea": {
+    "description": "Floor map: heading for tables without an area."
+  },
+  "floorMine": "Mine",
+  "@floorMine": {
+    "description": "Floor map: filter showing only my tables, and the label on my table cards."
+  },
+  "floorSignOut": "Sign out",
+  "@floorSignOut": {
+    "description": "Floor map: sign-out button tooltip."
+  },
+  "floorAnotherWaiter": "another waiter",
+  "@floorAnotherWaiter": {
+    "description": "Floor map: used in floorTableOfOther when the waiter's name is unknown."
+  },
+  "floorTableOfOther": "{table} is {holder}'s table.",
+  "@floorTableOfOther": {
+    "description": "Floor map: tapped another waiter's table.",
+    "placeholders": {
+      "table": {
+        "type": "String"
+      },
+      "holder": {
+        "type": "String"
+      }
+    }
+  },
+  "floorOpenTitle": "Open {table}",
+  "@floorOpenTitle": {
+    "description": "Floor map: title of the dialog that opens a table.",
+    "placeholders": {
+      "table": {
+        "type": "String"
+      }
+    }
+  },
+  "floorGuests": "Guests (optional)",
+  "@floorGuests": {
+    "description": "Open-table dialog: number of guests."
+  },
+  "floorOpenButton": "Open table",
+  "@floorOpenButton": {
+    "description": "Open-table dialog button."
+  },
+  "floorSending": "Sending {count} waiting order(s)…",
+  "@floorSending": {
+    "description": "Floor map banner: back online, sending queued orders.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "floorOffline": "Waiting for internet. Orders are kept on this tablet and sent automatically.",
+  "@floorOffline": {
+    "description": "Floor map banner: offline, nothing waiting."
+  },
+  "floorOfflineWaiting": "Waiting for internet. Orders are kept on this tablet and sent automatically. ({count} waiting)",
+  "@floorOfflineWaiting": {
+    "description": "Floor map banner: offline, with orders waiting.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "tableStateFree": "Free",
+  "@tableStateFree": {
+    "description": "Floor map: table card state."
+  },
+  "tableStateSeated": "Seated",
+  "@tableStateSeated": {
+    "description": "Floor map: table card state (guests seated, nothing ordered)."
+  },
+  "tableStateOrdered": "Ordered",
+  "@tableStateOrdered": {
+    "description": "Floor map: table card state."
+  },
+  "tableStateAccepted": "Accepted",
+  "@tableStateAccepted": {
+    "description": "Floor map: table card state (kitchen accepted)."
+  },
+  "tableStateReady": "READY",
+  "@tableStateReady": {
+    "description": "Floor map: table card state (food ready to take)."
+  },
+  "tableStateDelivered": "Delivered",
+  "@tableStateDelivered": {
+    "description": "Floor map: table card state."
+  },
+  "orderNotAdded": "Not added (sold out or changed): {items}",
+  "@orderNotAdded": {
+    "description": "Order screen: 'order again' skipped some dishes.",
+    "placeholders": {
+      "items": {
+        "type": "String"
+      }
+    }
+  },
+  "orderSearch": "Search the menu",
+  "@orderSearch": {
+    "description": "Order screen: search box hint."
+  },
+  "orderFavourites": "Favourites",
+  "@orderFavourites": {
+    "description": "Order screen: tab with favourite dishes."
+  },
+  "orderSoldOut": "Sold out",
+  "@orderSoldOut": {
+    "description": "Order screen: shown instead of the price on a sold-out dish."
+  },
+  "orderOneLess": "One less",
+  "@orderOneLess": {
+    "description": "Order summary: minus button tooltip."
+  },
+  "orderOneMore": "One more",
+  "@orderOneMore": {
+    "description": "Order summary: plus button tooltip."
+  },
+  "orderTotal": "Total {amount} ETB",
+  "@orderTotal": {
+    "description": "Order summary: total price.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "orderSend": "Send to kitchen",
+  "@orderSend": {
+    "description": "Order screen: the main send button."
+  },
+  "orderRemoved": "{item} removed",
+  "@orderRemoved": {
+    "description": "Order screen: a line was removed (with Undo).",
+    "placeholders": {
+      "item": {
+        "type": "String"
+      }
+    }
+  },
+  "orderTableNotOpen": "This table is not open.",
+  "@orderTableNotOpen": {
+    "description": "Order screen: send tapped but the table was closed."
+  },
+  "orderRequired": "{group} (required)",
+  "@orderRequired": {
+    "description": "Option dialog: a group the waiter must choose from, e.g. Size.",
+    "placeholders": {
+      "group": {
+        "type": "String"
+      }
+    }
+  },
+  "orderNote": "Note (optional)",
+  "@orderNote": {
+    "description": "Option dialog: free-text note for the kitchen."
+  },
+  "orderChoose": "Choose: {groups}",
+  "@orderChoose": {
+    "description": "Option dialog: required groups still missing.",
+    "placeholders": {
+      "groups": {
+        "type": "String"
+      }
+    }
+  },
+  "orderAdd": "Add",
+  "@orderAdd": {
+    "description": "Option dialog: add the dish to the order."
+  },
+  "lineStateSent": "Sent ✓",
+  "@lineStateSent": {
+    "description": "Table screen: line state, the server has it."
+  },
+  "lineStateAccepted": "Accepted",
+  "@lineStateAccepted": {
+    "description": "Table screen: line state, kitchen accepted."
+  },
+  "lineStateReady": "READY",
+  "@lineStateReady": {
+    "description": "Table screen: line state, ready to take."
+  },
+  "lineStateDelivered": "Delivered",
+  "@lineStateDelivered": {
+    "description": "Table screen: line state."
+  },
+  "lineStateCancelled": "Cancelled",
+  "@lineStateCancelled": {
+    "description": "Table screen: line state (cancelled before the kitchen accepted)."
+  },
+  "lineStateVoided": "Voided",
+  "@lineStateVoided": {
+    "description": "Table screen: line state (voided by a manager)."
+  },
+  "lineWaitingInternet": "Waiting for internet",
+  "@lineWaitingInternet": {
+    "description": "Table screen: a round queued offline."
+  },
+  "lineSending": "Sending…",
+  "@lineSending": {
+    "description": "Table screen: a round on its way."
+  },
+  "lineNotSent": "Not sent: {reason}",
+  "@lineNotSent": {
+    "description": "Table screen: the server refused a round; {reason} is an error sentence.",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "tableNothingOrdered": "Nothing ordered yet.",
+  "@tableNothingOrdered": {
+    "description": "Table screen: empty table."
+  },
+  "tableNewRound": "New round",
+  "@tableNewRound": {
+    "description": "Table screen: heading of a round not yet confirmed."
+  },
+  "tableAddItems": "Add items",
+  "@tableAddItems": {
+    "description": "Table screen: button that opens the menu."
+  },
+  "tableRemoveRoundTitle": "Remove this round?",
+  "@tableRemoveRoundTitle": {
+    "description": "Table screen: confirm removing a refused round."
+  },
+  "tableRemoveRoundBody": "It never reached the kitchen. Its items will be removed from this table.",
+  "@tableRemoveRoundBody": {
+    "description": "Table screen: confirm removing a refused round."
+  },
+  "tableRemove": "Remove",
+  "@tableRemove": {
+    "description": "Table screen: confirm button for removing a round."
+  },
+  "tableMoveTo": "Move {table} to",
+  "@tableMoveTo": {
+    "description": "Table screen: title of the list of free tables.",
+    "placeholders": {
+      "table": {
+        "type": "String"
+      }
+    }
+  },
+  "tableMergeInto": "Merge {table} into",
+  "@tableMergeInto": {
+    "description": "Table screen: title of the list of open tables.",
+    "placeholders": {
+      "table": {
+        "type": "String"
+      }
+    }
+  },
+  "tableHandOverTo": "Hand {table} over to",
+  "@tableHandOverTo": {
+    "description": "Table screen: title of the list of waiters.",
+    "placeholders": {
+      "table": {
+        "type": "String"
+      }
+    }
+  },
+  "tableCloseTitle": "Close {table}?",
+  "@tableCloseTitle": {
+    "description": "Table screen: confirm closing the table.",
+    "placeholders": {
+      "table": {
+        "type": "String"
+      }
+    }
+  },
+  "tableCloseBody": "The table becomes free for the next guests.",
+  "@tableCloseBody": {
+    "description": "Table screen: confirm closing the table."
+  },
+  "tableClose": "Close",
+  "@tableClose": {
+    "description": "Table screen: confirm button for closing."
+  },
+  "tableNoneAvailable": "None available right now.",
+  "@tableNoneAvailable": {
+    "description": "Table screen: empty list of tables or waiters."
+  },
+  "lineActionDelivered": "Delivered",
+  "@lineActionDelivered": {
+    "description": "Line menu: mark the item delivered."
+  },
+  "lineActionCancel": "Cancel item",
+  "@lineActionCancel": {
+    "description": "Line menu: cancel before the kitchen accepts."
+  },
+  "lineActionVoid": "Void…",
+  "@lineActionVoid": {
+    "description": "Line menu: void with a manager PIN."
+  },
+  "lineActionOrderAgain": "Order again",
+  "@lineActionOrderAgain": {
+    "description": "Line menu: send a refused round again."
+  },
+  "lineActionDismiss": "Dismiss",
+  "@lineActionDismiss": {
+    "description": "Line menu: forget a refused round."
+  },
+  "tableActionMove": "Move to another table",
+  "@tableActionMove": {
+    "description": "Table menu (⋮)."
+  },
+  "tableActionMerge": "Merge into another table",
+  "@tableActionMerge": {
+    "description": "Table menu (⋮)."
+  },
+  "tableActionHandOver": "Hand over to…",
+  "@tableActionHandOver": {
+    "description": "Table menu (⋮): give the table to another waiter."
+  },
+  "tableActionClose": "Close table",
+  "@tableActionClose": {
+    "description": "Table menu (⋮)."
+  },
+  "voidTitle": "Void {item}",
+  "@voidTitle": {
+    "description": "Void dialog title.",
+    "placeholders": {
+      "item": {
+        "type": "String"
+      }
+    }
+  },
+  "voidReason": "Reason (e.g. customer left, wrong item)",
+  "@voidReason": {
+    "description": "Void dialog: reason field."
+  },
+  "voidManager": "Manager",
+  "@voidManager": {
+    "description": "Void dialog: heading above the manager names."
+  },
+  "voidNoManager": "No manager found. Connect to the internet and try again.",
+  "@voidNoManager": {
+    "description": "Void dialog: no manager names downloaded."
+  },
+  "voidManagerPin": "Manager's 6-digit PIN",
+  "@voidManagerPin": {
+    "description": "Void dialog: PIN field."
+  },
+  "voidButton": "Void item",
+  "@voidButton": {
+    "description": "Void dialog: confirm button."
+  },
+  "kitchenSoldOutButton": "Sold out",
+  "@kitchenSoldOutButton": {
+    "description": "Kitchen app bar: opens the sold-out list."
+  },
+  "kitchenNoOrders": "No orders. New orders appear here by themselves.",
+  "@kitchenNoOrders": {
+    "description": "Kitchen: empty screen."
+  },
+  "kitchenSentOffline": "Sent while offline: it may already be made. Ask the waiter.",
+  "@kitchenSentOffline": {
+    "description": "Kitchen ticket: the round waited on the waiter's phone."
+  },
+  "kitchenAgeOver99": "99+ min",
+  "@kitchenAgeOver99": {
+    "description": "Kitchen ticket: age, capped."
+  },
+  "kitchenAgeMinutes": "{minutes} min",
+  "@kitchenAgeMinutes": {
+    "description": "Kitchen ticket: how long ago the round arrived.",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "kitchenFlagSoldOut": "SOLD OUT when ordered",
+  "@kitchenFlagSoldOut": {
+    "description": "Kitchen ticket line: the dish was sold out when the order arrived."
+  },
+  "kitchenFlagUnavailable": "NOT ON THE MENU any more",
+  "@kitchenFlagUnavailable": {
+    "description": "Kitchen ticket line: the dish was removed from the menu."
+  },
+  "kitchenAccept": "Accept",
+  "@kitchenAccept": {
+    "description": "Kitchen: big button on a new item."
+  },
+  "kitchenReady": "Ready",
+  "@kitchenReady": {
+    "description": "Kitchen: big button on an accepted item."
+  },
+  "kitchenWaitingPickup": "Waiting for pickup",
+  "@kitchenWaitingPickup": {
+    "description": "Kitchen: item is ready, the waiter has not taken it."
+  },
+  "kitchenDelivered": "Delivered",
+  "@kitchenDelivered": {
+    "description": "Kitchen: item delivered to the table."
+  },
+  "kitchenCancelled": "CANCELLED",
+  "@kitchenCancelled": {
+    "description": "Kitchen: item cancelled by the waiter."
+  },
+  "kitchenVoided": "VOIDED",
+  "@kitchenVoided": {
+    "description": "Kitchen: item voided by a manager."
+  },
+  "kitchenNoConnection": "No connection: new orders cannot arrive. Talk to the waiters directly.",
+  "@kitchenNoConnection": {
+    "description": "Kitchen: red bar when offline."
+  },
+  "soldOutTitle": "Sold out: {station}",
+  "@soldOutTitle": {
+    "description": "Sold-out list title.",
+    "placeholders": {
+      "station": {
+        "type": "String"
+      }
+    }
+  },
+  "soldOutLabel": "SOLD OUT",
+  "@soldOutLabel": {
+    "description": "Sold-out list: under a dish that is sold out."
+  },
+  "alertReady": "{table} — ready: {what}",
+  "@alertReady": {
+    "description": "Waiter alert (loud): a dish is ready. {what} is like '2× Tibs (ጥብስ)'.",
+    "placeholders": {
+      "table": {
+        "type": "String"
+      },
+      "what": {
+        "type": "String"
+      }
+    }
+  },
+  "alertAccepted": "{table} — kitchen accepted: {what}",
+  "@alertAccepted": {
+    "description": "Waiter alert (soft): the kitchen accepted a dish.",
+    "placeholders": {
+      "table": {
+        "type": "String"
+      },
+      "what": {
+        "type": "String"
+      }
+    }
+  },
+  "alertNotReadyYet": "{table} — not ready yet: {what}",
+  "@alertNotReadyYet": {
+    "description": "Waiter alert: the kitchen undid 'ready'.",
+    "placeholders": {
+      "table": {
+        "type": "String"
+      },
+      "what": {
+        "type": "String"
+      }
+    }
+  },
+  "alertNotAcceptedYet": "{table} — not accepted yet: {what}",
+  "@alertNotAcceptedYet": {
+    "description": "Waiter alert: the kitchen undid 'accepted'.",
+    "placeholders": {
+      "table": {
+        "type": "String"
+      },
+      "what": {
+        "type": "String"
+      }
+    }
+  },
+  "alertStillWaiting": "{table} — still waiting: {what}",
+  "@alertStillWaiting": {
+    "description": "Waiter alert (loud): reminder 2 minutes after 'ready'.",
+    "placeholders": {
+      "table": {
+        "type": "String"
+      },
+      "what": {
+        "type": "String"
+      }
+    }
+  },
+  "alertTableYours": "{table} is now yours",
+  "@alertTableYours": {
+    "description": "Waiter alert: another waiter handed this table over.",
+    "placeholders": {
+      "table": {
+        "type": "String"
+      }
+    }
+  },
+  "alertTableYoursFrom": "{table} is now yours (from {from})",
+  "@alertTableYoursFrom": {
+    "description": "Waiter alert: a table handed over, with who gave it.",
+    "placeholders": {
+      "table": {
+        "type": "String"
+      },
+      "from": {
+        "type": "String"
+      }
+    }
+  },
+  "keepAliveTitle": "Café: alerts are on",
+  "@keepAliveTitle": {
+    "description": "Android notification title while the waiter is signed in."
+  },
+  "keepAliveIdle": "Keep the app open in the background. Do not swipe it away.",
+  "@keepAliveIdle": {
+    "description": "Android notification text when there is no new alert."
+  },
+  "keepAliveChannelName": "Café alerts",
+  "@keepAliveChannelName": {
+    "description": "Android settings: name of the notification channel."
+  },
+  "keepAliveChannelDescription": "Shows that Ready alerts are on, and the latest alert.",
+  "@keepAliveChannelDescription": {
+    "description": "Android settings: description of the notification channel."
+  }
+}
