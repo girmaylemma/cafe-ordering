@@ -55,7 +55,7 @@ final workSessionProvider = FutureProvider<WorkSession?>((ref) async {
     alertOutput: ref.read(alertOutputProvider), // a waiter's or a kitchen's rules, by device kind
     keepAlive: session == null ? null : ref.read(keepAliveProvider),
     // Alerts speak the app's language at the moment they ring (F4b).
-    texts: () => languageTexts(ref.read(appLocaleProvider).languageCode),
+    texts: ref.read(appTextsProvider),
   );
   ref.onDispose(work.stop);
   unawaited(work.start()); // don't wait for the first download: the cached data shows at once
@@ -70,7 +70,7 @@ final alertOutputProvider = Provider<AlertOutput>((ref) {
 });
 
 /// Keeps the app running with the screen off while a waiter is signed in (F2d).
-final keepAliveProvider = Provider<KeepAlive>((ref) => ForegroundKeepAlive(texts: () => languageTexts(ref.read(appLocaleProvider).languageCode)));
+final keepAliveProvider = Provider<KeepAlive>((ref) => ForegroundKeepAlive(texts: ref.read(appTextsProvider)));
 
 /// Alerts to show as banners (none on a kitchen tablet or before sign-in).
 final alertsProvider = StreamProvider<Alert>((ref) async* {

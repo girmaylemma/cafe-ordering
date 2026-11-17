@@ -2,7 +2,10 @@
 /// café's, else English.
 library;
 
+import 'package:cafe_tablet/auth/auth_controller.dart';
 import 'package:cafe_tablet/auth/credentials.dart';
+import 'package:cafe_tablet/providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cafe_tablet/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -118,5 +121,30 @@ void main() {
       expect(find.text(en.floorMine), findsOneWidget); // Abel has no choice: the café's
       await unmountAndFlush(tester);
     });
+  });
+
+  test("alerts and the notification get the texts of the app's language at that moment", () async {
+    final store = MemoryCredentialStore();
+    await store.saveDevice(PairedDevice.fromJson('t', app.waiterDevice));
+    final db = memoryDb();
+    addTearDown(db.close);
+    await db.setCafeLanguage('am');
+    final c = ProviderContainer(overrides: [
+      apiClientProvider.overrideWithValue(app.fakeApi({})),
+      credentialStoreProvider.overrideWithValue(store),
+      databaseProvider.overrideWithValue(db),
+    ]);
+    addTearDown(c.dispose);
+    final texts = c.read(appTextsProvider); // what WorkSession and the notification hold on to
+    final sub = c.listen(appLocaleProvider, (_, _) {}); // keep the language alive, as the app does
+    addTearDown(sub.close);
+    await c.read(authControllerProvider.future);
+    await settle();
+
+    expect(texts().pinTitle, am.pinTitle);
+
+    await db.setCafeLanguage('en');
+    await settle();
+    expect(texts().pinTitle, en.pinTitle); // the same function, now English
   });
 }

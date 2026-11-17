@@ -571,6 +571,13 @@ class AppDatabase extends _$AppDatabase {
         await _setValue('my_language_pending:$userId', pending ? '1' : null);
       });
 
+  /// The server confirmed `language`: clear "to send" ONLY if that is still the stored choice, in
+  /// one transaction, and never rewrite the choice (a newer tap may have replaced it meanwhile).
+  Future<void> confirmMyLanguage(String userId, String? language) => transaction(() async {
+        final stored = await (select(keyValues)..where((k) => k.key.equals('my_language:$userId'))).getSingleOrNull();
+        if (stored?.value == language) await _setValue('my_language_pending:$userId', null);
+      });
+
   /// Choices made offline that the server has not confirmed yet: (userId, language).
   Future<List<(String, String?)>> pendingLanguages() async {
     final pending = await (select(keyValues)..where((k) => k.key.like('my_language_pending:%'))).get();

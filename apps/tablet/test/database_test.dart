@@ -176,5 +176,16 @@ void main() {
       await db.setMyLanguage('hana', 'am', pending: false);
       expect(await db.pendingLanguages(), isEmpty);
     });
+
+    test("confirming clears 'to send' only for the choice that was sent, in one step", () async {
+      await db.setMyLanguage('hana', 'en', pending: true); // a newer tap, after 'am' was sent
+
+      await db.confirmMyLanguage('hana', 'am'); // the late answer to 'am'
+
+      expect(await db.watchMyLanguage('hana').first, (language: 'en', pending: true)); // untouched
+
+      await db.confirmMyLanguage('hana', 'en');
+      expect(await db.watchMyLanguage('hana').first, (language: 'en', pending: false));
+    });
   });
 }

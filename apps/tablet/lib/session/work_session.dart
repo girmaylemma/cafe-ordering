@@ -213,10 +213,8 @@ class WorkSession {
 
   Future<void> _sendLanguage(String userId, String? language) async {
     final result = await commands.setLanguage(language);
-    // Only if nothing newer was chosen meanwhile (a second tap before this answer).
-    if (result.error == null && (await _db.watchMyLanguage(userId).first).language == language) {
-      await _db.setMyLanguage(userId, language, pending: false);
-    }
+    // Clears "to send" only if nothing newer was chosen meanwhile (one transaction, no gap).
+    if (result.error == null) await _db.confirmMyLanguage(userId, language);
   }
 
   Future<void> _sendPendingLanguage() async {

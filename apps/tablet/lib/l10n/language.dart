@@ -45,6 +45,13 @@ final _myLanguageProvider = StreamProvider.family<({String? language, bool pendi
   (ref, userId) => ref.watch(databaseProvider).watchMyLanguage(userId),
 );
 
+/// "The texts in the app's language right now", for code without a screen that rings later
+/// (alerts, the background notification). A long-lived provider, so the function never uses a
+/// disposed Ref; it reads the current language each time it is called.
+final appTextsProvider = Provider<AppLocalizations Function()>(
+  (ref) => () => languageTexts(ref.read(appLocaleProvider).languageCode),
+);
+
 /// The app's language now. Recomputed when someone signs in or out, or a stored value changes.
 final appLocaleProvider = Provider<Locale>((ref) {
   final auth = ref.watch(authControllerProvider).value;

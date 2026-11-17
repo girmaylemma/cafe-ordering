@@ -557,6 +557,25 @@ void main() {
       expect(await database.watchMyLanguage('hana').first, (language: 'am', pending: false));
     });
 
+    test('two quick taps: the first answer never brings back the first choice', () async {
+      final socket = FakeSocket();
+      final (session, database, _) = await waiterSession(delay: (_) async {}, server_: FakeServer([socket]));
+
+      unawaited(session.setMyLanguage('am'));
+      await settle();
+      final first = socket.sent.lastWhere((m) => m['type'] == 'staff.language');
+      // The answer to 'am' arrives while the waiter already taps EN.
+      socket.receive({'type': 'ack', 'idempotencyKey': first['idempotencyKey'], 'result': {'ok': true, 'language': 'am'}});
+      unawaited(session.setMyLanguage('en'));
+      await settle();
+
+      expect(await database.watchMyLanguage('hana').first, (language: 'en', pending: true));
+      final second = socket.sent.lastWhere((m) => m['type'] == 'staff.language' && m['language'] == 'en');
+      socket.receive({'type': 'ack', 'idempotencyKey': second['idempotencyKey'], 'result': {'ok': true, 'language': 'en'}});
+      await settle();
+      expect(await database.watchMyLanguage('hana').first, (language: 'en', pending: false));
+    });
+
     test('offline: the choice is kept, and sent after reconnecting', () async {
       final socket = FakeSocket();
       final back = Completer<void>(); // the connection comes back when this completes
