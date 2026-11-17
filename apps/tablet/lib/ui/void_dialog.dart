@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../api/api_client.dart';
 import '../sync/commands.dart';
+import '../l10n/l10n.dart';
 import '../texts.dart';
 
 /// Void an item the kitchen already accepted (D-57): a reason, and a manager's approval.
@@ -72,7 +73,7 @@ class _VoidDialogState extends State<_VoidDialog> {
     }
     setState(() {
       _sending = false;
-      _error = errorText(result.error!, retryAfter: result.retryAfter);
+      _error = errorText(context.l10n, result.error!, retryAfter: result.retryAfter);
       _pin.clear(); // never leave a PIN on screen after a refusal
     });
   }

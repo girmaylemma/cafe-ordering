@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers.dart';
 import '../session/providers.dart';
+import '../l10n/l10n.dart';
 import '../texts.dart';
 import 'dish_name.dart';
 
@@ -39,7 +40,7 @@ class _SoldOutScreenState extends ConsumerState<SoldOutScreen> {
       children.add(_row(r.item.id, r.item.nameEn, r.item.nameAm, r.item.soldOut, theme));
     }
     return Scaffold(
-      appBar: AppBar(title: Text('Sold out: ${stationNames[widget.stationId] ?? widget.stationId}')),
+      appBar: AppBar(title: Text('Sold out: ${stationName(context.l10n, widget.stationId)}')),
       body: ListView(padding: const EdgeInsets.symmetric(vertical: 8), children: children),
     );
   }
@@ -66,7 +67,7 @@ class _SoldOutScreenState extends ConsumerState<SoldOutScreen> {
     if (!mounted) return;
     setState(() => _busy.remove(menuItemId));
     if (!result.ok) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(result.error!, retryAfter: result.retryAfter))));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(context.l10n, result.error!, retryAfter: result.retryAfter))));
     }
   }
 }

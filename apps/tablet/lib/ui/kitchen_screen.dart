@@ -9,6 +9,7 @@ import '../data/database.dart';
 import '../session/providers.dart';
 import '../sync/commands.dart';
 import '../sync/connection.dart';
+import '../l10n/l10n.dart';
 import '../texts.dart';
 import 'screen_awake.dart';
 import 'sold_out_screen.dart';
@@ -65,6 +66,13 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen> {
     super.dispose();
   }
 
+  /// "Kitchen" or "Bar" in the user's language; a station the app doesn't know shows the device's name.
+  String _title(BuildContext context) {
+    final id = widget.device.stationId ?? '';
+    final name = stationName(context.l10n, id);
+    return name == id ? widget.device.name : name;
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen(kitchenFlashProvider, (_, next) {
@@ -84,7 +92,7 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen> {
     // K-07: read from 2 m. Text is at least 1.3x normal; a tablet set even larger keeps its size.
     return MediaQuery.withClampedTextScaling(minScaleFactor: 1.3, child: Scaffold(
       appBar: AppBar(
-        title: Text(stationNames[widget.device.stationId] ?? widget.device.name),
+        title: Text(_title(context)),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
@@ -190,7 +198,7 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen> {
     if (!mounted) return result;
     setState(() => _busy.remove(itemId));
     if (!result.ok) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(result.error!, retryAfter: result.retryAfter))));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(context.l10n, result.error!, retryAfter: result.retryAfter))));
     }
     return result;
   }

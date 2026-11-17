@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../auth/auth_controller.dart';
+import '../l10n/l10n.dart';
 import '../texts.dart';
 
 /// First start: the manager adds the tablet in the dashboard and reads out a 6-digit code.
@@ -59,7 +60,7 @@ class _PairScreenState extends ConsumerState<PairScreen> {
                 ),
                 if (widget.error != null) ...[
                   const SizedBox(height: 12),
-                  Text(errorText(widget.error!), style: TextStyle(color: Theme.of(context).colorScheme.error), textAlign: TextAlign.center),
+                  Text(errorText(context.l10n, widget.error!), style: TextStyle(color: Theme.of(context).colorScheme.error), textAlign: TextAlign.center),
                 ],
                 const SizedBox(height: 24),
                 FilledButton(onPressed: _busy ? null : _pair, child: const Padding(padding: EdgeInsets.all(12), child: Text('Pair'))),

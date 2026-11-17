@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/api_client.dart';
 import '../auth/auth_controller.dart';
+import '../l10n/l10n.dart';
 import '../texts.dart';
 
 /// Waiter sign-in: tap your name, type your PIN (checked only by the server, D-10).
@@ -70,7 +71,7 @@ class _PinScreenState extends ConsumerState<PinScreen> {
           child: FutureBuilder<List<StaffMember>>(
             future: _staff,
             builder: (context, snapshot) {
-              if (snapshot.hasError) return Center(child: Text(errorText('NETWORK')));
+              if (snapshot.hasError) return Center(child: Text(errorText(context.l10n, 'NETWORK')));
               final staff = snapshot.data;
               if (staff == null) return const Center(child: CircularProgressIndicator());
               return ListView(
@@ -113,7 +114,7 @@ class _PinScreenState extends ConsumerState<PinScreen> {
         ),
         if (error != null) ...[
           const SizedBox(height: 12),
-          Text(errorText(error, retryAfter: widget.state.retryAfter), style: TextStyle(color: Theme.of(context).colorScheme.error), textAlign: TextAlign.center),
+          Text(errorText(context.l10n, error, retryAfter: widget.state.retryAfter), style: TextStyle(color: Theme.of(context).colorScheme.error), textAlign: TextAlign.center),
         ],
         const SizedBox(height: 24),
         FilledButton(onPressed: _busy ? null : _signIn, child: const Padding(padding: EdgeInsets.all(12), child: Text('Sign in'))),

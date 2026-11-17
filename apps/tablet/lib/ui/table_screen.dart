@@ -8,6 +8,7 @@ import '../ordering/order_draft.dart';
 import '../providers.dart';
 import '../session/providers.dart';
 import '../sync/commands.dart';
+import '../l10n/l10n.dart';
 import '../texts.dart';
 import 'order_screen.dart';
 import 'void_dialog.dart';
@@ -203,7 +204,7 @@ class TableScreen extends ConsumerWidget {
     final work = await ref.read(workSessionProvider.future);
     final result = work == null ? const ActionResult.failed('NEEDS_CONNECTION') : await action(work.commands);
     if (!result.ok && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(result.error!, retryAfter: result.retryAfter))));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(context.l10n, result.error!, retryAfter: result.retryAfter))));
     }
     return result.ok;
   }
@@ -274,7 +275,7 @@ class _LineTile extends StatelessWidget {
     final (label, color) = switch (line.sync) {
       'queued' => ('Waiting for internet', scheme.error),
       'sending' => ('Sending…', scheme.outline),
-      'needs_attention' => ('Not sent: ${errorText(line.error ?? 'UNKNOWN')}', scheme.error),
+      'needs_attention' => ('Not sent: ${errorText(context.l10n, line.error ?? 'UNKNOWN')}', scheme.error),
       _ => (_stateLabels[line.state] ?? line.state, line.state == 'ready' ? Colors.orange.shade800 : scheme.primary),
     };
 

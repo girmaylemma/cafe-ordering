@@ -1,5 +1,150 @@
 {
   "@@locale": "en",
   "appTitle": "Café",
-  "@appTitle": { "description": "The app's name (Android task switcher)." }
+  "@appTitle": {
+    "description": "The app's name (Android task switcher)."
+  },
+  "errorInvalidCode": "That code didn't work. Check it, or ask the manager for a new one.",
+  "@errorInvalidCode": {
+    "description": "Pairing screen: the 6-digit pairing code was wrong or expired."
+  },
+  "errorRateLimited": "Too many wrong codes. Wait a while, or ask the manager.",
+  "@errorRateLimited": {
+    "description": "Pairing screen: too many wrong pairing codes from this network."
+  },
+  "errorNetwork": "No connection to the server. Check the Wi-Fi.",
+  "@errorNetwork": {
+    "description": "Any screen: the server cannot be reached."
+  },
+  "errorUnauthorizedDevice": "This tablet was removed by the manager. Pair it again.",
+  "@errorUnauthorizedDevice": {
+    "description": "Pairing screen: the manager revoked this tablet in the dashboard."
+  },
+  "errorInvalidCredentials": "Wrong PIN. Try again.",
+  "@errorInvalidCredentials": {
+    "description": "PIN screen: the waiter typed a wrong PIN."
+  },
+  "errorLocked": "Locked for {minutes} minutes after too many wrong PINs.",
+  "@errorLocked": {
+    "description": "PIN screen: sign-in locked after 5 wrong PINs.",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "errorSessionEnded": "You were signed out (the manager ended it, or the shift session expired). Sign in again.",
+  "@errorSessionEnded": {
+    "description": "PIN screen: the waiter's sign-in ended."
+  },
+  "errorTableAlreadyOpen": "Someone else just opened this table.",
+  "@errorTableAlreadyOpen": {
+    "description": "Floor map: two waiters opened the same table at once."
+  },
+  "errorUnsentRounds": "Some orders have not reached the kitchen yet. Wait for the connection before signing out.",
+  "@errorUnsentRounds": {
+    "description": "Floor map: sign-out is blocked while orders wait offline."
+  },
+  "errorNotAWaiterDevice": "This is a kitchen tablet: nobody signs in on it.",
+  "@errorNotAWaiterDevice": {
+    "description": "PIN screen: someone tried to sign in on a kitchen tablet."
+  },
+  "errorNeedsConnection": "Needs internet: this cannot wait offline. Try again when the connection is back.",
+  "@errorNeedsConnection": {
+    "description": "Table actions (close, move, void...) tapped while offline."
+  },
+  "errorNoAnswer": "No answer from the server. Check the table: it may have worked. If not, try again.",
+  "@errorNoAnswer": {
+    "description": "Any action: the server did not answer in time."
+  },
+  "errorNeedsManagerVoid": "The kitchen already accepted it. Ask a manager to void it.",
+  "@errorNeedsManagerVoid": {
+    "description": "Table screen: cancel tapped after the kitchen accepted the item."
+  },
+  "errorNotAllowedFromState": "Not possible any more: the item changed. Look at its state now.",
+  "@errorNotAllowedFromState": {
+    "description": "Any item action: the item's state changed meanwhile."
+  },
+  "errorItemsNotFinished": "Some items are not finished yet. Mark them delivered, cancelled or voided first.",
+  "@errorItemsNotFinished": {
+    "description": "Table screen: closing a table that still has open items."
+  },
+  "errorNotYourTable": "This table belongs to another waiter.",
+  "@errorNotYourTable": {
+    "description": "Table screen: acting on another waiter's table."
+  },
+  "errorSessionClosed": "This table was already closed.",
+  "@errorSessionClosed": {
+    "description": "Table screen: the table visit is already closed."
+  },
+  "errorSessionNotFound": "The server does not know this table visit yet. Wait a moment and try again.",
+  "@errorSessionNotFound": {
+    "description": "Table screen: the table was opened offline and has not reached the server yet."
+  },
+  "errorTableNotFound": "That table no longer exists.",
+  "@errorTableNotFound": {
+    "description": "Move/merge: the target table was removed."
+  },
+  "errorStaffNotFound": "That waiter is not active any more.",
+  "@errorStaffNotFound": {
+    "description": "Hand-over: the chosen waiter was deactivated."
+  },
+  "errorManagerPinInvalid": "Wrong manager PIN. Try again.",
+  "@errorManagerPinInvalid": {
+    "description": "Void dialog: the manager typed a wrong PIN."
+  },
+  "errorManagerApprovalRequired": "A manager must approve this.",
+  "@errorManagerApprovalRequired": {
+    "description": "Void dialog: a waiter tried to void without a manager PIN."
+  },
+  "errorManagerLocked": "Manager PIN locked for {minutes} minutes after too many wrong tries.",
+  "@errorManagerLocked": {
+    "description": "Void dialog: the manager's PIN is locked after wrong tries.",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "errorVoidNeedsReason": "Write why the item is voided.",
+  "@errorVoidNeedsReason": {
+    "description": "Void dialog: the reason is empty."
+  },
+  "errorUndoExpired": "Too late to undo (more than 10 seconds).",
+  "@errorUndoExpired": {
+    "description": "Kitchen: Undo tapped after 10 seconds."
+  },
+  "errorNothingToUndo": "Nothing to undo on this item any more.",
+  "@errorNothingToUndo": {
+    "description": "Kitchen: Undo tapped but there is nothing to undo."
+  },
+  "errorWrongStation": "This item belongs to another station.",
+  "@errorWrongStation": {
+    "description": "Kitchen: the item belongs to the bar (or the other way round)."
+  },
+  "errorItemNotFound": "The server does not know this item.",
+  "@errorItemNotFound": {
+    "description": "Kitchen or table: the item is unknown to the server."
+  },
+  "errorMenuItemNotFound": "This item is no longer on the menu.",
+  "@errorMenuItemNotFound": {
+    "description": "Sold-out list: the menu item was removed."
+  },
+  "errorUnknown": "Something went wrong ({code}). Try again.",
+  "@errorUnknown": {
+    "description": "Any screen: an error code the app does not know; {code} helps support.",
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "stationKitchen": "Kitchen",
+  "@stationKitchen": {
+    "description": "Name of the kitchen station (kitchen screen title)."
+  },
+  "stationBar": "Bar",
+  "@stationBar": {
+    "description": "Name of the bar station (bar screen title)."
+  }
 }

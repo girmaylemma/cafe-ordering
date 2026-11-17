@@ -9,6 +9,7 @@ import '../providers.dart';
 import '../session/providers.dart';
 import '../sync/connection.dart';
 import '../sync/outbox.dart';
+import '../l10n/l10n.dart';
 import '../texts.dart';
 import 'table_screen.dart';
 
@@ -60,7 +61,7 @@ class _FloorMapScreenState extends ConsumerState<FloorMapScreen> {
       body: Column(
         children: [
           _ConnectionBanner(link: link, unsent: unsent),
-          if (signOutError != null) _Warning(errorText(signOutError)),
+          if (signOutError != null) _Warning(errorText(context.l10n, signOutError)),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.all(12),
@@ -124,7 +125,7 @@ class _FloorMapScreenState extends ConsumerState<FloorMapScreen> {
     if (result case Sent(:final result) when result['ok'] == false) {
       await work.refresh(); // undo the optimistic "seated"
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText('${result['error']}'))));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorText(context.l10n, '${result['error']}'))));
       }
     }
   }
