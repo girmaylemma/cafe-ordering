@@ -103,6 +103,10 @@ class ApiClient {
 
   Future<Map<String, dynamic>> tables(String deviceToken) => _send('GET', '/tables', deviceToken: deviceToken);
 
+  /// A kitchen or bar tablet's open rounds plus the newest event number: {tickets, seq}.
+  /// Only when catch-up was too long to replay (reload).
+  Future<Map<String, dynamic>> tickets(String deviceToken) => _send('GET', '/tickets', deviceToken: deviceToken);
+
   Future<Map<String, dynamic>> _send(
     String method,
     String path, {

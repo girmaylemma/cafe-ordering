@@ -87,7 +87,8 @@ class Connection {
 
   /// Everything the server pushes: item events ({type: event}), table.state, menu.sold_out,
   /// table.transferred, and {type: reload} when catch-up was too long (download everything again).
-  /// Events from catch-up carry `replay: true`: they are history (no alerts for them).
+  /// Events from catch-up carry `replay: true`: they are history (no alerts for them). Every
+  /// catch-up ends with {type: synced, serverNow} (F3b).
   Stream<Map<String, dynamic>> get pushes => _pushes.stream;
 
   void start() {
@@ -117,6 +118,15 @@ class Connection {
       _waiting.remove(key);
       throw TimeoutException('no answer for $key');
     });
+  }
+
+  /// Ask for catch-up again from the stored seq (after a kitchen replaced its tickets with a
+  /// download: events that happened while it travelled are replayed). Offline: the next connect
+  /// syncs anyway.
+  Future<void> resync() async {
+    final socket = _socket;
+    if (_state != LinkState.online || socket == null) return;
+    socket.send(jsonEncode({'type': 'sync', 'since': await _db.lastSeq()}));
   }
 
   Future<void> _loop() async {
@@ -183,6 +193,9 @@ class Connection {
           _pushes.add({'type': 'event', 'event': event, 'replay': true});
         }
         if (message['reloadRequired'] == true) _pushes.add(const {'type': 'reload'});
+        // Catch-up is complete: a kitchen rings once for what arrived meanwhile, and every
+        // tablet learns the server's clock (ticket ages, K-04). Null from an older server.
+        _pushes.add({'type': 'synced', 'serverNow': message['serverNow']});
       case 'error' when message['error'] == 'SESSION_ENDED':
         _set(LinkState.signedOut);
         await _socket?.close();

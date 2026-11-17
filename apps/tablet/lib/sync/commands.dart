@@ -32,9 +32,8 @@ class ActionResult {
   bool get ok => error == null;
 }
 
-class TableCommands {
-  TableCommands(this._connection);
-  final Connection _connection;
+class TableCommands extends _LiveCommands {
+  TableCommands(super._connection);
 
   Future<ActionResult> delivered(String itemId) => _item(itemId, {'type': 'delivered'});
   Future<ActionResult> cancel(String itemId) => _item(itemId, {'type': 'cancel'});
@@ -54,6 +53,29 @@ class TableCommands {
       _send({'type': 'session.merge', 'sessionId': sessionId, 'intoSessionId': intoSessionId});
   Future<ActionResult> handOver(String sessionId, {required String toWaiterId}) =>
       _send({'type': 'session.transfer', 'sessionId': sessionId, 'toWaiterId': toWaiterId});
+}
+
+/// A kitchen or bar tablet's taps (F3a). Live only, like the waiter's: an Accept kept offline
+/// could arrive after the waiter cancelled, and the kitchen would cook something nobody wants.
+class StationCommands extends _LiveCommands {
+  StationCommands(super._connection);
+
+  Future<ActionResult> accept(String itemId) => _item(itemId, {'type': 'accept'});
+  Future<ActionResult> ready(String itemId) => _item(itemId, {'type': 'ready'});
+
+  /// Undo this station's last tap on the item; the server refuses it after 10 s (UNDO_EXPIRED).
+  Future<ActionResult> undo(String itemId) => _item(itemId, {'type': 'undo'});
+
+  /// Mark one of this station's menu items sold out, or back in stock (K-05). Back in stock is
+  /// also the undo of a wrong sold-out tap.
+  Future<ActionResult> soldOut(String menuItemId, {required bool soldOut}) =>
+      _send({'type': 'menu.sold_out', 'menuItemId': menuItemId, 'soldOut': soldOut});
+}
+
+/// Sends one command and waits for the server's answer. Never queues (see the top of this file).
+abstract class _LiveCommands {
+  _LiveCommands(this._connection);
+  final Connection _connection;
 
   Future<ActionResult> _item(String itemId, Map<String, dynamic> command) =>
       _send({'type': 'item.command', 'itemId': itemId, 'command': command});

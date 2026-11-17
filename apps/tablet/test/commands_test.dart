@@ -161,4 +161,54 @@ void main() {
       expect(await db.pendingMessages(), isEmpty);
     });
   });
+
+  group('kitchen taps (F3a)', () {
+    for (final (name, tap) in [
+      ('accept', (StationCommands c) => c.accept('i1')),
+      ('ready', (StationCommands c) => c.ready('i1')),
+      ('undo', (StationCommands c) => c.undo('i1')),
+    ]) {
+      test('$name sends item.command {type: $name} with its own key', () async {
+        final socket = FakeSocket();
+        await setUp_(socket);
+
+        final (result, sent) = await answered(socket, () => tap(StationCommands(connection)), {'ok': true});
+
+        expect(result.ok, isTrue);
+        expect(sent, containsPair('type', 'item.command'));
+        expect(sent['itemId'], 'i1');
+        expect(sent['command'], {'type': name});
+        expect(sent['idempotencyKey'], isA<String>());
+      });
+    }
+
+    test('sold out sends menu.sold_out with its own key (back in stock is the same with false)', () async {
+      final socket = FakeSocket();
+      await setUp_(socket);
+
+      final (result, sent) = await answered(socket, () => StationCommands(connection).soldOut('shiro', soldOut: true), {'ok': true});
+
+      expect(result.ok, isTrue);
+      expect(sent, containsPair('type', 'menu.sold_out'));
+      expect(sent['menuItemId'], 'shiro');
+      expect(sent['soldOut'], true);
+      expect(sent['idempotencyKey'], isA<String>());
+    });
+
+    test('an undo after 10 s is refused by the server: the screen gets UNDO_EXPIRED', () async {
+      final socket = FakeSocket();
+      await setUp_(socket);
+
+      final (result, _) = await answered(socket, () => StationCommands(connection).undo('i1'), {'ok': false, 'error': 'UNDO_EXPIRED'});
+
+      expect(result.error, 'UNDO_EXPIRED');
+    });
+
+    test('offline: a kitchen tap is never queued either', () async {
+      await setUp_(null);
+
+      expect((await StationCommands(connection).accept('i1')).error, 'NEEDS_CONNECTION');
+      expect(await db.pendingMessages(), isEmpty);
+    });
+  });
 }

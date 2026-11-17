@@ -3995,6 +3995,823 @@ class OrderHistoryCompanion extends UpdateCompanion<OrderHistoryData> {
   }
 }
 
+class $TicketItemsTable extends TicketItems
+    with TableInfo<$TicketItemsTable, TicketItem> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TicketItemsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _orderIdMeta = const VerificationMeta(
+    'orderId',
+  );
+  @override
+  late final GeneratedColumn<String> orderId = GeneratedColumn<String>(
+    'order_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tableLabelMeta = const VerificationMeta(
+    'tableLabel',
+  );
+  @override
+  late final GeneratedColumn<String> tableLabel = GeneratedColumn<String>(
+    'table_label',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _waiterNameMeta = const VerificationMeta(
+    'waiterName',
+  );
+  @override
+  late final GeneratedColumn<String> waiterName = GeneratedColumn<String>(
+    'waiter_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _roundMeta = const VerificationMeta('round');
+  @override
+  late final GeneratedColumn<int> round = GeneratedColumn<int>(
+    'round',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _nameEnMeta = const VerificationMeta('nameEn');
+  @override
+  late final GeneratedColumn<String> nameEn = GeneratedColumn<String>(
+    'name_en',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameAmMeta = const VerificationMeta('nameAm');
+  @override
+  late final GeneratedColumn<String> nameAm = GeneratedColumn<String>(
+    'name_am',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _qtyMeta = const VerificationMeta('qty');
+  @override
+  late final GeneratedColumn<int> qty = GeneratedColumn<int>(
+    'qty',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _optionsTextMeta = const VerificationMeta(
+    'optionsText',
+  );
+  @override
+  late final GeneratedColumn<String> optionsText = GeneratedColumn<String>(
+    'options_text',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _flagMeta = const VerificationMeta('flag');
+  @override
+  late final GeneratedColumn<String> flag = GeneratedColumn<String>(
+    'flag',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sentWhileOfflineMeta = const VerificationMeta(
+    'sentWhileOffline',
+  );
+  @override
+  late final GeneratedColumn<bool> sentWhileOffline = GeneratedColumn<bool>(
+    'sent_while_offline',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("sent_while_offline" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _stateMeta = const VerificationMeta('state');
+  @override
+  late final GeneratedColumn<String> state = GeneratedColumn<String>(
+    'state',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _receivedAtMeta = const VerificationMeta(
+    'receivedAt',
+  );
+  @override
+  late final GeneratedColumn<int> receivedAt = GeneratedColumn<int>(
+    'received_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    orderId,
+    tableLabel,
+    waiterName,
+    round,
+    nameEn,
+    nameAm,
+    qty,
+    note,
+    optionsText,
+    flag,
+    sentWhileOffline,
+    state,
+    receivedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'ticket_items';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TicketItem> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('order_id')) {
+      context.handle(
+        _orderIdMeta,
+        orderId.isAcceptableOrUnknown(data['order_id']!, _orderIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_orderIdMeta);
+    }
+    if (data.containsKey('table_label')) {
+      context.handle(
+        _tableLabelMeta,
+        tableLabel.isAcceptableOrUnknown(data['table_label']!, _tableLabelMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tableLabelMeta);
+    }
+    if (data.containsKey('waiter_name')) {
+      context.handle(
+        _waiterNameMeta,
+        waiterName.isAcceptableOrUnknown(data['waiter_name']!, _waiterNameMeta),
+      );
+    }
+    if (data.containsKey('round')) {
+      context.handle(
+        _roundMeta,
+        round.isAcceptableOrUnknown(data['round']!, _roundMeta),
+      );
+    }
+    if (data.containsKey('name_en')) {
+      context.handle(
+        _nameEnMeta,
+        nameEn.isAcceptableOrUnknown(data['name_en']!, _nameEnMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameEnMeta);
+    }
+    if (data.containsKey('name_am')) {
+      context.handle(
+        _nameAmMeta,
+        nameAm.isAcceptableOrUnknown(data['name_am']!, _nameAmMeta),
+      );
+    }
+    if (data.containsKey('qty')) {
+      context.handle(
+        _qtyMeta,
+        qty.isAcceptableOrUnknown(data['qty']!, _qtyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_qtyMeta);
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    if (data.containsKey('options_text')) {
+      context.handle(
+        _optionsTextMeta,
+        optionsText.isAcceptableOrUnknown(
+          data['options_text']!,
+          _optionsTextMeta,
+        ),
+      );
+    }
+    if (data.containsKey('flag')) {
+      context.handle(
+        _flagMeta,
+        flag.isAcceptableOrUnknown(data['flag']!, _flagMeta),
+      );
+    }
+    if (data.containsKey('sent_while_offline')) {
+      context.handle(
+        _sentWhileOfflineMeta,
+        sentWhileOffline.isAcceptableOrUnknown(
+          data['sent_while_offline']!,
+          _sentWhileOfflineMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_sentWhileOfflineMeta);
+    }
+    if (data.containsKey('state')) {
+      context.handle(
+        _stateMeta,
+        state.isAcceptableOrUnknown(data['state']!, _stateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stateMeta);
+    }
+    if (data.containsKey('received_at')) {
+      context.handle(
+        _receivedAtMeta,
+        receivedAt.isAcceptableOrUnknown(data['received_at']!, _receivedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_receivedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  TicketItem map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TicketItem(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      orderId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}order_id'],
+      )!,
+      tableLabel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}table_label'],
+      )!,
+      waiterName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}waiter_name'],
+      ),
+      round: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}round'],
+      ),
+      nameEn: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name_en'],
+      )!,
+      nameAm: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name_am'],
+      ),
+      qty: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}qty'],
+      )!,
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      ),
+      optionsText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}options_text'],
+      ),
+      flag: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}flag'],
+      ),
+      sentWhileOffline: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}sent_while_offline'],
+      )!,
+      state: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}state'],
+      )!,
+      receivedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}received_at'],
+      )!,
+    );
+  }
+
+  @override
+  $TicketItemsTable createAlias(String alias) {
+    return $TicketItemsTable(attachedDatabase, alias);
+  }
+}
+
+class TicketItem extends DataClass implements Insertable<TicketItem> {
+  final String id;
+  final String orderId;
+
+  /// The table's name as shown (Table 7); renamed by a table move. (`tableName` is taken by drift.)
+  final String tableLabel;
+  final String? waiterName;
+  final int? round;
+  final String nameEn;
+  final String? nameAm;
+  final int qty;
+  final String? note;
+  final String? optionsText;
+
+  /// sold_out or unavailable when it was ordered (K-03): kept, never dropped (D-17).
+  final String? flag;
+
+  /// Queued on a waiter tablet while the internet was down: the kitchen may already have made it.
+  final bool sentWhileOffline;
+
+  /// The server's item state: sent, accepted, ready, delivered, cancelled, voided.
+  final String state;
+
+  /// Server time in ms (received_at decides order and timers, never the device clock).
+  final int receivedAt;
+  const TicketItem({
+    required this.id,
+    required this.orderId,
+    required this.tableLabel,
+    this.waiterName,
+    this.round,
+    required this.nameEn,
+    this.nameAm,
+    required this.qty,
+    this.note,
+    this.optionsText,
+    this.flag,
+    required this.sentWhileOffline,
+    required this.state,
+    required this.receivedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['order_id'] = Variable<String>(orderId);
+    map['table_label'] = Variable<String>(tableLabel);
+    if (!nullToAbsent || waiterName != null) {
+      map['waiter_name'] = Variable<String>(waiterName);
+    }
+    if (!nullToAbsent || round != null) {
+      map['round'] = Variable<int>(round);
+    }
+    map['name_en'] = Variable<String>(nameEn);
+    if (!nullToAbsent || nameAm != null) {
+      map['name_am'] = Variable<String>(nameAm);
+    }
+    map['qty'] = Variable<int>(qty);
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
+    if (!nullToAbsent || optionsText != null) {
+      map['options_text'] = Variable<String>(optionsText);
+    }
+    if (!nullToAbsent || flag != null) {
+      map['flag'] = Variable<String>(flag);
+    }
+    map['sent_while_offline'] = Variable<bool>(sentWhileOffline);
+    map['state'] = Variable<String>(state);
+    map['received_at'] = Variable<int>(receivedAt);
+    return map;
+  }
+
+  TicketItemsCompanion toCompanion(bool nullToAbsent) {
+    return TicketItemsCompanion(
+      id: Value(id),
+      orderId: Value(orderId),
+      tableLabel: Value(tableLabel),
+      waiterName: waiterName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(waiterName),
+      round: round == null && nullToAbsent
+          ? const Value.absent()
+          : Value(round),
+      nameEn: Value(nameEn),
+      nameAm: nameAm == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nameAm),
+      qty: Value(qty),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      optionsText: optionsText == null && nullToAbsent
+          ? const Value.absent()
+          : Value(optionsText),
+      flag: flag == null && nullToAbsent ? const Value.absent() : Value(flag),
+      sentWhileOffline: Value(sentWhileOffline),
+      state: Value(state),
+      receivedAt: Value(receivedAt),
+    );
+  }
+
+  factory TicketItem.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TicketItem(
+      id: serializer.fromJson<String>(json['id']),
+      orderId: serializer.fromJson<String>(json['orderId']),
+      tableLabel: serializer.fromJson<String>(json['tableLabel']),
+      waiterName: serializer.fromJson<String?>(json['waiterName']),
+      round: serializer.fromJson<int?>(json['round']),
+      nameEn: serializer.fromJson<String>(json['nameEn']),
+      nameAm: serializer.fromJson<String?>(json['nameAm']),
+      qty: serializer.fromJson<int>(json['qty']),
+      note: serializer.fromJson<String?>(json['note']),
+      optionsText: serializer.fromJson<String?>(json['optionsText']),
+      flag: serializer.fromJson<String?>(json['flag']),
+      sentWhileOffline: serializer.fromJson<bool>(json['sentWhileOffline']),
+      state: serializer.fromJson<String>(json['state']),
+      receivedAt: serializer.fromJson<int>(json['receivedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'orderId': serializer.toJson<String>(orderId),
+      'tableLabel': serializer.toJson<String>(tableLabel),
+      'waiterName': serializer.toJson<String?>(waiterName),
+      'round': serializer.toJson<int?>(round),
+      'nameEn': serializer.toJson<String>(nameEn),
+      'nameAm': serializer.toJson<String?>(nameAm),
+      'qty': serializer.toJson<int>(qty),
+      'note': serializer.toJson<String?>(note),
+      'optionsText': serializer.toJson<String?>(optionsText),
+      'flag': serializer.toJson<String?>(flag),
+      'sentWhileOffline': serializer.toJson<bool>(sentWhileOffline),
+      'state': serializer.toJson<String>(state),
+      'receivedAt': serializer.toJson<int>(receivedAt),
+    };
+  }
+
+  TicketItem copyWith({
+    String? id,
+    String? orderId,
+    String? tableLabel,
+    Value<String?> waiterName = const Value.absent(),
+    Value<int?> round = const Value.absent(),
+    String? nameEn,
+    Value<String?> nameAm = const Value.absent(),
+    int? qty,
+    Value<String?> note = const Value.absent(),
+    Value<String?> optionsText = const Value.absent(),
+    Value<String?> flag = const Value.absent(),
+    bool? sentWhileOffline,
+    String? state,
+    int? receivedAt,
+  }) => TicketItem(
+    id: id ?? this.id,
+    orderId: orderId ?? this.orderId,
+    tableLabel: tableLabel ?? this.tableLabel,
+    waiterName: waiterName.present ? waiterName.value : this.waiterName,
+    round: round.present ? round.value : this.round,
+    nameEn: nameEn ?? this.nameEn,
+    nameAm: nameAm.present ? nameAm.value : this.nameAm,
+    qty: qty ?? this.qty,
+    note: note.present ? note.value : this.note,
+    optionsText: optionsText.present ? optionsText.value : this.optionsText,
+    flag: flag.present ? flag.value : this.flag,
+    sentWhileOffline: sentWhileOffline ?? this.sentWhileOffline,
+    state: state ?? this.state,
+    receivedAt: receivedAt ?? this.receivedAt,
+  );
+  TicketItem copyWithCompanion(TicketItemsCompanion data) {
+    return TicketItem(
+      id: data.id.present ? data.id.value : this.id,
+      orderId: data.orderId.present ? data.orderId.value : this.orderId,
+      tableLabel: data.tableLabel.present
+          ? data.tableLabel.value
+          : this.tableLabel,
+      waiterName: data.waiterName.present
+          ? data.waiterName.value
+          : this.waiterName,
+      round: data.round.present ? data.round.value : this.round,
+      nameEn: data.nameEn.present ? data.nameEn.value : this.nameEn,
+      nameAm: data.nameAm.present ? data.nameAm.value : this.nameAm,
+      qty: data.qty.present ? data.qty.value : this.qty,
+      note: data.note.present ? data.note.value : this.note,
+      optionsText: data.optionsText.present
+          ? data.optionsText.value
+          : this.optionsText,
+      flag: data.flag.present ? data.flag.value : this.flag,
+      sentWhileOffline: data.sentWhileOffline.present
+          ? data.sentWhileOffline.value
+          : this.sentWhileOffline,
+      state: data.state.present ? data.state.value : this.state,
+      receivedAt: data.receivedAt.present
+          ? data.receivedAt.value
+          : this.receivedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TicketItem(')
+          ..write('id: $id, ')
+          ..write('orderId: $orderId, ')
+          ..write('tableLabel: $tableLabel, ')
+          ..write('waiterName: $waiterName, ')
+          ..write('round: $round, ')
+          ..write('nameEn: $nameEn, ')
+          ..write('nameAm: $nameAm, ')
+          ..write('qty: $qty, ')
+          ..write('note: $note, ')
+          ..write('optionsText: $optionsText, ')
+          ..write('flag: $flag, ')
+          ..write('sentWhileOffline: $sentWhileOffline, ')
+          ..write('state: $state, ')
+          ..write('receivedAt: $receivedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    orderId,
+    tableLabel,
+    waiterName,
+    round,
+    nameEn,
+    nameAm,
+    qty,
+    note,
+    optionsText,
+    flag,
+    sentWhileOffline,
+    state,
+    receivedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TicketItem &&
+          other.id == this.id &&
+          other.orderId == this.orderId &&
+          other.tableLabel == this.tableLabel &&
+          other.waiterName == this.waiterName &&
+          other.round == this.round &&
+          other.nameEn == this.nameEn &&
+          other.nameAm == this.nameAm &&
+          other.qty == this.qty &&
+          other.note == this.note &&
+          other.optionsText == this.optionsText &&
+          other.flag == this.flag &&
+          other.sentWhileOffline == this.sentWhileOffline &&
+          other.state == this.state &&
+          other.receivedAt == this.receivedAt);
+}
+
+class TicketItemsCompanion extends UpdateCompanion<TicketItem> {
+  final Value<String> id;
+  final Value<String> orderId;
+  final Value<String> tableLabel;
+  final Value<String?> waiterName;
+  final Value<int?> round;
+  final Value<String> nameEn;
+  final Value<String?> nameAm;
+  final Value<int> qty;
+  final Value<String?> note;
+  final Value<String?> optionsText;
+  final Value<String?> flag;
+  final Value<bool> sentWhileOffline;
+  final Value<String> state;
+  final Value<int> receivedAt;
+  final Value<int> rowid;
+  const TicketItemsCompanion({
+    this.id = const Value.absent(),
+    this.orderId = const Value.absent(),
+    this.tableLabel = const Value.absent(),
+    this.waiterName = const Value.absent(),
+    this.round = const Value.absent(),
+    this.nameEn = const Value.absent(),
+    this.nameAm = const Value.absent(),
+    this.qty = const Value.absent(),
+    this.note = const Value.absent(),
+    this.optionsText = const Value.absent(),
+    this.flag = const Value.absent(),
+    this.sentWhileOffline = const Value.absent(),
+    this.state = const Value.absent(),
+    this.receivedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TicketItemsCompanion.insert({
+    required String id,
+    required String orderId,
+    required String tableLabel,
+    this.waiterName = const Value.absent(),
+    this.round = const Value.absent(),
+    required String nameEn,
+    this.nameAm = const Value.absent(),
+    required int qty,
+    this.note = const Value.absent(),
+    this.optionsText = const Value.absent(),
+    this.flag = const Value.absent(),
+    required bool sentWhileOffline,
+    required String state,
+    required int receivedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       orderId = Value(orderId),
+       tableLabel = Value(tableLabel),
+       nameEn = Value(nameEn),
+       qty = Value(qty),
+       sentWhileOffline = Value(sentWhileOffline),
+       state = Value(state),
+       receivedAt = Value(receivedAt);
+  static Insertable<TicketItem> custom({
+    Expression<String>? id,
+    Expression<String>? orderId,
+    Expression<String>? tableLabel,
+    Expression<String>? waiterName,
+    Expression<int>? round,
+    Expression<String>? nameEn,
+    Expression<String>? nameAm,
+    Expression<int>? qty,
+    Expression<String>? note,
+    Expression<String>? optionsText,
+    Expression<String>? flag,
+    Expression<bool>? sentWhileOffline,
+    Expression<String>? state,
+    Expression<int>? receivedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (orderId != null) 'order_id': orderId,
+      if (tableLabel != null) 'table_label': tableLabel,
+      if (waiterName != null) 'waiter_name': waiterName,
+      if (round != null) 'round': round,
+      if (nameEn != null) 'name_en': nameEn,
+      if (nameAm != null) 'name_am': nameAm,
+      if (qty != null) 'qty': qty,
+      if (note != null) 'note': note,
+      if (optionsText != null) 'options_text': optionsText,
+      if (flag != null) 'flag': flag,
+      if (sentWhileOffline != null) 'sent_while_offline': sentWhileOffline,
+      if (state != null) 'state': state,
+      if (receivedAt != null) 'received_at': receivedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TicketItemsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? orderId,
+    Value<String>? tableLabel,
+    Value<String?>? waiterName,
+    Value<int?>? round,
+    Value<String>? nameEn,
+    Value<String?>? nameAm,
+    Value<int>? qty,
+    Value<String?>? note,
+    Value<String?>? optionsText,
+    Value<String?>? flag,
+    Value<bool>? sentWhileOffline,
+    Value<String>? state,
+    Value<int>? receivedAt,
+    Value<int>? rowid,
+  }) {
+    return TicketItemsCompanion(
+      id: id ?? this.id,
+      orderId: orderId ?? this.orderId,
+      tableLabel: tableLabel ?? this.tableLabel,
+      waiterName: waiterName ?? this.waiterName,
+      round: round ?? this.round,
+      nameEn: nameEn ?? this.nameEn,
+      nameAm: nameAm ?? this.nameAm,
+      qty: qty ?? this.qty,
+      note: note ?? this.note,
+      optionsText: optionsText ?? this.optionsText,
+      flag: flag ?? this.flag,
+      sentWhileOffline: sentWhileOffline ?? this.sentWhileOffline,
+      state: state ?? this.state,
+      receivedAt: receivedAt ?? this.receivedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (orderId.present) {
+      map['order_id'] = Variable<String>(orderId.value);
+    }
+    if (tableLabel.present) {
+      map['table_label'] = Variable<String>(tableLabel.value);
+    }
+    if (waiterName.present) {
+      map['waiter_name'] = Variable<String>(waiterName.value);
+    }
+    if (round.present) {
+      map['round'] = Variable<int>(round.value);
+    }
+    if (nameEn.present) {
+      map['name_en'] = Variable<String>(nameEn.value);
+    }
+    if (nameAm.present) {
+      map['name_am'] = Variable<String>(nameAm.value);
+    }
+    if (qty.present) {
+      map['qty'] = Variable<int>(qty.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (optionsText.present) {
+      map['options_text'] = Variable<String>(optionsText.value);
+    }
+    if (flag.present) {
+      map['flag'] = Variable<String>(flag.value);
+    }
+    if (sentWhileOffline.present) {
+      map['sent_while_offline'] = Variable<bool>(sentWhileOffline.value);
+    }
+    if (state.present) {
+      map['state'] = Variable<String>(state.value);
+    }
+    if (receivedAt.present) {
+      map['received_at'] = Variable<int>(receivedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TicketItemsCompanion(')
+          ..write('id: $id, ')
+          ..write('orderId: $orderId, ')
+          ..write('tableLabel: $tableLabel, ')
+          ..write('waiterName: $waiterName, ')
+          ..write('round: $round, ')
+          ..write('nameEn: $nameEn, ')
+          ..write('nameAm: $nameAm, ')
+          ..write('qty: $qty, ')
+          ..write('note: $note, ')
+          ..write('optionsText: $optionsText, ')
+          ..write('flag: $flag, ')
+          ..write('sentWhileOffline: $sentWhileOffline, ')
+          ..write('state: $state, ')
+          ..write('receivedAt: $receivedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4007,6 +4824,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $KeyValuesTable keyValues = $KeyValuesTable(this);
   late final $OrderLinesTable orderLines = $OrderLinesTable(this);
   late final $OrderHistoryTable orderHistory = $OrderHistoryTable(this);
+  late final $TicketItemsTable ticketItems = $TicketItemsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4021,6 +4839,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     keyValues,
     orderLines,
     orderHistory,
+    ticketItems,
   ];
 }
 
@@ -6173,6 +6992,396 @@ typedef $$OrderHistoryTableProcessedTableManager =
       OrderHistoryData,
       PrefetchHooks Function()
     >;
+typedef $$TicketItemsTableCreateCompanionBuilder =
+    TicketItemsCompanion Function({
+      required String id,
+      required String orderId,
+      required String tableLabel,
+      Value<String?> waiterName,
+      Value<int?> round,
+      required String nameEn,
+      Value<String?> nameAm,
+      required int qty,
+      Value<String?> note,
+      Value<String?> optionsText,
+      Value<String?> flag,
+      required bool sentWhileOffline,
+      required String state,
+      required int receivedAt,
+      Value<int> rowid,
+    });
+typedef $$TicketItemsTableUpdateCompanionBuilder =
+    TicketItemsCompanion Function({
+      Value<String> id,
+      Value<String> orderId,
+      Value<String> tableLabel,
+      Value<String?> waiterName,
+      Value<int?> round,
+      Value<String> nameEn,
+      Value<String?> nameAm,
+      Value<int> qty,
+      Value<String?> note,
+      Value<String?> optionsText,
+      Value<String?> flag,
+      Value<bool> sentWhileOffline,
+      Value<String> state,
+      Value<int> receivedAt,
+      Value<int> rowid,
+    });
+
+class $$TicketItemsTableFilterComposer
+    extends Composer<_$AppDatabase, $TicketItemsTable> {
+  $$TicketItemsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get orderId => $composableBuilder(
+    column: $table.orderId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tableLabel => $composableBuilder(
+    column: $table.tableLabel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get waiterName => $composableBuilder(
+    column: $table.waiterName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get round => $composableBuilder(
+    column: $table.round,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nameEn => $composableBuilder(
+    column: $table.nameEn,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nameAm => $composableBuilder(
+    column: $table.nameAm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get qty => $composableBuilder(
+    column: $table.qty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get optionsText => $composableBuilder(
+    column: $table.optionsText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get flag => $composableBuilder(
+    column: $table.flag,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get sentWhileOffline => $composableBuilder(
+    column: $table.sentWhileOffline,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get state => $composableBuilder(
+    column: $table.state,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get receivedAt => $composableBuilder(
+    column: $table.receivedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TicketItemsTableOrderingComposer
+    extends Composer<_$AppDatabase, $TicketItemsTable> {
+  $$TicketItemsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get orderId => $composableBuilder(
+    column: $table.orderId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tableLabel => $composableBuilder(
+    column: $table.tableLabel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get waiterName => $composableBuilder(
+    column: $table.waiterName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get round => $composableBuilder(
+    column: $table.round,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nameEn => $composableBuilder(
+    column: $table.nameEn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nameAm => $composableBuilder(
+    column: $table.nameAm,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get qty => $composableBuilder(
+    column: $table.qty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get optionsText => $composableBuilder(
+    column: $table.optionsText,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get flag => $composableBuilder(
+    column: $table.flag,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get sentWhileOffline => $composableBuilder(
+    column: $table.sentWhileOffline,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get state => $composableBuilder(
+    column: $table.state,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get receivedAt => $composableBuilder(
+    column: $table.receivedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TicketItemsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TicketItemsTable> {
+  $$TicketItemsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get orderId =>
+      $composableBuilder(column: $table.orderId, builder: (column) => column);
+
+  GeneratedColumn<String> get tableLabel => $composableBuilder(
+    column: $table.tableLabel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get waiterName => $composableBuilder(
+    column: $table.waiterName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get round =>
+      $composableBuilder(column: $table.round, builder: (column) => column);
+
+  GeneratedColumn<String> get nameEn =>
+      $composableBuilder(column: $table.nameEn, builder: (column) => column);
+
+  GeneratedColumn<String> get nameAm =>
+      $composableBuilder(column: $table.nameAm, builder: (column) => column);
+
+  GeneratedColumn<int> get qty =>
+      $composableBuilder(column: $table.qty, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<String> get optionsText => $composableBuilder(
+    column: $table.optionsText,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get flag =>
+      $composableBuilder(column: $table.flag, builder: (column) => column);
+
+  GeneratedColumn<bool> get sentWhileOffline => $composableBuilder(
+    column: $table.sentWhileOffline,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get state =>
+      $composableBuilder(column: $table.state, builder: (column) => column);
+
+  GeneratedColumn<int> get receivedAt => $composableBuilder(
+    column: $table.receivedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$TicketItemsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TicketItemsTable,
+          TicketItem,
+          $$TicketItemsTableFilterComposer,
+          $$TicketItemsTableOrderingComposer,
+          $$TicketItemsTableAnnotationComposer,
+          $$TicketItemsTableCreateCompanionBuilder,
+          $$TicketItemsTableUpdateCompanionBuilder,
+          (
+            TicketItem,
+            BaseReferences<_$AppDatabase, $TicketItemsTable, TicketItem>,
+          ),
+          TicketItem,
+          PrefetchHooks Function()
+        > {
+  $$TicketItemsTableTableManager(_$AppDatabase db, $TicketItemsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TicketItemsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TicketItemsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TicketItemsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> orderId = const Value.absent(),
+                Value<String> tableLabel = const Value.absent(),
+                Value<String?> waiterName = const Value.absent(),
+                Value<int?> round = const Value.absent(),
+                Value<String> nameEn = const Value.absent(),
+                Value<String?> nameAm = const Value.absent(),
+                Value<int> qty = const Value.absent(),
+                Value<String?> note = const Value.absent(),
+                Value<String?> optionsText = const Value.absent(),
+                Value<String?> flag = const Value.absent(),
+                Value<bool> sentWhileOffline = const Value.absent(),
+                Value<String> state = const Value.absent(),
+                Value<int> receivedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TicketItemsCompanion(
+                id: id,
+                orderId: orderId,
+                tableLabel: tableLabel,
+                waiterName: waiterName,
+                round: round,
+                nameEn: nameEn,
+                nameAm: nameAm,
+                qty: qty,
+                note: note,
+                optionsText: optionsText,
+                flag: flag,
+                sentWhileOffline: sentWhileOffline,
+                state: state,
+                receivedAt: receivedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String orderId,
+                required String tableLabel,
+                Value<String?> waiterName = const Value.absent(),
+                Value<int?> round = const Value.absent(),
+                required String nameEn,
+                Value<String?> nameAm = const Value.absent(),
+                required int qty,
+                Value<String?> note = const Value.absent(),
+                Value<String?> optionsText = const Value.absent(),
+                Value<String?> flag = const Value.absent(),
+                required bool sentWhileOffline,
+                required String state,
+                required int receivedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => TicketItemsCompanion.insert(
+                id: id,
+                orderId: orderId,
+                tableLabel: tableLabel,
+                waiterName: waiterName,
+                round: round,
+                nameEn: nameEn,
+                nameAm: nameAm,
+                qty: qty,
+                note: note,
+                optionsText: optionsText,
+                flag: flag,
+                sentWhileOffline: sentWhileOffline,
+                state: state,
+                receivedAt: receivedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$TicketItemsTable, TicketItem>(table),
+                  BaseReferences<_$AppDatabase, $TicketItemsTable, TicketItem>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TicketItemsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TicketItemsTable,
+      TicketItem,
+      $$TicketItemsTableFilterComposer,
+      $$TicketItemsTableOrderingComposer,
+      $$TicketItemsTableAnnotationComposer,
+      $$TicketItemsTableCreateCompanionBuilder,
+      $$TicketItemsTableUpdateCompanionBuilder,
+      (
+        TicketItem,
+        BaseReferences<_$AppDatabase, $TicketItemsTable, TicketItem>,
+      ),
+      TicketItem,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -6195,4 +7404,6 @@ class $AppDatabaseManager {
       $$OrderLinesTableTableManager(_db, _db.orderLines);
   $$OrderHistoryTableTableManager get orderHistory =>
       $$OrderHistoryTableTableManager(_db, _db.orderHistory);
+  $$TicketItemsTableTableManager get ticketItems =>
+      $$TicketItemsTableTableManager(_db, _db.ticketItems);
 }

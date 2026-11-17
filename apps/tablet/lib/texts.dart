@@ -57,6 +57,17 @@ String errorText(String code, {Duration? retryAfter}) {
       return 'Manager PIN locked for $minutes minutes after too many wrong tries.';
     case 'VOID_NEEDS_REASON':
       return 'Write why the item is voided.';
+    // ---------- kitchen taps (F3a) ----------
+    case 'UNDO_EXPIRED':
+      return 'Too late to undo (more than 10 seconds).';
+    case 'NOTHING_TO_UNDO':
+      return 'Nothing to undo on this item any more.';
+    case 'WRONG_STATION':
+      return 'This item belongs to another station.';
+    case 'ITEM_NOT_FOUND':
+      return 'The server does not know this item.';
+    case 'MENU_ITEM_NOT_FOUND':
+      return 'This item is no longer on the menu.';
     default:
       return 'Something went wrong ($code). Try again.';
   }

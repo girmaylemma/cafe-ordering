@@ -119,7 +119,8 @@ export type ProtocolError =
 export type ServerMessage =
   | { type: "ack"; idempotencyKey: string; result: CommandResult }
   | { type: "event"; event: WireEvent }
-  | { type: "sync.result"; events: WireEvent[]; reloadRequired: boolean }
+  /** `serverNow` (ms): tablets measure ticket ages against it, never against their own clock (K-04). */
+  | { type: "sync.result"; events: WireEvent[]; reloadRequired: boolean; serverNow: number }
   /** To every waiter, the item's station and the live view: grey the item out (or back in). */
   | { type: "menu.sold_out"; menuItemId: string; soldOut: boolean }
   /** To the receiving waiter of a hand-over (3c). */
