@@ -12,6 +12,8 @@ import '../providers.dart';
 import '../session/providers.dart';
 import '../session/work_session.dart';
 import '../sync/outbox.dart';
+import '../l10n/names.dart';
+import 'dish_name.dart';
 
 /// Everything the order screen needs, read once from the tablet's database (no network, CLAUDE.md).
 class _Menu {
@@ -96,7 +98,7 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
       ],
       option: (id) {
         final o = options[id];
-        return o == null ? null : DraftOption(id: o.id, groupId: o.groupId, nameEn: o.nameEn, extraSantim: o.extraSantim);
+        return o == null ? null : DraftOption(id: o.id, groupId: o.groupId, nameEn: o.nameEn, nameAm: o.nameAm, extraSantim: o.extraSantim);
       },
     );
     if (skipped.isNotEmpty) {
@@ -191,8 +193,7 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(item.nameEn, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: soldOut ? scheme.outline : null)),
-              if (item.nameAm != null) Text(item.nameAm!, style: TextStyle(color: scheme.outline)),
+              DishName(en: item.nameEn, am: item.nameAm, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: soldOut ? scheme.outline : null)),
               const Spacer(),
               Text(soldOut ? 'Sold out' : formatEtb(item.priceSantim), style: TextStyle(color: soldOut ? scheme.error : scheme.primary)),
             ],
@@ -243,7 +244,7 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('${l.qty}× ${l.item.nameEn}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                                DishName(en: l.item.nameEn, am: l.item.nameAm, qty: l.qty, style: const TextStyle(fontWeight: FontWeight.w600)),
                                 if (l.optionsText != null) Text(l.optionsText!),
                                 if (l.note != null) Text(l.note!, style: const TextStyle(fontStyle: FontStyle.italic)),
                               ],
@@ -375,7 +376,7 @@ class _OptionsSheetState extends State<_OptionsSheet> {
         if (group.maxChoices != 1) return; // full
         _chosen.removeWhere((c) => c.groupId == group.id); // "choose 1" acts like radio buttons
       }
-      _chosen.add(DraftOption(id: option.id, groupId: group.id, nameEn: option.nameEn, extraSantim: option.extraSantim));
+      _chosen.add(DraftOption(id: option.id, groupId: group.id, nameEn: option.nameEn, nameAm: option.nameAm, extraSantim: option.extraSantim));
     });
   }
 
@@ -394,7 +395,7 @@ class _OptionsSheetState extends State<_OptionsSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(widget.item.nameEn, style: Theme.of(context).textTheme.titleLarge),
+          DishName(en: widget.item.nameEn, am: widget.item.nameAm, style: Theme.of(context).textTheme.titleLarge),
           for (final g in widget.groups) ...[
             const SizedBox(height: 12),
             Text('${g.nameEn}${g.minChoices > 0 ? ' (required)' : ''}', style: Theme.of(context).textTheme.titleSmall),
@@ -403,7 +404,7 @@ class _OptionsSheetState extends State<_OptionsSheet> {
               children: [
                 for (final o in widget.options[g.id] ?? const <OptionChoice>[])
                   FilterChip(
-                    label: Text(o.extraSantim > 0 ? '${o.nameEn} (+${formatEtb(o.extraSantim)})' : o.nameEn),
+                    label: Text(o.extraSantim > 0 ? '${optionLabel(o.nameEn, o.nameAm)} (+${formatEtb(o.extraSantim)})' : optionLabel(o.nameEn, o.nameAm)),
                     selected: _chosen.any((c) => c.id == o.id),
                     onSelected: (_) => _toggle(g, o),
                   ),

@@ -6,6 +6,7 @@ library;
 import 'package:flutter/foundation.dart';
 
 import '../ids.dart';
+import '../l10n/names.dart';
 
 class DraftItem {
   const DraftItem({required this.menuItemId, required this.nameEn, required this.nameAm, required this.priceSantim, required this.stationId});
@@ -17,10 +18,11 @@ class DraftItem {
 }
 
 class DraftOption {
-  const DraftOption({required this.id, required this.groupId, required this.nameEn, required this.extraSantim});
+  const DraftOption({required this.id, required this.groupId, required this.nameEn, this.nameAm, required this.extraSantim});
   final String id;
   final String groupId;
   final String nameEn;
+  final String? nameAm;
   final int extraSantim;
 }
 
@@ -42,7 +44,7 @@ class DraftLine {
 
   /// Unit price including the options' extras (display only).
   int get unitSantim => item.priceSantim + options.fold(0, (sum, o) => sum + o.extraSantim);
-  String? get optionsText => options.isEmpty ? null : options.map((o) => o.nameEn).join(', ');
+  String? get optionsText => options.isEmpty ? null : options.map((o) => optionLabel(o.nameEn, o.nameAm)).join(', ');
   bool get isPlain => options.isEmpty && note == null;
 }
 

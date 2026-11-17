@@ -11,6 +11,7 @@ import '../sync/commands.dart';
 import '../texts.dart';
 import 'order_screen.dart';
 import 'void_dialog.dart';
+import 'dish_name.dart';
 
 final _linesProvider = StreamProvider.family<List<OrderLine>, String>((ref, tableId) => ref.watch(databaseProvider).watchLines(tableId));
 final _tableProvider = StreamProvider.family<CafeTable?, String>((ref, tableId) => ref.watch(databaseProvider).watchTable(tableId));
@@ -103,7 +104,7 @@ class TableScreen extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(title: Text('${line.qty}× ${line.nameEn}', style: Theme.of(sheet).textTheme.titleMedium)),
+            ListTile(title: DishName(en: line.nameEn, am: line.nameAm, qty: line.qty, style: Theme.of(sheet).textTheme.titleMedium)),
             for (final a in actions)
               ListTile(minTileHeight: 56, leading: Icon(a.icon), title: Text(a.label), onTap: () => Navigator.of(sheet).pop(a)),
           ],
@@ -282,7 +283,7 @@ class _LineTile extends StatelessWidget {
         minTileHeight: 56,
         onTap: onTap,
         leading: Text('${line.qty}×', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        title: Text(line.nameEn, style: struck ? const TextStyle(decoration: TextDecoration.lineThrough) : null),
+        title: DishName(en: line.nameEn, am: line.nameAm, struck: struck),
         subtitle: details.isEmpty ? null : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [for (final d in details) Text(d)]),
         trailing: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 180),

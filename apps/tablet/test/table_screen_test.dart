@@ -9,13 +9,14 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'fakes.dart';
 
-OrderLinesCompanion line(String id, String name, {required int round, String state = 'sent', String sync = 'sent', String? note, String? options, String? error}) =>
+OrderLinesCompanion line(String id, String name, {String? nameAm, required int round, String state = 'sent', String sync = 'sent', String? note, String? options, String? error}) =>
     OrderLinesCompanion.insert(
       id: id,
       orderId: 'o$round',
       tableId: 't7',
       menuItemId: 'm-$id',
       nameEn: name,
+      nameAm: Value(nameAm),
       qty: 1,
       priceSantim: 18000,
       state: state,
@@ -61,6 +62,13 @@ void main() {
     expect(find.descendant(of: find.byKey(const Key('line-b')), matching: find.text('Accepted')), findsOneWidget);
     expect(find.descendant(of: find.byKey(const Key('line-c')), matching: find.text('Large')), findsOneWidget);
 
+    await unmountAndFlush(tester);
+  });
+
+  testWidgets('a line shows its Amharic name under the English one (F4a)', (tester) async {
+    await pumpTable(tester, [line('a', 'Shiro', nameAm: 'ሽሮ', round: 1)]);
+
+    expect(find.descendant(of: find.byKey(const Key('line-a')), matching: find.text('ሽሮ')), findsOneWidget);
     await unmountAndFlush(tester);
   });
 

@@ -144,4 +144,9 @@ void main() {
       expect((a['items'] as List).single['id'], isNot((b['items'] as List).single['id']));
     });
   });
+
+  test('an option with an Amharic name is shown with both names (F4a)', () {
+    final draft = OrderDraft()..add(mac, options: [const DraftOption(id: 'o-large', groupId: 'g-size', nameEn: 'Large', nameAm: 'ትልቅ', extraSantim: 1500)]);
+    expect(draft.lines.single.optionsText, 'Large · ትልቅ');
+  });
 }

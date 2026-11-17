@@ -110,6 +110,14 @@ void main() {
     screenAwake = FakeScreenAwake();
   });
 
+  testWidgets('a ticket line shows both dish names (F4a)', (tester) async {
+    await pumpKitchen(tester, [sent('i1')]);
+
+    expect(find.text('2× Shiro'), findsOneWidget);
+    expect(find.text('ሽሮ'), findsOneWidget);
+    await unmountAndFlush(tester);
+  });
+
   group('readable and always on (K-07)', () {
     testWidgets('the screen stays on while the kitchen screen is shown, and may sleep after', (tester) async {
       await pumpKitchen(tester, []);

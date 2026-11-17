@@ -12,6 +12,7 @@ import '../sync/connection.dart';
 import '../texts.dart';
 import 'screen_awake.dart';
 import 'sold_out_screen.dart';
+import 'dish_name.dart';
 
 /// How long the kitchen can undo its last tap (K-06; the server checks it, D-05).
 const undoWindow = Duration(seconds: 10);
@@ -331,7 +332,7 @@ class _ItemRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('${item.qty}× ${item.nameEn}', style: nameStyle),
+                DishName(en: item.nameEn, am: item.nameAm, qty: item.qty, style: nameStyle),
                 if (item.optionsText != null) Text(item.optionsText!, style: theme.textTheme.titleMedium),
                 if (item.note != null) Text('“${item.note}”', style: theme.textTheme.titleMedium?.copyWith(fontStyle: FontStyle.italic)),
                 if (item.flag == 'sold_out') _Flag('SOLD OUT when ordered', color: theme.colorScheme.error),
