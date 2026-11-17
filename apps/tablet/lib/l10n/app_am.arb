@@ -128,5 +128,16 @@
   "kitchenVoided": "ተሽሯል",
   "kitchenNoConnection": "ግንኙነት የለም፤ አዳዲስ ትዕዛዞች መድረስ አይችሉም። አስተናጋጆቹን በቀጥታ ያነጋግሩ።",
   "soldOutTitle": "አልቋል፦ {station}",
-  "soldOutLabel": "አልቋል"
+  "soldOutLabel": "አልቋል",
+  "alertReady": "{table} — ዝግጁ ነው፦ {what}",
+  "alertAccepted": "{table} — ኩሽና ተቀብሏል፦ {what}",
+  "alertNotReadyYet": "{table} — ገና ዝግጁ አይደለም፦ {what}",
+  "alertNotAcceptedYet": "{table} — ገና አልተቀበለም፦ {what}",
+  "alertStillWaiting": "{table} — አሁንም እየጠበቀ ነው፦ {what}",
+  "alertTableYours": "{table} አሁን የእርስዎ ነው",
+  "alertTableYoursFrom": "{table} አሁን የእርስዎ ነው (ከ{from})",
+  "keepAliveTitle": "ካፌ፦ ማንቂያዎች በርተዋል",
+  "keepAliveIdle": "መተግበሪያውን ከበስተጀርባ ክፍት ይተዉት። አያስወግዱት።",
+  "keepAliveChannelName": "የካፌ ማንቂያዎች",
+  "keepAliveChannelDescription": "የ'ዝግጁ' ማንቂያዎች መብራታቸውንና የመጨረሻውን ማንቂያ ያሳያል።"
 }

@@ -1,5 +1,8 @@
 import 'package:cafe_tablet/alerts/waiter_alerts.dart';
 import 'package:cafe_tablet/data/database.dart';
+import 'package:cafe_tablet/l10n/l10n.dart';
+import 'package:drift/drift.dart' show Value;
+import 'package:flutter/widgets.dart' show Locale;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'fakes.dart';
@@ -196,5 +199,40 @@ void main() {
 
     expect(output.rings, [AlertSound.info]);
     expect(shown.single.text, 'Table 7 is now yours (from Abebe)');
+  });
+
+  group('alert texts (F4a)', () {
+    Future<void> addTibs() => db.addLocalLines([
+          OrderLinesCompanion.insert(
+              id: 'am', orderId: 'o1', tableId: 't7', menuItemId: 'm', nameEn: 'Tibs', nameAm: const Value('ጥብስ'), qty: 2, priceSantim: 0, state: 'sent', sync: 'sent', createdAt: 1),
+        ]);
+
+    test('a dish with an Amharic name shows both names', () async {
+      await addTibs();
+      await push(event('am', 'item.ready', 'accepted', 'ready'));
+
+      expect(shown.single.text, 'Table 7 — ready: 2× Tibs (ጥብስ)');
+    });
+
+    test('in Amharic the alert is Amharic, with the table name as it is', () async {
+      await addTibs();
+      final amharic = <Alert>[];
+      final inAmharic = WaiterAlerts(
+        db: db,
+        myUserId: 'hana',
+        output: FakeOutput(),
+        staffName: (id) => null,
+        schedule: ManualTimers().schedule,
+        texts: () => lookupAppLocalizations(const Locale('am')),
+      );
+      addTearDown(inAmharic.dispose);
+      inAmharic.alerts.listen(amharic.add);
+
+      await db.applyItemEvent((event('am', 'item.ready', 'accepted', 'ready')['event'] as Map).cast<String, dynamic>());
+      await inAmharic.onPush(event('am', 'item.ready', 'accepted', 'ready'));
+      await settle();
+
+      expect(amharic.single.text, allOf(contains('Table 7'), contains('2× ጥብስ (Tibs)'), contains(RegExp(r'[\u1200-\u137F]'))));
+    });
   });
 }

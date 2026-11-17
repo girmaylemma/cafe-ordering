@@ -623,5 +623,102 @@
   "soldOutLabel": "SOLD OUT",
   "@soldOutLabel": {
     "description": "Sold-out list: under a dish that is sold out."
+  },
+  "alertReady": "{table} — ready: {what}",
+  "@alertReady": {
+    "description": "Waiter alert (loud): a dish is ready. {what} is like '2× Tibs (ጥብስ)'.",
+    "placeholders": {
+      "table": {
+        "type": "String"
+      },
+      "what": {
+        "type": "String"
+      }
+    }
+  },
+  "alertAccepted": "{table} — kitchen accepted: {what}",
+  "@alertAccepted": {
+    "description": "Waiter alert (soft): the kitchen accepted a dish.",
+    "placeholders": {
+      "table": {
+        "type": "String"
+      },
+      "what": {
+        "type": "String"
+      }
+    }
+  },
+  "alertNotReadyYet": "{table} — not ready yet: {what}",
+  "@alertNotReadyYet": {
+    "description": "Waiter alert: the kitchen undid 'ready'.",
+    "placeholders": {
+      "table": {
+        "type": "String"
+      },
+      "what": {
+        "type": "String"
+      }
+    }
+  },
+  "alertNotAcceptedYet": "{table} — not accepted yet: {what}",
+  "@alertNotAcceptedYet": {
+    "description": "Waiter alert: the kitchen undid 'accepted'.",
+    "placeholders": {
+      "table": {
+        "type": "String"
+      },
+      "what": {
+        "type": "String"
+      }
+    }
+  },
+  "alertStillWaiting": "{table} — still waiting: {what}",
+  "@alertStillWaiting": {
+    "description": "Waiter alert (loud): reminder 2 minutes after 'ready'.",
+    "placeholders": {
+      "table": {
+        "type": "String"
+      },
+      "what": {
+        "type": "String"
+      }
+    }
+  },
+  "alertTableYours": "{table} is now yours",
+  "@alertTableYours": {
+    "description": "Waiter alert: another waiter handed this table over.",
+    "placeholders": {
+      "table": {
+        "type": "String"
+      }
+    }
+  },
+  "alertTableYoursFrom": "{table} is now yours (from {from})",
+  "@alertTableYoursFrom": {
+    "description": "Waiter alert: a table handed over, with who gave it.",
+    "placeholders": {
+      "table": {
+        "type": "String"
+      },
+      "from": {
+        "type": "String"
+      }
+    }
+  },
+  "keepAliveTitle": "Café: alerts are on",
+  "@keepAliveTitle": {
+    "description": "Android notification title while the waiter is signed in."
+  },
+  "keepAliveIdle": "Keep the app open in the background. Do not swipe it away.",
+  "@keepAliveIdle": {
+    "description": "Android notification text when there is no new alert."
+  },
+  "keepAliveChannelName": "Café alerts",
+  "@keepAliveChannelName": {
+    "description": "Android settings: name of the notification channel."
+  },
+  "keepAliveChannelDescription": "Shows that Ready alerts are on, and the latest alert.",
+  "@keepAliveChannelDescription": {
+    "description": "Android settings: description of the notification channel."
   }
 }

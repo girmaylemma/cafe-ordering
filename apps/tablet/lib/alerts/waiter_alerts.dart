@@ -15,6 +15,8 @@ library;
 import 'dart:async';
 
 import '../data/database.dart';
+import '../l10n/l10n.dart';
+import '../l10n/names.dart';
 
 enum AlertSound { soft, loud, info }
 
@@ -43,6 +45,7 @@ class WaiterAlerts {
     required this._staffName,
     Schedule? schedule,
     DateTime Function()? now,
+    this._texts = englishTexts,
   })  : _schedule = schedule ?? _timerSchedule,
         _now = now ?? DateTime.now;
 
@@ -55,6 +58,17 @@ class WaiterAlerts {
   final String? Function(String id) _staffName;
   final Schedule _schedule;
   final DateTime Function() _now;
+
+  /// The waiter's language (F4a: English; F4b chooses).
+  final AppLocalizations Function() _texts;
+
+  /// "2× Tibs (ጥብስ)": the dish in the waiter's language, the other name in brackets.
+  String _what(OrderLine line) {
+    final lang = _texts().localeName;
+    final other = secondaryName(line.nameEn, line.nameAm, lang);
+    final name = primaryName(line.nameEn, line.nameAm, lang);
+    return other == null ? '${line.qty}× $name' : '${line.qty}× $name ($other)';
+  }
 
   final _alerts = StreamController<Alert>.broadcast();
   final _reminders = <String, void Function()>{}; // item id -> cancel
@@ -77,7 +91,8 @@ class WaiterAlerts {
         final table = await _db.tableById(push['tableId'] as String);
         if (table == null) return;
         final from = _staffName(push['fromWaiterId'] as String? ?? '');
-        _alert(AlertSound.info, '${table.name} is now yours${from == null ? '' : ' (from $from)'}', table.id);
+        final t = _texts();
+        _alert(AlertSound.info, from == null ? t.alertTableYours(table.name) : t.alertTableYoursFrom(table.name, from), table.id);
     }
   }
 
@@ -87,19 +102,20 @@ class WaiterAlerts {
     final mine = await _myItem(itemId);
     if (mine == null) return;
     final (line, table) = mine;
-    final what = '${line.qty}× ${line.nameEn}';
+    final what = _what(line);
+    final t = _texts();
 
     switch ((e['type'], e['from'], to)) {
       case ('item.ready', _, 'ready'):
-        _alert(AlertSound.loud, '${table.name} — ready: $what', table.id);
+        _alert(AlertSound.loud, t.alertReady(table.name, what), table.id);
         _cancelReminder(itemId);
         _reminders[itemId] = _schedule(reminderAfter, () => unawaited(_remind(itemId)));
       case ('item.accepted', _, 'accepted'):
-        _alert(AlertSound.soft, '${table.name} — kitchen accepted: $what', table.id);
+        _alert(AlertSound.soft, t.alertAccepted(table.name, what), table.id);
       case ('item.undone', 'ready', _):
-        _alert(AlertSound.info, '${table.name} — not ready yet: $what', table.id);
+        _alert(AlertSound.info, t.alertNotReadyYet(table.name, what), table.id);
       case ('item.undone', 'accepted', _):
-        _alert(AlertSound.info, '${table.name} — not accepted yet: $what', table.id);
+        _alert(AlertSound.info, t.alertNotAcceptedYet(table.name, what), table.id);
     }
   }
 
@@ -108,7 +124,7 @@ class WaiterAlerts {
     final mine = await _myItem(itemId); // still mine? (it may have been handed over)
     if (mine == null || mine.$1.state != 'ready') return;
     final (line, table) = mine;
-    _alert(AlertSound.loud, '${table.name} — still waiting: ${line.qty}× ${line.nameEn}', table.id);
+    _alert(AlertSound.loud, _texts().alertStillWaiting(table.name, _what(line)), table.id);
   }
 
   /// The item and its table, if that table is mine right now.
