@@ -9,7 +9,8 @@
  *   1. creates the "Dev Cafe" (owner dev-owner@example.com) if it doesn't exist yet,
  *   2. adds waiter Hana (PIN 1234), manager Meron (PIN 246810), 3 dishes and 3 tables,
  *   3. pairs the pretend kitchen (scripts/dev-kitchen.mjs) and
- *   4. prints the phone's pairing code and the exact command to build the app for this PC.
+ *   4. prints the phone's pairing code, a kitchen pairing code (a second device running the same
+ *      app becomes the real kitchen screen) and the exact command to build the app for this PC.
  * Uses the local TEST-ONLY Access key, which the server accepts only with the fake ".invalid"
  * team from dev-access-vars.mjs (D-62): it can never work against a real deployment.
  */
@@ -137,15 +138,18 @@ const paired = await must("POST", "/devices/pair", { code: kitchen.pairingCode.c
 writeFileSync(here("../.dev-kitchen-token"), paired.token);
 console.log("✓ Pretend kitchen paired");
 
-// ---------- 4. the phone ----------
+// ---------- 4. the phone, and a real kitchen screen (same app, a second device) ----------
 const phone = await admin("POST", "/devices", { name: `Test phone ${stamp}`, kind: "waiter" });
+const kitchenTablet = await admin("POST", "/devices", { name: `Kitchen tablet ${stamp}`, kind: "station", stationId: "kitchen" });
 const addresses = wifiAddresses;
 const ip = addresses[0] ?? "<PC-IP>";
 
 console.log(`
 ==================================================================
-  PHONE PAIRING CODE:   ${phone.pairingCode.code}      (works for 10 minutes)
+  PHONE PAIRING CODE:     ${phone.pairingCode.code}      (works for 10 minutes)
   Waiter: Hana   PIN 1234        Manager: Meron   PIN 246810
+
+  KITCHEN PAIRING CODE:   ${kitchenTablet.pairingCode.code}      (a 2nd phone/tablet = kitchen screen)
 ==================================================================
 
 Build the app for this PC (in the apps\\tablet folder):
