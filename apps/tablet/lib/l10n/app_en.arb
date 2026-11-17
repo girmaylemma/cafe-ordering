@@ -720,5 +720,9 @@
   "keepAliveChannelDescription": "Shows that Ready alerts are on, and the latest alert.",
   "@keepAliveChannelDescription": {
     "description": "Android settings: description of the notification channel."
+  },
+  "languageSwitch": "Switch language",
+  "@languageSwitch": {
+    "description": "Tooltip of the አማ / EN button on the floor map and kitchen screen."
   }
 }

@@ -7,6 +7,7 @@ import 'package:cafe_tablet/auth/credentials.dart';
 import 'package:cafe_tablet/data/database.dart';
 import 'package:cafe_tablet/providers.dart';
 import 'package:cafe_tablet/session/providers.dart';
+import 'package:cafe_tablet/session/work_session.dart';
 import 'package:cafe_tablet/ui/kitchen_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -31,14 +32,14 @@ ApiClient fakeApi(Map<String, (int, Object) Function(Map<String, dynamic>)> rout
       Uri.parse('http://server'),
     );
 
-Future<void> pumpApp(WidgetTester tester, ApiClient api, MemoryCredentialStore store, {List<Override> extra = const [], AppDatabase? db}) async {
+Future<void> pumpApp(WidgetTester tester, ApiClient api, MemoryCredentialStore store, {List<Override> extra = const [], AppDatabase? db, WorkSession? work}) async {
   await tester.pumpWidget(ProviderScope(
     overrides: [
       apiClientProvider.overrideWithValue(api),
       credentialStoreProvider.overrideWithValue(store),
       databaseProvider.overrideWithValue(db ?? memoryDb()),
-      // No real WebSocket in widget tests: the floor map's live session is tested in floor_map_test.dart.
-      workSessionProvider.overrideWith((ref) async => null),
+      // No real WebSocket unless a test passes a session (with a fake socket).
+      workSessionProvider.overrideWith((ref) async => work),
       ...extra,
     ],
     child: const CafeApp(),
