@@ -152,7 +152,7 @@ class TableScreen extends ConsumerWidget {
     final again = [
       for (final l in round)
         AgainLine(
-          name: l.nameEn,
+          name: primaryName(l.nameEn, l.nameAm, Localizations.localeOf(context).languageCode),
           menuItemId: l.menuItemId,
           qty: l.qty,
           note: l.note,

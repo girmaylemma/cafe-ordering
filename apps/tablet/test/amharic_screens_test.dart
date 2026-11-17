@@ -121,4 +121,32 @@ void main() {
     ((sold_out.menu['items'] as List).first as Map)['nameAm'] = longName;
     await sold_out.openSoldOut(tester);
   });
+
+  group('menu headings in Amharic (F4b)', () {
+    setUp(() => testLocale = const Locale('am'));
+    tearDown(() => testLocale = const Locale('en'));
+
+    testWidgets('category tabs and option group titles use the Amharic name', (tester) async {
+      ((order.menu['categories'] as List)[1] as Map)['nameAm'] = 'መጠጥ';
+      (((order.menu['optionGroups'] as List).first as Map))['nameAm'] = 'መጠን';
+      await order.pumpOrder(tester, online: true);
+
+      await tester.tap(find.text('መጠጥ'));
+      await tester.pumpAndSettle();
+      await order.tapItem(tester, 'mac');
+
+      final am = lookupAppLocalizations(const Locale('am'));
+      expect(find.text(am.orderRequired('መጠን')), findsOneWidget);
+      expect(find.text(am.orderChoose('መጠን')), findsOneWidget);
+      await unmountAndFlush(tester);
+    });
+
+    testWidgets('the sold-out list heads its dishes with the Amharic category name', (tester) async {
+      ((sold_out.menu['categories'] as List).first as Map)['nameAm'] = 'ምግብ';
+      await sold_out.openSoldOut(tester);
+
+      expect(find.text('ምግብ'), findsOneWidget);
+      await unmountAndFlush(tester);
+    });
+  });
 }

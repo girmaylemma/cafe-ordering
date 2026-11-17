@@ -13,6 +13,7 @@ import '../api/api_client.dart';
 import '../auth/auth_controller.dart';
 import '../config.dart';
 import '../data/database.dart';
+import '../l10n/l10n.dart';
 import '../providers.dart';
 import '../sync/connection.dart';
 import 'work_session.dart';
@@ -53,6 +54,8 @@ final workSessionProvider = FutureProvider<WorkSession?>((ref) async {
     userId: session?.user.id,
     alertOutput: ref.read(alertOutputProvider), // a waiter's or a kitchen's rules, by device kind
     keepAlive: session == null ? null : ref.read(keepAliveProvider),
+    // Alerts speak the app's language at the moment they ring (F4b).
+    texts: () => languageTexts(ref.read(appLocaleProvider).languageCode),
   );
   ref.onDispose(work.stop);
   unawaited(work.start()); // don't wait for the first download: the cached data shows at once
@@ -67,7 +70,7 @@ final alertOutputProvider = Provider<AlertOutput>((ref) {
 });
 
 /// Keeps the app running with the screen off while a waiter is signed in (F2d).
-final keepAliveProvider = Provider<KeepAlive>((ref) => ForegroundKeepAlive());
+final keepAliveProvider = Provider<KeepAlive>((ref) => ForegroundKeepAlive(texts: () => languageTexts(ref.read(appLocaleProvider).languageCode)));
 
 /// Alerts to show as banners (none on a kitchen tablet or before sign-in).
 final alertsProvider = StreamProvider<Alert>((ref) async* {

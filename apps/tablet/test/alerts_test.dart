@@ -234,5 +234,31 @@ void main() {
 
       expect(amharic.single.text, allOf(contains('Table 7'), contains('2× ጥብስ (Tibs)'), contains(RegExp(r'[\u1200-\u137F]'))));
     });
+
+    test("alerts use the waiter's language at the moment they ring (F4b)", () async {
+      await addTibs();
+      var language = 'am';
+      final texts = <Alert>[];
+      final switching = WaiterAlerts(
+        db: db,
+        myUserId: 'hana',
+        output: FakeOutput(),
+        staffName: (id) => null,
+        schedule: ManualTimers().schedule,
+        texts: () => lookupAppLocalizations(Locale(language)),
+      );
+      addTearDown(switching.dispose);
+      switching.alerts.listen(texts.add);
+
+      await db.applyItemEvent((event('am', 'item.accepted', 'sent', 'accepted')['event'] as Map).cast<String, dynamic>());
+      await switching.onPush(event('am', 'item.accepted', 'sent', 'accepted'));
+      language = 'en'; // the waiter tapped EN
+      await db.applyItemEvent((event('am', 'item.ready', 'accepted', 'ready', seq: 2)['event'] as Map).cast<String, dynamic>());
+      await switching.onPush(event('am', 'item.ready', 'accepted', 'ready', seq: 2));
+      await settle();
+
+      expect(texts.first.text, contains(RegExp(r'[\u1200-\u137F]{3}')));
+      expect(texts.last.text, 'Table 7 — ready: 2× Tibs (ጥብስ)');
+    });
   });
 }

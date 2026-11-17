@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers.dart';
 import '../session/providers.dart';
 import '../l10n/l10n.dart';
+import '../l10n/names.dart';
 import '../texts.dart';
 import 'dish_name.dart';
 
@@ -29,7 +30,8 @@ class _SoldOutScreenState extends ConsumerState<SoldOutScreen> {
     final children = <Widget>[];
     String? heading; // the category heading shown last
     for (final r in rows) {
-      final category = r.category?.nameEn;
+      final c = r.category;
+      final category = c == null ? null : primaryName(c.nameEn, c.nameAm, Localizations.localeOf(context).languageCode);
       if (category != null && category != heading) {
         children.add(Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),

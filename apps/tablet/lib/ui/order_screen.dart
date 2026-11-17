@@ -95,7 +95,7 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
         return i == null || i.soldOut ? null : _draftItem(i);
       },
       groups: (id) => [
-        for (final g in _groupsOf(items[id], menu)) DraftGroup(id: g.id, nameEn: g.nameEn, minChoices: g.minChoices, maxChoices: g.maxChoices),
+        for (final g in _groupsOf(items[id], menu)) DraftGroup(id: g.id, nameEn: g.nameEn, nameAm: g.nameAm, minChoices: g.minChoices, maxChoices: g.maxChoices),
       ],
       option: (id) {
         final o = options[id];
@@ -155,7 +155,7 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                 children: [
                   if (menu.favourites.isNotEmpty) _tabChip('fav', context.l10n.orderFavourites, tab),
-                  for (final c in menu.categories) _tabChip(c.id, c.nameEn, tab),
+                  for (final c in menu.categories) _tabChip(c.id, primaryName(c.nameEn, c.nameAm, Localizations.localeOf(context).languageCode), tab),
                 ],
               ),
             ),
@@ -377,7 +377,7 @@ class _OptionsSheetState extends State<_OptionsSheet> {
   final _note = TextEditingController();
 
   List<DraftGroup> get _groups => [
-        for (final g in widget.groups) DraftGroup(id: g.id, nameEn: g.nameEn, minChoices: g.minChoices, maxChoices: g.maxChoices),
+        for (final g in widget.groups) DraftGroup(id: g.id, nameEn: g.nameEn, nameAm: g.nameAm, minChoices: g.minChoices, maxChoices: g.maxChoices),
       ];
 
   void _toggle(OptionGroup group, OptionChoice option) {
@@ -403,7 +403,8 @@ class _OptionsSheetState extends State<_OptionsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final missing = missingChoices(_groups, _chosen);
+    final lang = Localizations.localeOf(context).languageCode;
+    final missing = missingChoices(_groups, _chosen, lang: lang);
     return Padding(
       padding: EdgeInsets.only(left: 16, right: 16, top: 16, bottom: MediaQuery.viewInsetsOf(context).bottom + 16),
       child: Column(
@@ -413,7 +414,10 @@ class _OptionsSheetState extends State<_OptionsSheet> {
           DishName(en: widget.item.nameEn, am: widget.item.nameAm, style: Theme.of(context).textTheme.titleLarge),
           for (final g in widget.groups) ...[
             const SizedBox(height: 12),
-            Text(g.minChoices > 0 ? context.l10n.orderRequired(g.nameEn) : g.nameEn, style: Theme.of(context).textTheme.titleSmall),
+            Text(
+              g.minChoices > 0 ? context.l10n.orderRequired(primaryName(g.nameEn, g.nameAm, lang)) : primaryName(g.nameEn, g.nameAm, lang),
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
             Wrap(
               spacing: 8,
               children: [
