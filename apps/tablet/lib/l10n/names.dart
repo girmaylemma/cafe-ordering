@@ -12,4 +12,5 @@ String primaryName(String en, String? am, String lang) => lang == 'am' && _has(a
 String? secondaryName(String en, String? am, String lang) => !_has(am) ? null : (lang == 'am' ? en : am);
 
 /// One option for a line's option text: "Large · ትልቅ" (stored on the line, so English first).
-String optionLabel(String en, String? am) => _has(am) ? '$en · $am' : en;
+/// A missing English name (never sent today) shows the Amharic one alone, never a crash.
+String optionLabel(String en, String? am) => !_has(am) ? en : (en.isEmpty ? am! : '$en · $am');

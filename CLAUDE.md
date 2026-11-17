@@ -136,7 +136,7 @@ Decisions and their reasons: `docs/decisions.md`.
 
 ### apps/tablet/ (Flutter app, run inside `apps/tablet/`)
 - Test: `flutter test`; analyze: `flutter analyze`.
-- Texts: never write English in a screen. Add the text to `lib/l10n/app_en.arb` (with an `@description`) AND `lib/l10n/app_am.arb`, run `flutter pub get` (regenerates `app_localizations*.dart`, not committed), then use `context.l10n.yourKey`. `test/no_literals_test.dart` fails on English literals in screens.
+- Texts: never write English in a screen. Add the text to `lib/l10n/app_en.arb` (with an `@description`) AND `lib/l10n/app_am.arb`, run `flutter pub get` (regenerates `app_localizations*.dart`, not committed), then use `context.l10n.yourKey`. `test/no_literals_test.dart` fails on English literals in screens; `test/arb_parity_test.dart` fails on a missing or placeholder-dropping Amharic text (Flutter itself would silently show English).
 
 ### admin/ (dashboard, run inside `admin/`)
 - Install: `npm ci`

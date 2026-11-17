@@ -31,6 +31,7 @@ void main() {
       expect(optionLabel('Large', 'ትልቅ'), 'Large · ትልቅ');
       expect(optionLabel('Large', null), 'Large');
       expect(optionLabel('Large', ''), 'Large');
+      expect(optionLabel('', 'ትልቅ'), 'ትልቅ'); // a snapshot without an English name
     });
   });
 
@@ -86,6 +87,18 @@ void main() {
     test('a kitchen ticket keeps both option names', () async {
       await db.applyTicketEvent(sentEvent());
       expect((await db.select(db.ticketItems).getSingle()).optionsText, 'Large · ትልቅ, Spicy');
+    });
+
+    test('an option without a name does not stop the line (sync keeps working)', () async {
+      final event = sentEvent();
+      (event['details'] as Map)['options'] = [
+        {'nameAm': 'ትልቅ'},
+        {'nameEn': 'Spicy', 'nameAm': null},
+      ];
+      await db.applyItemEvent(event);
+      await db.applyTicketEvent(event);
+      expect((await db.select(db.orderLines).getSingle()).optionsText, 'ትልቅ, Spicy');
+      expect((await db.select(db.ticketItems).getSingle()).optionsText, 'ትልቅ, Spicy');
     });
 
     test('a line stored before F4a keeps its old option text', () async {

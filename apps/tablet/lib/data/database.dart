@@ -330,7 +330,7 @@ class AppDatabase extends _$AppDatabase {
     switch (e['type']) {
       case 'item.sent':
         final d = details ?? const {};
-        final options = ((d['options'] as List?) ?? const []).map((o) => optionLabel((o as Map)['nameEn'] as String, o['nameAm'] as String?)).join(', ');
+        final options = ((d['options'] as List?) ?? const []).map((o) => optionLabel((o as Map)['nameEn'] as String? ?? '', o['nameAm'] as String?)).join(', ');
         final existing = await (select(orderLines)..where((l) => l.id.equals(id))).getSingleOrNull();
         if (existing != null) {
           // Our own round, confirmed: keep the display price we already have.
@@ -384,7 +384,7 @@ class AppDatabase extends _$AppDatabase {
             ));
             continue;
           }
-          final options = ((d['options'] as List?) ?? const []).map((o) => optionLabel((o as Map)['nameEn'] as String, o['nameAm'] as String?)).join(', ');
+          final options = ((d['options'] as List?) ?? const []).map((o) => optionLabel((o as Map)['nameEn'] as String? ?? '', o['nameAm'] as String?)).join(', ');
           await into(orderLines).insert(OrderLinesCompanion.insert(
             id: id,
             orderId: l['orderId'] as String,
@@ -448,7 +448,7 @@ class AppDatabase extends _$AppDatabase {
 
   /// One ticket row from the `item.sent` snapshot (an event's details, or a download's).
   TicketItemsCompanion _ticketRow(String id, String orderId, Map<String, dynamic> d, {required String state, required int receivedAt}) {
-    final options = ((d['options'] as List?) ?? const []).map((o) => optionLabel((o as Map)['nameEn'] as String, o['nameAm'] as String?)).join(', ');
+    final options = ((d['options'] as List?) ?? const []).map((o) => optionLabel((o as Map)['nameEn'] as String? ?? '', o['nameAm'] as String?)).join(', ');
     return TicketItemsCompanion.insert(
       id: id,
       orderId: orderId,

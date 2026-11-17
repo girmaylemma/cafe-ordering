@@ -54,7 +54,7 @@ dish names always appear in both languages, so a waiter and a cook never use dif
 
 - **A. Flutter `gen-l10n` + ARB files (chosen).** Official; Flutter's own widgets (dialog buttons, back
   tooltips, time picker) get Amharic for free (`am` is supported by `flutter_localizations`); every key is a
-  generated getter, and the Amharic class must implement every key, so a missing translation fails the build.
+  generated getter, and a parity test catches a missing or placeholder-dropping translation (gen-l10n itself would silently fall back to English).
 - **B. Our own two Dart maps in `texts.dart`.** No dependencies, but Flutter's widgets stay English and
   missing keys are only caught by a hand-written test. Rebuilds what A gives for free.
 - **C. `easy_localization` (community).** Third-party code with nothing A lacks. Dropped.
@@ -143,7 +143,7 @@ Supported values: `'am'`, `'en'`. Stored as text so more languages can be added 
 
 ## 6. Tests
 
-- **Build-level**: a missing Amharic key fails compilation (gen-l10n abstract class).
+- **Parity** (corrected in F4a): gen-l10n does NOT fail on a missing Amharic key; it silently falls back to English. `test/arb_parity_test.dart` fails instead when an Amharic text is missing, drops a {placeholder}, or contains no Amharic.
 - **No literals left**: a test scans `lib/ui`, `lib/alerts`, `lib/app.dart` for user-visible English
   literals in `Text(...)`, `label:`, `tooltip:`, `hintText:`, `labelText:` and fails, with a short allow-list
   (e.g. `'EN'`, `'አማ'`, symbols).
