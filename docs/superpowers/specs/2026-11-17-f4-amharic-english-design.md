@@ -1,6 +1,6 @@
 # F4: Amharic and English in the waiter and kitchen apps — design
 
-Date: 2026-11-17 · Status: draft for approval · Requirement: W-12 (MVP), design.md §5 "Readable in Amharic and English", §11 "Language: Amharic first-class".
+Date: 2026-11-17 · Status: approved 2026-11-17 · Requirement: W-12 (MVP), design.md §5 "Readable in Amharic and English", §11 "Language: Amharic first-class".
 
 ## 1. Intent
 
@@ -136,7 +136,7 @@ Supported values: `'am'`, `'en'`. Stored as text so more languages can be added 
 
 ### 5.5 Translations
 
-- Claude drafts all Amharic texts. **A native speaker reviews them before the pilot** (the user arranges
+- Claude drafts all Amharic texts. **The user (a native speaker) reviews them before the pilot** (the user does
   this). To make review easy, the build produces `docs/translations-review.md`: a table of key, English,
   Amharic, where it appears — with a column for corrections.
 - Tone: short, plain, polite; the words waiters actually say (e.g. the kitchen's "ready" as used in cafés).
