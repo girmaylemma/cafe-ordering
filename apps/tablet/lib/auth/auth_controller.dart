@@ -84,7 +84,11 @@ class AuthController extends AsyncNotifier<AuthState> {
     final device = await _store.loadDevice();
     if (device == null) return const [];
     try {
-      return await _api.staff(device.token);
+      final download = await _api.staff(device.token);
+      // The PIN screen speaks the café's language (F4b): keep it for the next start too.
+      final cafeLanguage = download.language;
+      if (cafeLanguage != null) await ref.read(databaseProvider).setCafeLanguage(cafeLanguage);
+      return download.staff;
     } on ApiException catch (e) {
       if (e.status == 401) await _forgetDevice();
       rethrow;
@@ -100,6 +104,11 @@ class AuthController extends AsyncNotifier<AuthState> {
     try {
       final result = await _api.signIn(device.token, userId, pin);
       await _store.saveSession(SignedInUser(sessionToken: result.sessionToken, user: result.user));
+      // The server's copy of their language, unless this tablet still has a newer one to send.
+      final db = ref.read(databaseProvider);
+      if (!(await db.watchMyLanguage(result.user.id).first).pending) {
+        await db.setMyLanguage(result.user.id, result.user.language, pending: false);
+      }
       state = AsyncData(SignedIn(device.info, result.user));
     } on ApiException catch (e) {
       // A revoked or unknown tablet must pair again; it can never sign anyone in.

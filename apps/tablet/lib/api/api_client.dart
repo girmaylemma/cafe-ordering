@@ -34,13 +34,27 @@ class PairResult {
 }
 
 class StaffMember {
-  const StaffMember({required this.id, required this.name, required this.role});
-  factory StaffMember.fromJson(Map<String, dynamic> json) =>
-      StaffMember(id: json['id'] as String, name: json['name'] as String, role: json['role'] as String);
+  const StaffMember({required this.id, required this.name, required this.role, this.language});
+  factory StaffMember.fromJson(Map<String, dynamic> json) => StaffMember(
+        id: json['id'] as String,
+        name: json['name'] as String,
+        role: json['role'] as String,
+        language: json['language'] as String?, // missing (older server or saved session): null
+      );
   final String id;
   final String name;
   final String role;
-  Map<String, dynamic> toJson() => {'id': id, 'name': name, 'role': role};
+
+  /// Their own language ('am' or 'en'), or null to follow the café's (F4b).
+  final String? language;
+  Map<String, dynamic> toJson() => {'id': id, 'name': name, 'role': role, 'language': language};
+}
+
+/// GET /staff: the names for the PIN screen and the café's language (F4b; null from an older server).
+class StaffDownload {
+  const StaffDownload({required this.staff, required this.language});
+  final List<StaffMember> staff;
+  final String? language;
 }
 
 class SessionResult {
@@ -81,9 +95,12 @@ class ApiClient {
     return PairResult(json['token'] as String, DeviceInfo.fromJson(json['device'] as Map<String, dynamic>));
   }
 
-  Future<List<StaffMember>> staff(String deviceToken) async {
+  Future<StaffDownload> staff(String deviceToken) async {
     final json = await _send('GET', '/staff', deviceToken: deviceToken);
-    return (json['staff'] as List).map((s) => StaffMember.fromJson(s as Map<String, dynamic>)).toList();
+    return StaffDownload(
+      staff: (json['staff'] as List).map((s) => StaffMember.fromJson(s as Map<String, dynamic>)).toList(),
+      language: json['language'] as String?,
+    );
   }
 
   /// PIN sign-in, checked only by the server (D-10).

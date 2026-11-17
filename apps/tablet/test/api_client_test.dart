@@ -59,9 +59,9 @@ void main() {
             ],
           }));
 
-      final staff = await api.staff('tok');
+      final download = await api.staff('tok');
 
-      expect(staff.single.name, 'Hana');
+      expect(download.staff.single.name, 'Hana');
       expect(requests.single.headers['authorization'], 'Bearer tok');
     });
 
@@ -122,6 +122,46 @@ void main() {
     final menu = await api.menu('t');
 
     expect(((menu['items'] as List).single as Map)['nameAm'], 'ሽሮ ወጥ');
+  });
+
+  group('languages (F4b)', () {
+    test("staff() returns the café language and each person's", () async {
+      final (api, _) = clientWith((_) async => jsonResponse(200, {
+            'staff': [
+              {'id': 'hana', 'name': 'Hana', 'role': 'waiter', 'language': 'am'},
+              {'id': 'abel', 'name': 'Abel', 'role': 'waiter', 'language': null},
+            ],
+            'language': 'en',
+          }));
+
+      final download = await api.staff('tok');
+
+      expect(download.language, 'en');
+      expect(download.staff.map((s) => s.language), ['am', null]);
+    });
+
+    test('an older server without languages gives null', () async {
+      final (api, _) = clientWith((_) async => jsonResponse(200, {
+            'staff': [
+              {'id': 'hana', 'name': 'Hana', 'role': 'waiter'},
+            ],
+          }));
+
+      final download = await api.staff('tok');
+
+      expect(download.language, isNull);
+      expect(download.staff.single.language, isNull);
+    });
+
+    test("sign-in returns the waiter's own language", () async {
+      final (api, _) = clientWith((_) async => jsonResponse(200, {
+            'sessionToken': 's',
+            'user': {'id': 'hana', 'name': 'Hana', 'role': 'waiter', 'language': 'am'},
+            'expiresAt': 1,
+          }));
+
+      expect((await api.signIn('tok', 'hana', '1234')).user.language, 'am');
+    });
   });
 }
 

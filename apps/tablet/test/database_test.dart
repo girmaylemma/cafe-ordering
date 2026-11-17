@@ -150,4 +150,31 @@ void main() {
     expect(line.optionIds, '["o1"]');
   });
   }
+
+  group('languages kept on the tablet (F4b)', () {
+    late AppDatabase db;
+    setUp(() => db = memoryDb());
+    tearDown(() => db.close());
+
+    test('the café language and the kitchen choice', () async {
+      expect(await db.watchCafeLanguage().first, isNull);
+      await db.setCafeLanguage('am');
+      await db.setKitchenLanguage('en');
+      expect(await db.watchCafeLanguage().first, 'am');
+      expect(await db.watchKitchenLanguage().first, 'en');
+    });
+
+    test("each waiter's choice, and which ones are still to send", () async {
+      expect(await db.watchMyLanguage('hana').first, (language: null, pending: false));
+
+      await db.setMyLanguage('hana', 'am', pending: true);
+      await db.setMyLanguage('abel', 'en', pending: false);
+
+      expect(await db.watchMyLanguage('hana').first, (language: 'am', pending: true));
+      expect(await db.pendingLanguages(), [('hana', 'am')]);
+
+      await db.setMyLanguage('hana', 'am', pending: false);
+      expect(await db.pendingLanguages(), isEmpty);
+    });
+  });
 }

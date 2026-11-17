@@ -87,6 +87,7 @@ void main() {
 
     await tester.enterText(find.byKey(const Key('pin')), '1234');
     await tester.tap(find.text('Sign in'));
+    await tester.runAsync(settle); // sign-in also reads and saves the waiter's language (F4b): real database time
     await tester.pumpAndSettle();
     // Signed in: the floor map, titled with the waiter's name.
     expect(find.widgetWithText(AppBar, 'Hana'), findsOneWidget);

@@ -33,6 +33,7 @@ Map<String, dynamic> tablesJson(String state) => {
 class _Server {
   String itemName = 'Shiro';
   String tableState = 'free';
+  String? cafeLanguage;
   bool offline = false;
   int menuDownloads = 0;
   int tableDownloads = 0;
@@ -58,7 +59,7 @@ class _Server {
               tableDownloads++;
               return http.Response(jsonEncode(tablesJson(tableState)), 200);
             case '/staff':
-              return http.Response(jsonEncode({'staff': [{'id': 'hana', 'name': 'Hana', 'role': 'waiter'}]}), 200);
+              return http.Response(jsonEncode({'staff': [{'id': 'hana', 'name': 'Hana', 'role': 'waiter'}], 'language': cafeLanguage}), 200);
             case '/tickets':
               ticketDownloads++;
               return http.Response(jsonEncode({'tickets': tickets, 'seq': ticketSeq}), 200);
@@ -508,6 +509,13 @@ void main() {
       expect(keepAlive.starts, 0);
     });
   });
+  test('a download stores the café language (F4b)', () async {
+    server.cafeLanguage = 'am';
+    await start([FakeSocket()]);
+
+    expect(await db.watchCafeLanguage().first, 'am');
+  });
+
 }
 
 class FakeKeepAlive implements KeepAlive {

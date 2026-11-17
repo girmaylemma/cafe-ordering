@@ -162,4 +162,45 @@ void main() {
     expect((state as SignedIn).error, 'UNSENT_ROUNDS');
     expect(await store.loadSession(), isNotNull);
   });
+
+  group('languages (F4b)', () {
+    Future<(ProviderContainer, AppDatabase)> pinScreen(Map<String, (int, Object)> routes) async {
+      final store = MemoryCredentialStore();
+      await store.saveDevice(PairedDevice.fromJson('t', waiterDevice));
+      final db = memoryDb();
+      final c = container(fakeApi(routes), store, db);
+      await c.read(authControllerProvider.future);
+      return (c, db);
+    }
+
+    test("the PIN screen's staff download stores the café language", () async {
+      final (c, db) = await pinScreen({
+        'GET /staff': (200, {'staff': [{'id': 'hana', 'name': 'Hana', 'role': 'waiter'}], 'language': 'am'}),
+      });
+
+      expect((await c.read(authControllerProvider.notifier).staff()).single.name, 'Hana');
+      expect(await db.watchCafeLanguage().first, 'am');
+    });
+
+    test("sign-in keeps the server's language for this waiter", () async {
+      final (c, db) = await pinScreen({
+        'POST /auth/pin': (200, {...hanaSession, 'user': {'id': 'hana', 'name': 'Hana', 'role': 'waiter', 'language': 'am'}}),
+      });
+
+      await c.read(authControllerProvider.notifier).signIn('hana', '1234');
+
+      expect(await db.watchMyLanguage('hana').first, (language: 'am', pending: false));
+    });
+
+    test('sign-in does not overwrite a choice still to send', () async {
+      final (c, db) = await pinScreen({
+        'POST /auth/pin': (200, {...hanaSession, 'user': {'id': 'hana', 'name': 'Hana', 'role': 'waiter', 'language': 'am'}}),
+      });
+      await db.setMyLanguage('hana', 'en', pending: true); // switched offline, never sent
+
+      await c.read(authControllerProvider.notifier).signIn('hana', '1234');
+
+      expect(await db.watchMyLanguage('hana').first, (language: 'en', pending: true));
+    });
+  });
 }

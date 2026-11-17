@@ -127,7 +127,10 @@ class WorkSession {
       await _db.replaceTables(tables['tables'] as List);
       _staff
         ..clear()
-        ..addEntries(staff.map((s) => MapEntry(s.id, s)));
+        ..addEntries(staff.staff.map((s) => MapEntry(s.id, s)));
+      // A café language changed in the dashboard reaches the tablet here (start or reconnect).
+      final cafeLanguage = staff.language;
+      if (cafeLanguage != null) await _db.setCafeLanguage(cafeLanguage);
     } on NetworkException {
       // keep what we have; we'll try again when the connection is back
     } on ApiException catch (e) {
