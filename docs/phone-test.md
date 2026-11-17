@@ -29,10 +29,12 @@ You do **not** need to type commands. You double-click one file.
    then a box:
 
    ```
-   PHONE PAIRING CODE:   543696      (works for 10 minutes)
+   PHONE PAIRING CODE:     543696      (works for 10 minutes)
+   KITCHEN PAIRING CODE:   817204      (a 2nd phone/tablet = kitchen screen)
    ```
 
-   📝 Write down the code. Then you see `Connected. Waiting for orders...` ✅
+   📝 Write down both codes. Then you see `Connected. Waiting for orders...` ✅
+   The kitchen code is only for Part 4 (a second device). Skip it if you have one phone.
 
 > Code too old (more than 10 minutes)? Close **only** the KITCHEN window and double-click
 > `phone-test` again. You get a new code. The server window can stay open.
@@ -44,7 +46,7 @@ You do **not** need to type commands. You double-click one file.
 ### Only if the app is not on the phone yet, or your PC's address changed
 
 The app must know your PC's address. In the KITCHEN window, look at the line under
-"Build the app for this PC". If it says `http://192.168.1.2:8787`, the app built on 14 Nov is
+"Build the app for this PC". If it says `http://192.168.1.3:8787`, the app built on 17 Nov is
 correct: skip to "Open the app" below. If the address is different, ask Claude to rebuild it.
 
 To copy the app to the phone:
@@ -113,6 +115,45 @@ Tick each box when it works. If not, write down what you did and what you saw.
 
 ---
 
+## Part 4: The real kitchen screen (needs a second phone or tablet)
+
+The **same app** becomes the kitchen screen when you pair it with the **KITCHEN** code.
+Install `app-debug.apk` on the second device the same way as in Part 2.
+
+1. Second device: open **cafe_tablet** → type the **KITCHEN PAIRING CODE** from Part 1.
+   (Expired? Close the KITCHEN window, double-click `phone-test` again, use the new code.)
+2. ✅ The top bar says **Kitchen**, and the screen says
+   "No orders. New orders appear here by themselves."
+
+The pretend kitchen (black window) keeps working too: both see the same orders. Use the real
+screen for these tests.
+
+### Test 8: A new order
+- [ ] Phone: send **2× Shiro** to Table 2.
+- [ ] Kitchen screen: a **sound** plays, the screen **flashes**, a card shows **Table 2**,
+      **Hana**, **2× Shiro**.
+
+### Test 9: Accept, Ready and Undo
+- [ ] Kitchen screen: tap **Accept** → the phone plays a soft sound.
+- [ ] Tap **Ready** → the phone **rings**. The kitchen line says **Waiting for pickup**.
+- [ ] Send another dish, tap **Accept**, then **Undo** within 10 seconds → back to **Accept**.
+- [ ] After 10 seconds the **Undo** button is gone.
+
+### Test 10: Timers (needs 15 minutes)
+- [ ] Send a dish, don't accept it. After **10 minutes** the card's border turns **amber**.
+- [ ] After **15 minutes** it turns **red**.
+
+### Test 11: Sold out
+- [ ] Kitchen screen: tap **Sold out** (top right) → switch **Tibs** on → it says **SOLD OUT**.
+- [ ] Phone: Tibs is **greyed out** in the menu. Switch it off again → Tibs is back.
+
+### Test 12: Stays on, and reconnects
+- [ ] Leave the kitchen screen alone for 5 minutes: the screen **does not turn off**.
+- [ ] Kitchen device: **Wi-Fi off** → red bar "**No connection**". Phone: send a dish.
+- [ ] Kitchen device: **Wi-Fi on** → the dish appears by itself, with **one** sound.
+
+---
+
 ## When you are finished
 Close both black windows (the X at the top right). That stops everything.
 
@@ -128,4 +169,5 @@ Close both black windows (the X at the top right). That stops everything.
 
 To copy text from a black window: select it with the mouse, press **Enter**, then paste with **Ctrl+V**.
 
-When you finish, tell Claude: **phone brand and model**, and **what happened in Test 3**.
+When you finish, tell Claude: **phone brand and model**, **what happened in Test 3**, and (if you
+did Part 4) the **kitchen device's brand and model** and which of Tests 8–12 failed.
