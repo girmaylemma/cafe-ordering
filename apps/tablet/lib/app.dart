@@ -21,7 +21,7 @@ class CafeApp extends ConsumerWidget {
     final auth = ref.watch(authControllerProvider);
     return MaterialApp(
       onGenerateTitle: (context) => context.l10n.appTitle,
-      // English until F4b lets each person choose (design: café default, then the waiter's own).
+      // The café's, the waiter's or the kitchen tablet's language (F4b, l10n/language.dart).
       locale: ref.watch(appLocaleProvider),
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,

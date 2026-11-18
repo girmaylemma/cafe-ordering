@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -7,6 +9,7 @@ import '../data/database.dart';
 import '../ids.dart';
 import '../providers.dart';
 import '../session/providers.dart';
+import 'language_button.dart';
 import '../sync/connection.dart';
 import '../sync/outbox.dart';
 import '../l10n/l10n.dart';
@@ -50,6 +53,14 @@ class _FloorMapScreenState extends ConsumerState<FloorMapScreen> {
             label: Text(context.l10n.floorMine),
             selected: _mineOnly,
             onSelected: (v) => setState(() => _mineOnly = v),
+          ),
+          LanguageButton(
+            current: Localizations.localeOf(context).languageCode,
+            onChanged: (language) {
+              final work = ref.read(workSessionProvider).value;
+              // No session yet (still starting): keep the choice; it is sent after connecting.
+              unawaited(work != null ? work.setMyLanguage(language) : ref.read(databaseProvider).setMyLanguage(widget.user.id, language, pending: true));
+            },
           ),
           IconButton(
             tooltip: context.l10n.floorSignOut,

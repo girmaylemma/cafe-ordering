@@ -6,7 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../alerts/kitchen_alerts.dart';
 import '../api/api_client.dart';
 import '../data/database.dart';
+import '../providers.dart';
 import '../session/providers.dart';
+import 'language_button.dart';
 import '../sync/commands.dart';
 import '../sync/connection.dart';
 import '../l10n/l10n.dart';
@@ -94,6 +96,11 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen> {
       appBar: AppBar(
         title: Text(_title(context)),
         actions: [
+          // The kitchen tablet's own language: stored on this tablet only (F4b).
+          LanguageButton(
+            current: Localizations.localeOf(context).languageCode,
+            onChanged: (language) => unawaited(ref.read(databaseProvider).setKitchenLanguage(language)),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: FilledButton.tonalIcon(

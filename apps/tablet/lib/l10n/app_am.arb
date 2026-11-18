@@ -139,5 +139,6 @@
   "keepAliveTitle": "ካፌ፦ ማንቂያዎች በርተዋል",
   "keepAliveIdle": "መተግበሪያውን ከበስተጀርባ ክፍት ይተዉት። አያስወግዱት።",
   "keepAliveChannelName": "የካፌ ማንቂያዎች",
-  "keepAliveChannelDescription": "የ'ዝግጁ' ማንቂያዎች መብራታቸውንና የመጨረሻውን ማንቂያ ያሳያል።"
+  "keepAliveChannelDescription": "የ'ዝግጁ' ማንቂያዎች መብራታቸውንና የመጨረሻውን ማንቂያ ያሳያል።",
+  "languageSwitch": "ቋንቋ ቀይር"
 }

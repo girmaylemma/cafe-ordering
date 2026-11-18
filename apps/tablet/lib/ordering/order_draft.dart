@@ -27,9 +27,10 @@ class DraftOption {
 }
 
 class DraftGroup {
-  const DraftGroup({required this.id, required this.nameEn, required this.minChoices, required this.maxChoices});
+  const DraftGroup({required this.id, required this.nameEn, this.nameAm, required this.minChoices, required this.maxChoices});
   final String id;
   final String nameEn;
+  final String? nameAm;
   final int minChoices;
   final int maxChoices;
 }
@@ -154,10 +155,10 @@ List<String> addAgain(
   return skipped;
 }
 
-/// Names of required groups that are not chosen yet (empty = ready to add).
-List<String> missingChoices(List<DraftGroup> groups, List<DraftOption> chosen) => [
+/// Names of required groups that are not chosen yet (empty = ready to add), in `lang`.
+List<String> missingChoices(List<DraftGroup> groups, List<DraftOption> chosen, {String lang = 'en'}) => [
       for (final g in groups)
-        if (chosen.where((o) => o.groupId == g.id).length < g.minChoices) g.nameEn,
+        if (chosen.where((o) => o.groupId == g.id).length < g.minChoices) primaryName(g.nameEn, g.nameAm, lang),
     ];
 
 /// Whether another option of this group may be chosen.

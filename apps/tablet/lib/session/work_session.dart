@@ -30,7 +30,8 @@ class WorkSession {
     KeepAlive? keepAlive,
     ServerClock? clock,
     AppLocalizations Function() texts = englishTexts,
-  }) : clock = clock ?? ServerClock() {
+  })  : clock = clock ?? ServerClock(),
+        _userId = userId {
     connection = Connection(connect: connect, db: _db, delay: delay);
     // A round that waited offline: show its final answer on the table screen.
     outbox = Outbox(_db, connection, onAnswer: (key, result) {
@@ -127,7 +128,10 @@ class WorkSession {
       await _db.replaceTables(tables['tables'] as List);
       _staff
         ..clear()
-        ..addEntries(staff.map((s) => MapEntry(s.id, s)));
+        ..addEntries(staff.staff.map((s) => MapEntry(s.id, s)));
+      // A café language changed in the dashboard reaches the tablet here (start or reconnect).
+      final cafeLanguage = staff.language;
+      if (cafeLanguage != null) await _db.setCafeLanguage(cafeLanguage);
     } on NetworkException {
       // keep what we have; we'll try again when the connection is back
     } on ApiException catch (e) {
@@ -146,6 +150,7 @@ class WorkSession {
         await (device.kind == DeviceKind.station ? _reloadTickets() : _reloadLines());
       case 'synced':
         clock.learn(push['serverNow'] as int?);
+        await _sendPendingLanguage();
       case 'event':
         final event = (push['event'] as Map).cast<String, dynamic>();
         // A kitchen tablet keeps tickets; a waiter's tablet keeps the lines of its tables.
@@ -192,6 +197,32 @@ class WorkSession {
     await _db.replaceServerLines((download['lines'] as List).cast<Map<String, dynamic>>());
     await _db.setLastSeq(download['seq'] as int); // may go back: what came after it is replayed
     await connection.resync();
+  }
+
+  /// The signed-in waiter (null on a kitchen tablet).
+  final String? _userId;
+
+  /// The waiter taps አማ / EN (F4b). The screen switches from the stored value at once; the server
+  /// is told live, and a choice it hasn't confirmed stays "to send" until the next reconnect.
+  Future<void> setMyLanguage(String language) async {
+    final userId = _userId;
+    if (userId == null) return;
+    await _db.setMyLanguage(userId, language, pending: true);
+    await _sendLanguage(userId, language);
+  }
+
+  Future<void> _sendLanguage(String userId, String? language) async {
+    final result = await commands.setLanguage(language);
+    // Clears "to send" only if nothing newer was chosen meanwhile (one transaction, no gap).
+    if (result.error == null) await _db.confirmMyLanguage(userId, language);
+  }
+
+  Future<void> _sendPendingLanguage() async {
+    final userId = _userId;
+    if (userId == null) return;
+    for (final (who, language) in await _db.pendingLanguages()) {
+      if (who == userId) await _sendLanguage(userId, language);
+    }
   }
 
   Future<void> _accessEnded() async {

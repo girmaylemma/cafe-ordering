@@ -35,6 +35,9 @@ class ActionResult {
 class TableCommands extends _LiveCommands {
   TableCommands(super._connection);
 
+  /// The signed-in waiter's own language (F4b); null = follow the café's.
+  Future<ActionResult> setLanguage(String? language) => _send({'type': 'staff.language', 'language': language});
+
   Future<ActionResult> delivered(String itemId) => _item(itemId, {'type': 'delivered'});
   Future<ActionResult> cancel(String itemId) => _item(itemId, {'type': 'cancel'});
 

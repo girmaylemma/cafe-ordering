@@ -149,4 +149,10 @@ void main() {
     final draft = OrderDraft()..add(mac, options: [const DraftOption(id: 'o-large', groupId: 'g-size', nameEn: 'Large', nameAm: 'ትልቅ', extraSantim: 1500)]);
     expect(draft.lines.single.optionsText, 'Large · ትልቅ');
   });
+
+  test("a missing required group is named in the waiter's language (F4b)", () {
+    const size = DraftGroup(id: 'g-size', nameEn: 'Size', nameAm: 'መጠን', minChoices: 1, maxChoices: 1);
+    expect(missingChoices(const [size], const [], lang: 'am'), ['መጠን']);
+    expect(missingChoices(const [size], const []), ['Size']);
+  });
 }

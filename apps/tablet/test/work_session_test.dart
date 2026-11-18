@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'dart:convert';
 
 import 'package:cafe_tablet/alerts/keep_alive.dart';
@@ -33,6 +35,7 @@ Map<String, dynamic> tablesJson(String state) => {
 class _Server {
   String itemName = 'Shiro';
   String tableState = 'free';
+  String? cafeLanguage;
   bool offline = false;
   int menuDownloads = 0;
   int tableDownloads = 0;
@@ -58,7 +61,7 @@ class _Server {
               tableDownloads++;
               return http.Response(jsonEncode(tablesJson(tableState)), 200);
             case '/staff':
-              return http.Response(jsonEncode({'staff': [{'id': 'hana', 'name': 'Hana', 'role': 'waiter'}]}), 200);
+              return http.Response(jsonEncode({'staff': [{'id': 'hana', 'name': 'Hana', 'role': 'waiter'}], 'language': cafeLanguage}), 200);
             case '/tickets':
               ticketDownloads++;
               return http.Response(jsonEncode({'tickets': tickets, 'seq': ticketSeq}), 200);
@@ -506,6 +509,94 @@ void main() {
       addTearDown(session.stop);
 
       expect(keepAlive.starts, 0);
+    });
+  });
+  test('a download stores the café language (F4b)', () async {
+    server.cafeLanguage = 'am';
+    await start([FakeSocket()]);
+
+    expect(await db.watchCafeLanguage().first, 'am');
+  });
+
+
+  group("a waiter's own language (F4b)", () {
+    Future<(WorkSession, AppDatabase, FakeServer)> waiterSession({required Future<void> Function(Duration) delay, required FakeServer server_}) async {
+      final database = memoryDb();
+      final session = WorkSession(
+        api: server.api(),
+        db: database,
+        device: waiter,
+        deviceToken: 't',
+        sessionToken: 's',
+        userId: 'hana',
+        connect: server_.connect,
+        delay: delay,
+      );
+      addTearDown(() async {
+        await session.stop();
+        await database.close();
+      });
+      await session.start();
+      await settle();
+      return (session, database, server_);
+    }
+
+    test('online: the choice is sent, and the answer clears "to send"', () async {
+      final socket = FakeSocket();
+      final (session, database, _) = await waiterSession(delay: (_) async {}, server_: FakeServer([socket]));
+
+      final done = session.setMyLanguage('am');
+      await settle();
+      final sent = socket.sent.lastWhere((m) => m['type'] == 'staff.language');
+      expect(sent['language'], 'am');
+      expect(await database.watchMyLanguage('hana').first, (language: 'am', pending: true));
+
+      socket.receive({'type': 'ack', 'idempotencyKey': sent['idempotencyKey'], 'result': {'ok': true, 'language': 'am'}});
+      await done;
+      await settle();
+      expect(await database.watchMyLanguage('hana').first, (language: 'am', pending: false));
+    });
+
+    test('two quick taps: the first answer never brings back the first choice', () async {
+      final socket = FakeSocket();
+      final (session, database, _) = await waiterSession(delay: (_) async {}, server_: FakeServer([socket]));
+
+      unawaited(session.setMyLanguage('am'));
+      await settle();
+      final first = socket.sent.lastWhere((m) => m['type'] == 'staff.language');
+      // The answer to 'am' arrives while the waiter already taps EN.
+      socket.receive({'type': 'ack', 'idempotencyKey': first['idempotencyKey'], 'result': {'ok': true, 'language': 'am'}});
+      unawaited(session.setMyLanguage('en'));
+      await settle();
+
+      expect(await database.watchMyLanguage('hana').first, (language: 'en', pending: true));
+      final second = socket.sent.lastWhere((m) => m['type'] == 'staff.language' && m['language'] == 'en');
+      socket.receive({'type': 'ack', 'idempotencyKey': second['idempotencyKey'], 'result': {'ok': true, 'language': 'en'}});
+      await settle();
+      expect(await database.watchMyLanguage('hana').first, (language: 'en', pending: false));
+    });
+
+    test('offline: the choice is kept, and sent after reconnecting', () async {
+      final socket = FakeSocket();
+      final back = Completer<void>(); // the connection comes back when this completes
+      final fake = FakeServer([socket])..failNextWith = Exception('no route');
+      final (session, database, _) = await waiterSession(delay: (_) => back.future, server_: fake);
+
+      await session.setMyLanguage('am');
+      await settle();
+      expect(socket.sent.where((m) => m['type'] == 'staff.language'), isEmpty);
+      expect(await database.watchMyLanguage('hana').first, (language: 'am', pending: true));
+
+      back.complete();
+      await settle();
+      socket.receive({'type': 'sync.result', 'events': <Object>[], 'reloadRequired': false, 'serverNow': 1});
+      await settle();
+
+      final sent = socket.sent.lastWhere((m) => m['type'] == 'staff.language');
+      expect(sent['language'], 'am');
+      socket.receive({'type': 'ack', 'idempotencyKey': sent['idempotencyKey'], 'result': {'ok': true, 'language': 'am'}});
+      await settle();
+      expect(await database.watchMyLanguage('hana').first, (language: 'am', pending: false));
     });
   });
 }

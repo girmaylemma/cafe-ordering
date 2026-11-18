@@ -7,6 +7,7 @@
  */
 import type { Actor, Command, ItemEventType, ItemState } from "../domain/itemState";
 import type { ItemCommandResult } from "./items";
+import { isLanguage, type Language, type LanguageResult } from "./language";
 import type { SoldOutResult, TableState } from "./live";
 import type { OrderSendResult, SessionCloseResult, SessionOpenResult } from "./orders";
 import type { SessionActionResult } from "./tableMoves";
@@ -85,6 +86,8 @@ export type ClientMessage =
   | { type: "session.transfer"; idempotencyKey: string; sessionId: string; toWaiterId: string }
   /** A kitchen/bar tablet marks one of its items sold out or back in stock (K-05). */
   | { type: "menu.sold_out"; idempotencyKey: string; menuItemId: string; soldOut: boolean }
+  /** A signed-in waiter sets their own language (F4b); null = follow the café's. */
+  | { type: "staff.language"; idempotencyKey: string; language: Language | null }
   /** "Send me every event after `since`" (after a reconnect). */
   | { type: "sync"; since: number };
 
@@ -106,7 +109,7 @@ export interface WireEvent {
   details?: Record<string, unknown>;
 }
 
-export type CommandResult = ItemCommandResult | SessionOpenResult | SessionCloseResult | OrderSendResult | SoldOutResult | SessionActionResult;
+export type CommandResult = ItemCommandResult | SessionOpenResult | SessionCloseResult | OrderSendResult | SoldOutResult | SessionActionResult | LanguageResult;
 
 export type ProtocolError =
   | "INVALID_MESSAGE"
@@ -197,6 +200,11 @@ function parseMessage(data: Record<string, unknown>): ClientMessage | null {
       const { idempotencyKey, menuItemId, soldOut } = data;
       if (!isId(idempotencyKey) || !isId(menuItemId) || typeof soldOut !== "boolean") return null;
       return { type: "menu.sold_out", idempotencyKey, menuItemId, soldOut };
+    }
+    case "staff.language": {
+      const { idempotencyKey, language } = data;
+      if (!isId(idempotencyKey) || !(language === null || isLanguage(language))) return null;
+      return { type: "staff.language", idempotencyKey, language };
     }
     case "sync": {
       const { since } = data;

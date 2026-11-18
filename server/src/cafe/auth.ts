@@ -7,6 +7,7 @@
  */
 import { timingSafeEqualText } from "../auth/crypto";
 import { insertEvent } from "./events";
+import type { Language } from "./language";
 
 export const MAX_PIN_ATTEMPTS = 5;
 export const LOCKOUT_MS = 5 * 60_000;
@@ -59,7 +60,7 @@ export function findLiveSession(sql: SqlStorage, sessionHash: string, deviceId: 
 }
 
 export type SignInResult =
-  | { ok: true; sessionToken: string; user: { id: string; name: string; role: StaffRole }; expiresAt: number }
+  | { ok: true; sessionToken: string; user: { id: string; name: string; role: StaffRole; language: Language | null }; expiresAt: number }
   | { ok: false; error: "UNAUTHORIZED_DEVICE" | "NOT_A_WAITER_DEVICE" | "INVALID_CREDENTIALS" }
   | { ok: false; error: "LOCKED"; retryAfterMs: number };
 
@@ -71,13 +72,14 @@ type StaffRow = {
   failed_pin_attempts: number;
   locked_until: number | null;
   active: number;
+  language: Language | null;
 };
 
 const ALL_ROLES: readonly StaffRole[] = ["waiter", "manager", "owner"];
 const APPROVER_ROLES: readonly StaffRole[] = ["manager", "owner"];
 
 export type PinCheck =
-  | { ok: true; user: { id: string; name: string; role: StaffRole } }
+  | { ok: true; user: { id: string; name: string; role: StaffRole; language: Language | null } }
   | { ok: false; error: "INVALID" }
   | { ok: false; error: "LOCKED"; retryAfterMs: number };
 
@@ -95,7 +97,7 @@ export function checkPin(
   const { userId, computedHash, now } = p;
   const user = sql
     .exec<StaffRow>(
-      `SELECT id, name, role, pin_hash, failed_pin_attempts, locked_until, active
+      `SELECT id, name, role, pin_hash, failed_pin_attempts, locked_until, active, language
          FROM staff WHERE id = ? AND venue_id = ?`,
       userId,
       p.venueId,
@@ -112,7 +114,7 @@ export function checkPin(
 
   if (timingSafeEqualText(computedHash, user.pin_hash)) {
     sql.exec("UPDATE staff SET failed_pin_attempts = 0, locked_until = NULL WHERE id = ?", user.id);
-    return { ok: true, user: { id: user.id, name: user.name, role: user.role } };
+    return { ok: true, user: { id: user.id, name: user.name, role: user.role, language: user.language } };
   }
 
   // A lock that has run out starts a fresh count.

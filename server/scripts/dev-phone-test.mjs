@@ -115,15 +115,17 @@ for (const [name, role, pin] of [["Hana", "waiter", "1234"], ["Meron", "manager"
 }
 console.log("✓ Staff: Hana (waiter, PIN 1234), Meron (manager, PIN 246810)");
 
+// Amharic names too (F4b), so both names show; added to an existing test café when missing.
 let food = (await admin("GET", "/categories")).categories.find((c) => c.nameEn === "Food");
-food ??= (await admin("POST", "/categories", { nameEn: "Food", sortOrder: 0 })).category;
+food ??= (await admin("POST", "/categories", { nameEn: "Food", nameAm: "ምግብ", sortOrder: 0 })).category;
+if (!food.nameAm) await admin("PATCH", `/categories/${food.id}`, { nameAm: "ምግብ" });
 const items = (await admin("GET", "/menu-items")).items;
-for (const [i, [nameEn, price]] of [["Shiro", "180"], ["Tibs", "320"], ["Firfir", "150"]].entries()) {
-  if (!items.some((m) => m.nameEn === nameEn)) {
-    await admin("POST", "/menu-items", { categoryId: food.id, nameEn, price, stationId: "kitchen", fasting: false, sortOrder: i });
-  }
+for (const [i, [nameEn, nameAm, price]] of [["Shiro", "ሽሮ", "180"], ["Tibs", "ጥብስ", "320"], ["Firfir", "ፍርፍር", "150"]].entries()) {
+  const existing = items.find((m) => m.nameEn === nameEn);
+  if (!existing) await admin("POST", "/menu-items", { categoryId: food.id, nameEn, nameAm, price, stationId: "kitchen", fasting: false, sortOrder: i });
+  else if (!existing.nameAm) await admin("PATCH", `/menu-items/${existing.id}`, { nameAm });
 }
-console.log("✓ Menu: Shiro, Tibs, Firfir (kitchen)");
+console.log("✓ Menu: Shiro ሽሮ, Tibs ጥብስ, Firfir ፍርፍር (kitchen)");
 
 const tables = (await admin("GET", "/tables")).tables;
 for (const [i, name] of ["Table 1", "Table 2", "Table 3"].entries()) {

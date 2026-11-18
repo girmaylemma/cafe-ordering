@@ -542,4 +542,48 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> setLastSeq(int seq) => into(keyValues).insertOnConflictUpdate(KeyValuesCompanion.insert(key: 'last_seq', value: '$seq'));
+
+  // ---------- languages (F4b) ----------
+
+  Stream<String?> _watchValue(String key) =>
+      (select(keyValues)..where((k) => k.key.equals(key))).watchSingleOrNull().map((row) => row?.value);
+  Future<void> _setValue(String key, String? value) => value == null
+      ? (delete(keyValues)..where((k) => k.key.equals(key))).go()
+      : into(keyValues).insertOnConflictUpdate(KeyValuesCompanion.insert(key: key, value: value));
+
+  /// The café's language from the last /staff download ('am' or 'en'); null before the first.
+  Stream<String?> watchCafeLanguage() => _watchValue('cafe_language');
+  Future<void> setCafeLanguage(String language) => _setValue('cafe_language', language);
+
+  /// A kitchen or bar tablet's own choice (stored on the tablet only).
+  Stream<String?> watchKitchenLanguage() => _watchValue('kitchen_language');
+  Future<void> setKitchenLanguage(String language) => _setValue('kitchen_language', language);
+
+  /// A waiter's own choice as this tablet knows it, and whether it still has to reach the server.
+  Stream<({String? language, bool pending})> watchMyLanguage(String userId) =>
+      (select(keyValues)..where((k) => k.key.isIn(['my_language:$userId', 'my_language_pending:$userId']))).watch().map((rows) {
+        final values = {for (final r in rows) r.key: r.value};
+        return (language: values['my_language:$userId'], pending: values['my_language_pending:$userId'] == '1');
+      });
+
+  Future<void> setMyLanguage(String userId, String? language, {required bool pending}) => transaction(() async {
+        await _setValue('my_language:$userId', language);
+        await _setValue('my_language_pending:$userId', pending ? '1' : null);
+      });
+
+  /// The server confirmed `language`: clear "to send" ONLY if that is still the stored choice, in
+  /// one transaction, and never rewrite the choice (a newer tap may have replaced it meanwhile).
+  Future<void> confirmMyLanguage(String userId, String? language) => transaction(() async {
+        final stored = await (select(keyValues)..where((k) => k.key.equals('my_language:$userId'))).getSingleOrNull();
+        if (stored?.value == language) await _setValue('my_language_pending:$userId', null);
+      });
+
+  /// Choices made offline that the server has not confirmed yet: (userId, language).
+  Future<List<(String, String?)>> pendingLanguages() async {
+    final pending = await (select(keyValues)..where((k) => k.key.like('my_language_pending:%'))).get();
+    return [
+      for (final p in pending)
+        (p.key.substring('my_language_pending:'.length), (await (select(keyValues)..where((k) => k.key.equals('my_language:${p.key.substring('my_language_pending:'.length)}'))).getSingleOrNull())?.value),
+    ];
+  }
 }

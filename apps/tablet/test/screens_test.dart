@@ -4,8 +4,10 @@ import 'package:cafe_tablet/api/api_client.dart';
 import 'package:cafe_tablet/app.dart';
 import 'package:cafe_tablet/auth/auth_controller.dart';
 import 'package:cafe_tablet/auth/credentials.dart';
+import 'package:cafe_tablet/data/database.dart';
 import 'package:cafe_tablet/providers.dart';
 import 'package:cafe_tablet/session/providers.dart';
+import 'package:cafe_tablet/session/work_session.dart';
 import 'package:cafe_tablet/ui/kitchen_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -30,14 +32,14 @@ ApiClient fakeApi(Map<String, (int, Object) Function(Map<String, dynamic>)> rout
       Uri.parse('http://server'),
     );
 
-Future<void> pumpApp(WidgetTester tester, ApiClient api, MemoryCredentialStore store, {List<Override> extra = const []}) async {
+Future<void> pumpApp(WidgetTester tester, ApiClient api, MemoryCredentialStore store, {List<Override> extra = const [], AppDatabase? db, WorkSession? work}) async {
   await tester.pumpWidget(ProviderScope(
     overrides: [
       apiClientProvider.overrideWithValue(api),
       credentialStoreProvider.overrideWithValue(store),
-      databaseProvider.overrideWithValue(memoryDb()),
-      // No real WebSocket in widget tests: the floor map's live session is tested in floor_map_test.dart.
-      workSessionProvider.overrideWith((ref) async => null),
+      databaseProvider.overrideWithValue(db ?? memoryDb()),
+      // No real WebSocket unless a test passes a session (with a fake socket).
+      workSessionProvider.overrideWith((ref) async => work),
       ...extra,
     ],
     child: const CafeApp(),
@@ -64,6 +66,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Who are you?'), findsOneWidget);
     expect(find.text('Hana'), findsOneWidget);
+    await unmountAndFlush(tester); // the app watches stored languages (F4b): close drift streams
   });
 
   testWidgets('PIN sign-in: pick your name, type the PIN, and you are signed in', (tester) async {
@@ -87,6 +90,7 @@ void main() {
 
     await tester.enterText(find.byKey(const Key('pin')), '1234');
     await tester.tap(find.text('Sign in'));
+    await tester.runAsync(settle); // sign-in also reads and saves the waiter's language (F4b): real database time
     await tester.pumpAndSettle();
     // Signed in: the floor map, titled with the waiter's name.
     expect(find.widgetWithText(AppBar, 'Hana'), findsOneWidget);
@@ -109,6 +113,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Locked for 4 minutes'), findsOneWidget);
+    await unmountAndFlush(tester); // the app watches stored languages (F4b): close drift streams
   });
 
   testWidgets('a kitchen tablet goes straight to the kitchen screen (no PIN)', (tester) async {

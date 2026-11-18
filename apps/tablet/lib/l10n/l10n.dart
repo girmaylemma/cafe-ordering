@@ -3,11 +3,11 @@
 library;
 
 import 'package:flutter/widgets.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app_localizations.dart';
 
 export 'app_localizations.dart';
+export 'language.dart' show appLocaleProvider, appTextsProvider, languageTexts, resolveLanguage, supportedLanguages;
 
 extension L10n on BuildContext {
   AppLocalizations get l10n => AppLocalizations.of(this);
@@ -15,9 +15,6 @@ extension L10n on BuildContext {
 
 /// English texts, for code that runs without a screen (until F4b chooses the language).
 AppLocalizations englishTexts() => lookupAppLocalizations(const Locale('en'));
-
-/// The app's language. English for now; F4b decides it from the café default and the person's choice.
-final appLocaleProvider = Provider<Locale>((ref) => const Locale('en'));
 
 /// The bundled font for Ethiopic letters (pubspec.yaml `fonts:`), used as a fallback only.
 const ethiopicFont = 'NotoSansEthiopic';

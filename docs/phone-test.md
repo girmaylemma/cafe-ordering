@@ -46,7 +46,7 @@ You do **not** need to type commands. You double-click one file.
 ### Only if the app is not on the phone yet, or your PC's address changed
 
 The app must know your PC's address. In the KITCHEN window, look at the line under
-"Build the app for this PC". If it says `http://192.168.1.3:8787`, the app built on 17 Nov is
+"Build the app for this PC". If it says `http://192.168.1.6:8787`, the app built on 18 Nov is
 correct: skip to "Open the app" below. If the address is different, ask Claude to rebuild it.
 
 To copy the app to the phone:
@@ -210,6 +210,23 @@ Every step below starts with **where** you do it. Tick each box. If something is
 Write down for Claude:
 1. The **KITCHEN device's brand and model** (Settings → About phone).
 2. Which steps did **not** match "✅ You should see" (for example "9.4: no ring"), and what you saw instead.
+
+---
+
+## Part 5: Try Amharic (one phone is enough)
+
+| # | Where | Do | ✅ You should see |
+|---|---|---|---|
+| 5.1 | PHONE | Signed in as Hana, on the tables screen: tap **አማ** (top right) | at once, every text is Amharic; the button now says **EN** |
+| 5.2 | PHONE | Tap a table → **Add items** (ትዕዛዝ ጨምር) → the **ምግብ** tab | dishes show **ሽሮ** big with **Shiro** small under it |
+| 5.3 | PHONE | Send a dish. KITCHEN window: `a N`, then `r N` | the alert is in Amharic, e.g. "Table 1 — ዝግጁ ነው፦ 1× ሽሮ (Shiro)" |
+| 5.4 | PHONE | Sign out (top right), sign in again as Hana | still Amharic (your choice was saved on the server) |
+| 5.5 | PHONE | Wi-Fi **off**, tap **EN**, Wi-Fi **on** | switches to English at once, even offline |
+| 5.6 | PHONE | Sign out | the PIN screen is in the café's language (English for now) |
+| 5.7 | KITCHEN device (if you have one) | Tap **አማ** on the kitchen screen | the kitchen screen is Amharic; the waiter's phone is not affected |
+
+📝 While you look: write down any Amharic that sounds wrong or unnatural. You will review all
+texts in F4d, but notes from real use are the most useful.
 
 ---
 
