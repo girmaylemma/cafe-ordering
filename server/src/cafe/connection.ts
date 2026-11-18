@@ -11,8 +11,12 @@ import { isId, type WireEvent } from "./protocol";
 export type ConnectionIdentity =
   /** A kitchen or bar tablet. Acts as the station (D-25). */
   | { role: "station"; venueId: string; deviceId: string; stationId: string }
-  /** A waiter (or manager) signed in on a tablet. */
-  | { role: "staff"; venueId: string; deviceId: string; userId: string }
+  /**
+   * A waiter (or manager) signed in on a tablet. `manager`: an active manager or owner, decided at
+   * connect time (roles never change; deactivating closes the socket). Such a tablet sees every
+   * open table (D-78). Missing on sockets accepted before this field existed: treated as false.
+   */
+  | { role: "staff"; venueId: string; deviceId: string; userId: string; manager?: boolean }
   /** The manager/owner live view in the dashboard. Read-only. */
   | { role: "live"; venueId: string; userId: string };
 
@@ -40,7 +44,8 @@ export function tagsFor(identity: ConnectionIdentity): string[] {
       return [`station:${identity.stationId}`, `device:${identity.deviceId}`];
     case "staff":
       // "waiters": sold-out and table-state pushes reach every waiter's menu and floor map (3b).
-      return [`waiter:${identity.userId}`, `device:${identity.deviceId}`, "waiters"];
+      // "managers": item events of every table, for a manager acting on any table (D-78).
+      return [`waiter:${identity.userId}`, `device:${identity.deviceId}`, "waiters", ...(identity.manager === true ? ["managers"] : [])];
     case "live":
       return ["live"];
   }
@@ -59,12 +64,13 @@ export function actorFor(identity: ConnectionIdentity): Actor | null {
 }
 
 /**
- * Which tags receive an item event: its station, the live view, and the table's CURRENT
- * waiter (not necessarily who placed the round, D-06). `currentWaiterId` is null for an
- * item that has no table session.
+ * Which tags receive an item event: its station, the live view, the table's CURRENT waiter (not
+ * necessarily who placed the round, D-06) and the managers' tablets (D-78; they don't ring for it:
+ * the app alerts only the table's own waiter). `currentWaiterId` is null for an item that has no
+ * table session. One socket can carry several of these tags: the sender sends once per socket.
  */
 export function recipientsFor(event: WireEvent, currentWaiterId: string | null): string[] {
   const tags = [`station:${event.stationId}`, "live"];
-  if (currentWaiterId !== null) tags.push(`waiter:${currentWaiterId}`);
+  if (currentWaiterId !== null) tags.push(`waiter:${currentWaiterId}`, "managers");
   return tags;
 }

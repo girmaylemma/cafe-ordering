@@ -19,8 +19,11 @@ export interface WaiterLine {
   details: string;
 }
 
-/** Every line of every open visit this waiter holds, oldest round first, finished lines included. */
-export function waiterLines(sql: SqlStorage, venueId: string, waiterId: string): { lines: WaiterLine[]; seq: number } {
+/**
+ * Every line of every open visit this waiter holds, oldest round first, finished lines included.
+ * `waiterId` null: every open visit (a manager's tablet, D-78).
+ */
+export function waiterLines(sql: SqlStorage, venueId: string, waiterId: string | null): { lines: WaiterLine[]; seq: number } {
   const rows = sql
     .exec<{ id: string; order_id: string; state: string; received_at: number; table_id: string; price_santim: number; details: string }>(
       `SELECT i.id, i.order_id, i.state, o.received_at, s.table_id, i.price_santim, e.details
@@ -28,9 +31,10 @@ export function waiterLines(sql: SqlStorage, venueId: string, waiterId: string):
          JOIN orders o ON o.id = i.order_id
          JOIN table_sessions s ON s.id = o.session_id
          JOIN order_events e ON e.order_item_id = i.id AND e.type = 'item.sent'
-        WHERE i.venue_id = ? AND s.status = 'open' AND s.waiter_id = ?
+        WHERE i.venue_id = ? AND s.status = 'open' AND (? IS NULL OR s.waiter_id = ?)
         ORDER BY o.received_at, i.order_id, i.rowid`,
       venueId,
+      waiterId,
       waiterId,
     )
     .toArray();

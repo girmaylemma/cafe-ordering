@@ -6,6 +6,7 @@ import 'package:cafe_tablet/providers.dart';
 import 'package:cafe_tablet/session/providers.dart';
 import 'package:cafe_tablet/session/work_session.dart';
 import 'package:cafe_tablet/ui/floor_map_screen.dart';
+import 'package:cafe_tablet/ui/table_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -38,7 +39,7 @@ ApiClient api() => ApiClient(
     );
 
 /// The floor map with a work session that is online ([socket] given) or offline (none).
-Future<(AppDatabase, FakeSocket?)> pumpFloor(WidgetTester tester, {required bool online}) async {
+Future<(AppDatabase, FakeSocket?)> pumpFloor(WidgetTester tester, {required bool online, StaffMember user = hana}) async {
   final db = memoryDb();
   final socket = online ? FakeSocket() : null;
   final session = WorkSession(
@@ -64,7 +65,7 @@ Future<(AppDatabase, FakeSocket?)> pumpFloor(WidgetTester tester, {required bool
       databaseProvider.overrideWithValue(db),
       workSessionProvider.overrideWith((ref) async => session),
     ],
-    child: localizedApp(home: const FloorMapScreen(user: hana)),
+    child: localizedApp(home: FloorMapScreen(user: user)),
   ));
   await tester.runAsync(settle);
   await tester.pumpAndSettle();
@@ -148,7 +149,22 @@ void main() {
 
     expect(find.text('Open table'), findsNothing);
     expect(find.textContaining('Meron'), findsWidgets);
+    expect(find.byType(TableScreen), findsNothing);
 
     await unmountAndFlush(tester);
   });
+
+  for (final role in ['manager', 'owner']) {
+    testWidgets("a signed-in $role opens another waiter's table (D-78)", (tester) async {
+      await pumpFloor(tester, online: true, user: StaffMember(id: 'boss', name: 'Boss', role: role));
+
+      await tester.tap(find.byKey(const Key('table-t3')));
+      await tester.runAsync(settle);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TableScreen), findsOneWidget);
+
+      await unmountAndFlush(tester);
+    });
+  }
 }

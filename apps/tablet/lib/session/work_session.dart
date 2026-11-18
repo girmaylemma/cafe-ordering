@@ -104,6 +104,9 @@ class WorkSession {
     outbox.start();
     connection.start();
     await refresh(); // offline: fails quietly and the last downloaded data stays
+    // Catch-up brings only what came after this tablet last listened: a person signing in here
+    // (e.g. a manager seeing every table, D-78) needs their tables' lines as they are now.
+    if (device.kind == DeviceKind.waiter) await _reloadLines();
   }
 
   Future<void> stop() async {

@@ -6,6 +6,7 @@ import {
   completeSignIn,
   findLiveSession,
   findPairedDevice,
+  isManagerHere,
   isValidPin,
   type SignInResult,
   type StaffRole,
@@ -396,7 +397,8 @@ export class CafeDO extends DurableObject<Env> {
     if (device.kind !== "waiter") return { ok: false, error: "NOT_A_WAITER_DEVICE" };
     const session = findLiveSession(sql, sessionHash, device.id, Date.now());
     if (session === null) return { ok: false, error: "SESSION_ENDED" };
-    return { ok: true, ...waiterLines(sql, device.venue_id, session.userId) };
+    const everyTable = isManagerHere(sql, device.venue_id, session.userId); // D-78
+    return { ok: true, ...waiterLines(sql, device.venue_id, everyTable ? null : session.userId) };
   }
 
   /** Run a dashboard action as `actorId`, who must be an active manager or owner here. One synchronous step. */
@@ -661,7 +663,13 @@ export class CafeDO extends DurableObject<Env> {
     const session = findLiveSession(sql, sessionHash, device.id, Date.now());
     if (session === null) return null;
     return {
-      identity: { role: "staff", venueId: device.venue_id, deviceId: device.id, userId: session.userId },
+      identity: {
+        role: "staff",
+        venueId: device.venue_id,
+        deviceId: device.id,
+        userId: session.userId,
+        manager: isManagerHere(sql, device.venue_id, session.userId),
+      },
       deviceTokenHash,
       sessionHash,
     };
@@ -767,13 +775,13 @@ export class CafeDO extends DurableObject<Env> {
   #push(events: WireEvent[]): void {
     for (const event of events) {
       const message = JSON.stringify({ type: "event", event } satisfies ServerMessage);
-      for (const tag of recipientsFor(event, this.#currentWaiterOf(event.itemId))) {
-        for (const ws of this.ctx.getWebSockets(tag)) {
-          try {
-            ws.send(message);
-          } catch {
-            // A socket that is closing; that tablet will catch up with "sync" when it reconnects.
-          }
+      // A manager holding the table carries two of the tags: send once per socket.
+      const sockets = new Set(recipientsFor(event, this.#currentWaiterOf(event.itemId)).flatMap((tag) => this.ctx.getWebSockets(tag)));
+      for (const ws of sockets) {
+        try {
+          ws.send(message);
+        } catch {
+          // A socket that is closing; that tablet will catch up with "sync" when it reconnects.
         }
       }
     }
@@ -819,10 +827,14 @@ export class CafeDO extends DurableObject<Env> {
         bindings.push(identity.stationId);
         break;
       case "staff":
-        // Only the tables this waiter holds right now.
+        // Only the tables this waiter holds right now; a manager's tablet, every open table (D-78).
         join = "JOIN orders o ON o.id = i.order_id JOIN table_sessions s ON s.id = o.session_id";
-        filter = "AND s.status = 'open' AND s.waiter_id = ?";
-        bindings.push(identity.userId);
+        if (identity.manager === true) {
+          filter = "AND s.status = 'open'";
+        } else {
+          filter = "AND s.status = 'open' AND s.waiter_id = ?";
+          bindings.push(identity.userId);
+        }
         break;
       case "live":
         break;
