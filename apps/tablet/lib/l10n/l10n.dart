@@ -8,7 +8,7 @@ import 'app_localizations.dart';
 import 'fallback_localizations.dart';
 
 export 'app_localizations.dart';
-export 'language.dart' show appLocaleProvider, appTextsProvider, languageTexts, resolveLanguage, supportedLanguages;
+export 'language.dart' show appLocaleProvider, appTextsProvider, languageNames, languageShortNames, languageTexts, resolveLanguage, supportedLanguages;
 
 extension L10n on BuildContext {
   AppLocalizations get l10n => AppLocalizations.of(this);
