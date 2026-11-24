@@ -75,6 +75,10 @@ export async function handleAdmin(request: Request, env: Env): Promise<Response>
   switch (route) {
     case "GET /me":
       return respond(await cafe.adminMe(me));
+    case "GET /venue":
+      return respond(await cafe.adminGetVenue(me));
+    case "PATCH /venue":
+      return respond(await cafe.adminSetVenueLanguage(me, b.language));
     case "GET /staff":
       return respond(await cafe.adminListStaff(me));
     case "POST /staff":

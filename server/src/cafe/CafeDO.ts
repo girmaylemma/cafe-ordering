@@ -49,7 +49,7 @@ import { closeSession, openSession, sendOrder } from "./orders";
 import { mergeSession, moveSession, transferSession } from "./tableMoves";
 import { waiterLines } from "./lines";
 import { stationTickets } from "./tickets";
-import { cafeLanguage, setStaffLanguage, type Language } from "./language";
+import { cafeLanguage, isLanguage, setStaffLanguage, type Language } from "./language";
 import {
   isId,
   MAX_CATCH_UP_EVENTS,
@@ -200,6 +200,35 @@ export class CafeDO extends DurableObject<Env> {
     if (actor === null) return fail("FORBIDDEN");
     const name = this.ctx.storage.sql.exec<{ name: string }>("SELECT name FROM venue WHERE id = ?", actor.venue_id).toArray()[0]?.name ?? null;
     return { ok: true, user: { id: actor.id, name: actor.name, role: actor.role, email: actor.email }, venue: { id: actor.venue_id, name } };
+  }
+
+  /** The café's name and language (F4c). A café made before the installer has no venue row: NOT_FOUND. */
+  adminGetVenue(actorId: string): AdminResult<{ venue: { id: string; name: string; language: Language } }> {
+    const actor = findAdmin(this.ctx.storage.sql, actorId);
+    if (actor === null) return fail("FORBIDDEN");
+    const row = this.ctx.storage.sql
+      .exec<{ id: string; name: string; language: string }>("SELECT id, name, lang AS language FROM venue WHERE id = ?", actor.venue_id)
+      .toArray()[0];
+    if (row === undefined) return fail("NOT_FOUND");
+    return { ok: true, venue: { id: row.id, name: row.name, language: isLanguage(row.language) ? row.language : "en" } };
+  }
+
+  /**
+   * A manager or owner sets the café's language (F4c). Tablets pick it up at their next /staff
+   * download (start or reconnect); no live push for a setting changed a few times a year.
+   */
+  adminSetVenueLanguage(actorId: string, language: unknown): AdminResult<{ venue: { id: string; name: string; language: Language } }> {
+    const sql = this.ctx.storage.sql;
+    const actor = findAdmin(sql, actorId);
+    if (actor === null) return fail("FORBIDDEN");
+    if (!isLanguage(language)) return fail("INVALID_INPUT");
+    const before = this.adminGetVenue(actorId);
+    if (!before.ok) return before;
+    if (before.venue.language !== language) {
+      sql.exec("UPDATE venue SET lang = ? WHERE id = ?", language, actor.venue_id);
+      audit(sql, actor, "venue.language_changed", { from: before.venue.language, to: language });
+    }
+    return { ok: true, venue: { ...before.venue, language } };
   }
 
   adminListStaff(actorId: string): AdminResult<{ staff: ReturnType<typeof listStaff> }> {
