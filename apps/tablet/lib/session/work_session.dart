@@ -127,6 +127,7 @@ class WorkSession {
       final menu = await _api.menu(_deviceToken);
       final tables = await _api.tables(_deviceToken);
       final staff = await _api.staff(_deviceToken);
+      final heldBefore = await _db.tableWaiters();
       await _db.replaceMenu(menu);
       await _db.replaceTables(tables['tables'] as List);
       _staff
@@ -135,6 +136,15 @@ class WorkSession {
       // A café language changed in the dashboard reaches the tablet here (start or reconnect).
       final cafeLanguage = staff.language;
       if (cafeLanguage != null) await _db.setCafeLanguage(cafeLanguage);
+      // Handed over to me while offline: the live notice was missed and catch-up brings only what
+      // came after this tablet last listened, so download the rounds sent before (as on a notice).
+      final me = _userId;
+      final handedToMe = me != null &&
+          (tables['tables'] as List).cast<Map<String, dynamic>>().any((t) {
+            final was = heldBefore[t['id']];
+            return t['waiterId'] == me && was != null && was != me;
+          });
+      if (handedToMe) await _reloadLines();
     } on NetworkException {
       // keep what we have; we'll try again when the connection is back
     } on ApiException catch (e) {
