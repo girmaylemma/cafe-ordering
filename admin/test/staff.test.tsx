@@ -22,6 +22,28 @@ describe("StaffPage", () => {
     expect(within(row("Hana")).getByText("Active")).toBeTruthy();
   });
 
+  it("F4c: shows each person's own language, or that they follow the café's", async () => {
+    fakeServer({
+      "GET /staff": [
+        200,
+        {
+          staff: [
+            { ...STAFF[0], language: null },
+            { ...STAFF[1], language: "om" },
+            { ...STAFF[2], language: "am" },
+          ],
+        },
+      ],
+    });
+    render(<StaffPage me={OWNER_ME} />);
+    await screen.findByText("Hana");
+
+    expect(screen.getByRole("columnheader", { name: "Language" })).toBeTruthy();
+    expect(within(row("Hana")).getByText("Amharic")).toBeTruthy();
+    expect(within(row("Meseret")).getByText("Afaan Oromoo")).toBeTruthy();
+    expect(within(row("Abebe")).getByText("Café default")).toBeTruthy();
+  });
+
   it("creates a staff member, sends only the fields the API expects, and reloads the list", async () => {
     let created = false;
     const server = fakeServer({
