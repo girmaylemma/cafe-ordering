@@ -6,6 +6,21 @@ import { ApiError } from "./api";
 
 export const roleLabel: Record<string, string> = { waiter: "Waiter", manager: "Manager", owner: "Owner" };
 export const stationLabel: Record<string, string> = { kitchen: "Kitchen", bar: "Bar" };
+/** A language as the staff list names it (F4c). */
+export const languageName: Record<string, string> = { en: "English", am: "Amharic", om: "Afaan Oromoo", ti: "Tigrinya" };
+
+/**
+ * The café-language choices: each in its own name too, so a manager finds theirs. Afaan Oromoo and
+ * Tigrinya texts are drafts until a native speaker reviews them (D-94): say so, so nobody picks
+ * them for a café without knowing.
+ */
+export const languageOption: Record<string, string> = {
+  en: "English",
+  am: "አማርኛ (Amharic)",
+  om: "Afaan Oromoo (Oromo) — draft, not reviewed yet",
+  ti: "ትግርኛ (Tigrinya) — draft, not reviewed yet",
+};
+
 export const deviceStatusLabel: Record<string, string> = { paired: "Paired", unpaired: "Not paired yet", revoked: "Revoked" };
 
 const errors: Record<string, string> = {

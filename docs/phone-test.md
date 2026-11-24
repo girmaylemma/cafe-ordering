@@ -213,20 +213,40 @@ Write down for Claude:
 
 ---
 
-## Part 5: Try Amharic (one phone is enough)
+## Part 5: Try the languages (one phone is enough)
+
+The language button (top right) shows the language you see now (**EN**, **አማ**, **OM**, **ትግ**).
+Tap it to get the list of all four: English, አማርኛ, Afaan Oromoo, ትግርኛ.
 
 | # | Where | Do | ✅ You should see |
 |---|---|---|---|
-| 5.1 | PHONE | Signed in as Hana, on the tables screen: tap **አማ** (top right) | at once, every text is Amharic; the button now says **EN** |
+| 5.1 | PHONE | Signed in as Hana, on the tables screen: tap **EN** (top right) → **አማርኛ** | at once, every text is Amharic; the button now says **አማ** |
 | 5.2 | PHONE | Tap a table → **Add items** (ትዕዛዝ ጨምር) → the **ምግብ** tab | dishes show **ሽሮ** big with **Shiro** small under it |
 | 5.3 | PHONE | Send a dish. KITCHEN window: `a N`, then `r N` | the alert is in Amharic, e.g. "Table 1 — ዝግጁ ነው፦ 1× ሽሮ (Shiro)" |
 | 5.4 | PHONE | Sign out (top right), sign in again as Hana | still Amharic (your choice was saved on the server) |
-| 5.5 | PHONE | Wi-Fi **off**, tap **EN**, Wi-Fi **on** | switches to English at once, even offline |
-| 5.6 | PHONE | Sign out | the PIN screen is in the café's language (English for now) |
-| 5.7 | KITCHEN device (if you have one) | Tap **አማ** on the kitchen screen | the kitchen screen is Amharic; the waiter's phone is not affected |
+| 5.5 | PHONE | Wi-Fi **off**, tap **አማ** → **English**, Wi-Fi **on** | switches to English at once, even offline |
+| 5.6 | PHONE | Sign out | the PIN screen is in the café's language (English, until Part 6 changes it) |
+| 5.7 | KITCHEN device (if you have one) | Tap **EN** → **አማርኛ** on the kitchen screen | the kitchen screen is Amharic; the waiter's phone is not affected |
+| 5.8 | PHONE | Tap the button → **Afaan Oromoo**, then → **ትግርኛ** | Oromo texts with **Shiro** first; Tigrinya texts with **ሽሮ** first (Oromo and Tigrinya texts are drafts) |
 
 📝 While you look: write down any Amharic that sounds wrong or unnatural. You will review all
 texts in F4d, but notes from real use are the most useful.
+
+## Part 6: The café language in the dashboard (F4c)
+
+Needs Part 1 running (the server window). The dashboard logs you in as the Dev Cafe owner.
+
+1. Open a **new** PowerShell window: `cd admin` then `npm run dev` (the first time: `npm ci` before it).
+2. On the PC, open http://localhost:5173/admin/#settings
+
+| # | Where | Do | ✅ You should see |
+|---|---|---|---|
+| 6.1 | PC | Settings page | **Café language: English**; the **Save** button is grey until you change it |
+| 6.2 | PC | Choose **አማርኛ (Amharic)** → **Save** | "Saved. Tablets switch the next time they start or reconnect." |
+| 6.3 | PHONE | Sign out | the PIN screen is in **Amharic** (the PIN screen downloads the café language each time it opens) |
+| 6.4 | PC | **Staff** tab | a **Language** column: Hana shows what she chose in Part 5; someone who never chose shows **Café default** |
+| 6.5 | PHONE | Sign in as someone who never chose a language (e.g. Abel) | the app is in Amharic (they follow the café) |
+| 6.6 | PC, then PHONE | Settings → back to **English** → Save; on the phone sign out | the PIN screen is English again |
 
 ---
 

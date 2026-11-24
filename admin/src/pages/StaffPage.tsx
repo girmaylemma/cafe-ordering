@@ -1,6 +1,6 @@
 import { useCallback, useState, type FormEvent } from "react";
 import { api } from "../api";
-import { errorMessage, roleLabel } from "../texts";
+import { errorMessage, languageName, roleLabel } from "../texts";
 import { canManage, type Me, type Role, type Staff } from "../types";
 import { useLoad } from "../useLoad";
 
@@ -66,6 +66,7 @@ export function StaffPage({ me }: { me: Me }) {
             <th>Name</th>
             <th>Role</th>
             <th>Email</th>
+            <th>Language</th>
             <th>Status</th>
             <th>Actions</th>
           </tr>
@@ -78,6 +79,8 @@ export function StaffPage({ me }: { me: Me }) {
                 <td>{s.name}</td>
                 <td>{roleLabel[s.role]}</td>
                 <td>{s.email ?? "—"}</td>
+                {/* Chosen by the person on the tablet; read-only here (F4c). */}
+                <td>{s.language == null ? "Café default" : (languageName[s.language] ?? s.language)}</td>
                 <td>{s.active ? "Active" : "Inactive"}</td>
                 <td className="actions">
                   {manageable && (

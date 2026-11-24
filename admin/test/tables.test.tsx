@@ -57,11 +57,11 @@ describe("TablesPage", () => {
 });
 
 describe("navigation", () => {
-  it("the dashboard has Menu, Options and Tables pages", async () => {
+  it("the dashboard has Menu, Options, Tables and (F4c) Settings pages", async () => {
     fakeServer({ "GET /me": [200, OWNER_ME], "GET /staff": [200, { staff: [] }] });
     render(<App />);
     await screen.findByText("Abebe Cafe");
     const nav = screen.getByRole("navigation");
-    expect(within(nav).getAllByRole("button").map((b) => b.textContent)).toEqual(["Staff", "Tablets", "Menu", "Options", "Tables"]);
+    expect(within(nav).getAllByRole("button").map((b) => b.textContent)).toEqual(["Staff", "Tablets", "Menu", "Options", "Tables", "Settings"]);
   });
 });

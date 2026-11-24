@@ -3,6 +3,7 @@ import { api, ApiError } from "./api";
 import { DevicesPage } from "./pages/DevicesPage";
 import { MenuPage } from "./pages/MenuPage";
 import { OptionsPage } from "./pages/OptionsPage";
+import { SettingsPage } from "./pages/SettingsPage";
 import { StaffPage } from "./pages/StaffPage";
 import { TablesPage } from "./pages/TablesPage";
 import { errorMessage, noAccessMessage, roleLabel } from "./texts";
@@ -15,6 +16,7 @@ const PAGES = [
   { id: "menu", label: "Menu" },
   { id: "options", label: "Options" },
   { id: "tables", label: "Tables" },
+  { id: "settings", label: "Settings" },
 ] as const;
 type PageId = (typeof PAGES)[number]["id"];
 
@@ -69,6 +71,7 @@ export function App() {
         {page === "menu" && <MenuPage me={me} />}
         {page === "options" && <OptionsPage me={me} />}
         {page === "tables" && <TablesPage me={me} />}
+        {page === "settings" && <SettingsPage me={me} />}
       </main>
     </>
   );

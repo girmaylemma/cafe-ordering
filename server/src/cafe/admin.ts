@@ -53,9 +53,13 @@ export function findStaff(sql: SqlStorage, venueId: string, id: string): StaffRo
 /** Staff for the dashboard: never any PIN data. */
 export function listStaff(sql: SqlStorage, venueId: string) {
   return sql
-    .exec<StaffRow>("SELECT id, name, role, email, active FROM staff WHERE venue_id = ? ORDER BY name, id", venueId)
+    .exec<StaffRow & { language: string | null }>(
+      "SELECT id, name, role, email, active, lang AS language FROM staff WHERE venue_id = ? ORDER BY name, id",
+      venueId,
+    )
     .toArray()
-    .map((s) => ({ id: s.id, name: s.name, role: s.role, email: s.email, active: s.active === 1 }));
+    // language: the person's own choice from the tablet (null = follows the café), shown read-only (F4c).
+    .map((s) => ({ id: s.id, name: s.name, role: s.role, email: s.email, active: s.active === 1, language: s.language }));
 }
 
 export type DeviceStatus = "unpaired" | "paired" | "revoked";

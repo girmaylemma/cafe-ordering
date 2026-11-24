@@ -13,6 +13,18 @@ export interface Staff {
   role: Role;
   email: string | null;
   active: boolean;
+  /** Chosen by the person on the tablet; null = follows the café (F4c, read-only here). Absent from older servers. */
+  language?: Language | null;
+}
+
+/** The tablet languages (F4e): English, Amharic, Afaan Oromoo, Tigrinya. */
+export const LANGUAGES = ["en", "am", "om", "ti"] as const;
+export type Language = (typeof LANGUAGES)[number];
+
+export interface Venue {
+  id: string;
+  name: string;
+  language: Language;
 }
 
 export type Station = "kitchen" | "bar";
