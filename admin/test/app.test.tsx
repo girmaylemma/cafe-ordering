@@ -48,4 +48,20 @@ describe("App shell", () => {
     await waitFor(() => expect(screen.getByRole("heading", { name: "Tablets" })).toBeTruthy());
     expect(window.location.hash).toBe("#tablets");
   });
+
+  it("has a Settings page (F4c) that shows the café language", async () => {
+    fakeServer({
+      "GET /me": [200, OWNER_ME],
+      "GET /staff": [200, { staff: [] }],
+      "GET /venue": [200, { venue: { id: "v-1", name: "Abebe Cafe", language: "en" } }],
+    });
+    render(<App />);
+    await screen.findByText("Abebe Cafe");
+
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Settings" })).toBeTruthy());
+    expect(await screen.findByLabelText("Café language")).toBeTruthy();
+    expect(window.location.hash).toBe("#settings");
+  });
 });
