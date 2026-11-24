@@ -31,6 +31,8 @@ describe("tags, actors and recipients", () => {
     expect(tagsFor(station)).toEqual(["station:kitchen", "device:d1"]);
     // "waiters": every waiter's floor map and menu get sold-out and table-state pushes (3b).
     expect(tagsFor(staff)).toEqual(["waiter:hana", "device:d2", "waiters"]);
+    // "managers": a manager's tablet gets every table's item events (D-78).
+    expect(tagsFor({ ...staff, userId: "meron", manager: true })).toEqual(["waiter:meron", "device:d2", "waiters", "managers"]);
     expect(tagsFor(live)).toEqual(["live"]);
   });
 
@@ -52,7 +54,7 @@ describe("tags, actors and recipients", () => {
       actor: { kind: "station", stationId: "bar", deviceId: "d9" },
       at: 0,
     };
-    expect(recipientsFor(event, "hana")).toEqual(["station:bar", "live", "waiter:hana"]);
+    expect(recipientsFor(event, "hana")).toEqual(["station:bar", "live", "waiter:hana", "managers"]);
     // An item with no table session (no current waiter) goes to the station and live view only.
     expect(recipientsFor(event, null)).toEqual(["station:bar", "live"]);
   });

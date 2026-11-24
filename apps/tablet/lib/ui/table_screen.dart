@@ -183,11 +183,11 @@ class TableScreen extends ConsumerWidget {
         command = into == null ? null : (c) => c.merge(sessionId, intoSessionId: into);
       case _TableAction.handOver:
         final work = await ref.read(workSessionProvider.future);
-        final me = ref.read(currentUserProvider);
+        // Everyone but the waiter holding it: me, or Hana when a manager acts on her table (D-78).
         final waiters = [
           if (work != null)
             for (final s in work.staff)
-              if (s.role == 'waiter' && s.id != me?.id) (s.id, s.name),
+              if (s.role == 'waiter' && s.id != table.waiterId) (s.id, s.name),
         ];
         final to = context.mounted ? await _pick(context, context.l10n.tableHandOverTo(table.name), waiters) : null;
         command = to == null ? null : (c) => c.handOver(sessionId, toWaiterId: to);

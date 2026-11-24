@@ -283,6 +283,12 @@ void main() {
       expect(output.rings, hasLength(1)); // the same tickets again: nothing new
     });
 
+    test('a kitchen tablet downloads no waiter lines at start', () async {
+      await kitchenSession();
+
+      expect(server.lineDownloads, 0);
+    });
+
     test('a waiter tablet never downloads tickets', () async {
       final socket = FakeSocket();
       await start([socket]);
@@ -304,6 +310,16 @@ void main() {
       await settle();
     }
 
+    test('at sign-in (start) it downloads its tables too: catch-up only brings what came after this tablet last listened', () async {
+      // A manager signing in on a phone that has been running must see the tables opened before (D-78).
+      server.lines = [downloadedLine('i2', 'accepted')];
+
+      await start([FakeSocket()]);
+
+      expect(server.lineDownloads, 1);
+      expect({for (final l in await db.select(db.orderLines).get()) l.id: l.state}, {'i2': 'accepted'});
+    });
+
     test('downloads the lines of its tables (with its PIN session) and shows their states now', () async {
       final socket = FakeSocket();
       await start([socket]);
@@ -323,7 +339,7 @@ void main() {
       await reload(socket);
 
       expect(await db.lastSeq(), 900);
-      expect(socket.sent.where((m) => m['type'] == 'sync').map((m) => m['since']), [0, 900]);
+      expect(socket.sent.where((m) => m['type'] == 'sync').map((m) => m['since']).last, 900);
     });
 
     test('offline during the download: nothing changes, and the next reconnect asks again', () async {
@@ -336,7 +352,7 @@ void main() {
       await reload(socket);
 
       expect(await db.lastSeq(), 0); // not advanced: the next catch-up is still too long, so it reloads again
-      expect(socket.sent.where((m) => m['type'] == 'sync').map((m) => m['since']), [0]);
+      expect(socket.sent.where((m) => m['type'] == 'sync').map((m) => m['since']), everyElement(0));
     });
 
     test('an ended PIN session ends access (back to the PIN screen)', () async {

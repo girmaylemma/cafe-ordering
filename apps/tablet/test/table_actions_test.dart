@@ -326,6 +326,18 @@ void main() {
       await answer(tester, socket);
       await unmountAndFlush(tester);
     });
+
+    testWidgets("a manager on Hana's table: offers the waiters except Hana, who holds it (D-78)", (tester) async {
+      final (_, socket) = await pumpTable(tester, [line('a')], user: meron);
+
+      await openMenu(tester, 'Hand over to…');
+      expect(find.descendant(of: find.byType(BottomSheet), matching: find.text('Hana')), findsNothing); // already hers
+      await tapText(tester, 'Abebe');
+
+      expect(lastCommand(socket!), containsPair('toWaiterId', 'abebe'));
+      await answer(tester, socket);
+      await unmountAndFlush(tester);
+    });
   });
 
   group('a round the server refused', () {
