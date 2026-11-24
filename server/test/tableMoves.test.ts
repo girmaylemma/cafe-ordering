@@ -180,7 +180,8 @@ describe("hand over a table", () => {
     expect(meronGot.filter((m) => m.type === "table.transferred")).toEqual([
       { type: "table.transferred", tableId: "table-7", sessionId: "s7", fromWaiterId: "hana" },
     ]);
-    await hana.drain();
+    // Only the receiver: the notice makes a phone download its tables (D-93).
+    expect((await hana.drain()).filter((m) => m.type === "table.transferred")).toEqual([]);
     await itemCommand(kitchen, "i1", "ready");
     expect(events(await meron.drain(), "item.ready")).toHaveLength(1);
     expect(events(await hana.drain(), "item.ready")).toHaveLength(0);

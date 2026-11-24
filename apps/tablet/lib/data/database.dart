@@ -532,6 +532,9 @@ class AppDatabase extends _$AppDatabase {
   Future<List<Category>> allCategories() => (select(categories)..orderBy([(c) => OrderingTerm.asc(c.sortOrder)])).get();
   Future<List<OptionGroup>> allOptionGroups() => select(optionGroups).get();
   Future<List<OptionChoice>> allOptions() => (select(optionChoices)..orderBy([(o) => OrderingTerm.asc(o.sortOrder)])).get();
+  /// Who holds each table, as this tablet last knew it (table id -> waiter id, null if free).
+  Future<Map<String, String?>> tableWaiters() async => {for (final t in await select(cafeTables).get()) t.id: t.waiterId};
+
   Future<CafeTable?> tableById(String id) => (select(cafeTables)..where((t) => t.id.equals(id))).getSingleOrNull();
 
   // ---------- last seen event ----------

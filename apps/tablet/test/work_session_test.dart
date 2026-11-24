@@ -26,15 +26,16 @@ Map<String, dynamic> menuJson(String itemName) => {
       'optionGroups': <Object>[],
     };
 
-Map<String, dynamic> tablesJson(String state) => {
+Map<String, dynamic> tablesJson(String state, [String? waiterId]) => {
       'tables': [
-        {'id': 't7', 'name': 'Table 7', 'area': 'Inside', 'seats': 4, 'sortOrder': 0, 'state': state, 'sessionId': null, 'waiterId': null},
+        {'id': 't7', 'name': 'Table 7', 'area': 'Inside', 'seats': 4, 'sortOrder': 0, 'state': state, 'sessionId': null, 'waiterId': waiterId},
       ],
     };
 
 class _Server {
   String itemName = 'Shiro';
   String tableState = 'free';
+  String? tableWaiter;
   String? cafeLanguage;
   bool offline = false;
   int menuDownloads = 0;
@@ -59,7 +60,7 @@ class _Server {
               return http.Response(jsonEncode(menuJson(itemName)), 200);
             case '/tables':
               tableDownloads++;
-              return http.Response(jsonEncode(tablesJson(tableState)), 200);
+              return http.Response(jsonEncode(tablesJson(tableState, tableWaiter)), 200);
             case '/staff':
               return http.Response(jsonEncode({'staff': [{'id': 'hana', 'name': 'Hana', 'role': 'waiter'}], 'language': cafeLanguage}), 200);
             case '/tickets':
@@ -82,7 +83,7 @@ void main() {
   late _Server server;
   var accessEnded = 0;
 
-  Future<(WorkSession, List<FakeSocket>)> start(List<FakeSocket> sockets) async {
+  Future<(WorkSession, List<FakeSocket>)> start(List<FakeSocket> sockets, {String? userId}) async {
     db = memoryDb();
     accessEnded = 0;
     final fakeServer = FakeServer(sockets);
@@ -95,6 +96,7 @@ void main() {
       connect: fakeServer.connect,
       delay: (_) async {},
       onAccessEnded: () async => accessEnded++,
+      userId: userId,
     );
     addTearDown(() async {
       await session.stop();
@@ -353,6 +355,53 @@ void main() {
 
       expect(await db.lastSeq(), 0); // not advanced: the next catch-up is still too long, so it reloads again
       expect(socket.sent.where((m) => m['type'] == 'sync').map((m) => m['since']), everyElement(0));
+    });
+
+    test("a table handed over to me: its earlier rounds are downloaded (the hand-over sends no item events)", () async {
+      final socket = FakeSocket();
+      await start([socket]);
+      server.lines = [downloadedLine('i2', 'accepted')]; // Hana's round, sent before she handed it over
+
+      socket.receive({'type': 'table.transferred', 'tableId': 't7', 'sessionId': 's7', 'fromWaiterId': 'hana'});
+      await settle();
+
+      expect(server.lineDownloads, 2); // once at start, once for the hand-over
+      expect({for (final l in await db.select(db.orderLines).get()) l.id: l.state}, {'i2': 'accepted'});
+    });
+
+    group('a table handed over to me while I was offline (the notice is live only)', () {
+      Future<FakeSocket> abelOnline() async {
+        server
+          ..tableState = 'ordered'
+          ..tableWaiter = 'hana'; // Abel's phone saw Table 7 as Hana's
+        final first = FakeSocket();
+        await start([first, FakeSocket()], userId: 'abel');
+        return first;
+      }
+
+      test("on reconnect, a table that was someone else's and is mine now: its earlier rounds are downloaded", () async {
+        final first = await abelOnline();
+        final before = server.lineDownloads;
+        server
+          ..tableWaiter = 'abel' // handed over while Abel was offline
+          ..lines = [downloadedLine('i2', 'accepted')];
+
+        await first.drop();
+        await settle();
+
+        expect(server.lineDownloads, before + 1);
+        expect({for (final l in await db.select(db.orderLines).get()) l.id: l.state}, {'i2': 'accepted'});
+      });
+
+      test('on reconnect with no hand-over: no extra download (catch-up is enough)', () async {
+        final first = await abelOnline();
+        final before = server.lineDownloads;
+
+        await first.drop();
+        await settle();
+
+        expect(server.lineDownloads, before);
+      });
     });
 
     test('an ended PIN session ends access (back to the PIN screen)', () async {
