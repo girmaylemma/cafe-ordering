@@ -151,6 +151,9 @@ class WorkSession {
       case 'reload':
         await refresh();
         await (device.kind == DeviceKind.station ? _reloadTickets() : _reloadLines());
+      case 'table.transferred':
+        // A hand-over sends no item events: the rounds sent before it reach this phone only by download.
+        await _reloadLines();
       case 'synced':
         clock.learn(push['serverNow'] as int?);
         await _sendPendingLanguage();

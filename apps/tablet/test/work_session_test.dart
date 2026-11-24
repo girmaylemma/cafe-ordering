@@ -355,6 +355,18 @@ void main() {
       expect(socket.sent.where((m) => m['type'] == 'sync').map((m) => m['since']), everyElement(0));
     });
 
+    test("a table handed over to me: its earlier rounds are downloaded (the hand-over sends no item events)", () async {
+      final socket = FakeSocket();
+      await start([socket]);
+      server.lines = [downloadedLine('i2', 'accepted')]; // Hana's round, sent before she handed it over
+
+      socket.receive({'type': 'table.transferred', 'tableId': 't7', 'sessionId': 's7', 'fromWaiterId': 'hana'});
+      await settle();
+
+      expect(server.lineDownloads, 2); // once at start, once for the hand-over
+      expect({for (final l in await db.select(db.orderLines).get()) l.id: l.state}, {'i2': 'accepted'});
+    });
+
     test('an ended PIN session ends access (back to the PIN screen)', () async {
       final socket = FakeSocket();
       await start([socket]);
