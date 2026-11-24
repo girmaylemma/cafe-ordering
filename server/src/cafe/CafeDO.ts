@@ -520,7 +520,7 @@ export class CafeDO extends DurableObject<Env> {
     if (device === null) return { ok: false, error: "UNAUTHORIZED_DEVICE" };
     const staff = this.ctx.storage.sql
       .exec<{ id: string; name: string; role: StaffRole; language: Language | null }>(
-        "SELECT id, name, role, language FROM staff WHERE venue_id = ? AND active = 1 ORDER BY name",
+        "SELECT id, name, role, lang AS language FROM staff WHERE venue_id = ? AND active = 1 ORDER BY name",
         device.venue_id,
       )
       .toArray();
