@@ -25,6 +25,7 @@ dish names always appear in both languages, so a waiter and a cook never use dif
 **Non-goals (later)**
 - Translating the admin dashboard (stays English).
 - Afaan Oromo and Tigrinya (design.md says "configurable"; the structure must allow adding them, but no texts now).
+  **Update 2026-11-24: added in F4e (D-94)**, app texts only, drafts awaiting native review.
 - Ethiopian calendar dates (only reports need them; that is the Telegram bot's work).
 - "Polish": deferred to its own step after real-device tests.
 - Ethiopic (Ge'ez) numerals: numbers, prices and times stay in Western digits, as menus and receipts in Ethiopia use.
@@ -98,9 +99,9 @@ Supported values: `'am'`, `'en'`. Stored as text so more languages can be added 
 
 ### 5.3 Dashboard (React)
 
-- A new **Settings** page with one field now: **Café language** (Amharic / English), Save button.
+- A new **Settings** page with one field now: **Café language** (Amharic / English; since F4e also Afaan Oromoo / Tigrinya), Save button.
   (VAT, service charge and business day will join this page later; not built now.)
-- Staff page: a "Language" column (Amharic / English / "Café default").
+- Staff page: a "Language" column (Amharic / English / Afaan Oromoo / Tigrinya / "Café default").
 
 ### 5.4 App (Flutter)
 

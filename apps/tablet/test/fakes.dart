@@ -20,7 +20,7 @@ Locale testLocale = const Locale('en');
 Widget localizedApp({required Widget home, Locale? locale, TransitionBuilder? builder}) => MaterialApp(
       locale: locale ?? testLocale,
       supportedLocales: AppLocalizations.supportedLocales,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      localizationsDelegates: appLocalizationsDelegates,
       builder: builder,
       home: home,
     );

@@ -3,6 +3,7 @@
  * A waiter sets their own over the WebSocket; /staff and sign-in tell the tablet both.
  */
 import { describe, expect, it } from "vitest";
+import { CAFE_MIGRATIONS } from "../src/cafe/migrations";
 import { call, json, newCafe as newAdminCafe } from "./adminHelpers";
 import { connect, ensureStaff, newCafe, signedInWaiter, sql, staffHeaders, stationHeaders, TEST_PIN, VENUE } from "./helpers";
 
@@ -30,9 +31,55 @@ describe("languages (F4b)", () => {
 
   it("the café's own language is returned", async () => {
     const cafe = newCafe();
-    await sql(cafe, "INSERT INTO venue (id, name, created_at, language) VALUES (?, 'Abebe Cafe', 0, 'am')", VENUE);
+    await sql(cafe, "INSERT INTO venue (id, name, created_at, lang) VALUES (?, 'Abebe Cafe', 0, 'am')", VENUE);
 
     expect((await staffList(cafe)).language).toBe("am");
+  });
+
+  it.each([["om"], ["ti"]])("F4e: a café can speak %s", async (language) => {
+    const cafe = newCafe();
+    await sql(cafe, "INSERT INTO venue (id, name, created_at, lang) VALUES (?, 'Abebe Cafe', 0, ?)", VENUE, language);
+
+    expect((await staffList(cafe)).language).toBe(language);
+  });
+
+  it.each([["om"], ["ti"]])("F4e: a waiter can choose %s, and sign-in returns it", async (language) => {
+    const cafe = newCafe();
+    const hana = await connect(cafe, staffHeaders("hana"));
+
+    hana.send(setLanguage(language));
+
+    expect((await hana.ack()).result).toEqual({ ok: true, language });
+    expect((await staffList(cafe)).staff.find((s) => s.id === "hana")?.language).toBe(language);
+    const tablet = await signedInWaiter(cafe, "hana");
+    const again = await cafe.signIn({ deviceToken: tablet.token, userId: "hana", pin: TEST_PIN });
+    expect(again.ok && again.user.language).toBe(language);
+  });
+
+  it("F4e: the database itself still refuses an unknown language (a bug cannot store one)", async () => {
+    const cafe = newCafe();
+    await ensureStaff(cafe, "hana");
+
+    await expect(sql(cafe, "UPDATE staff SET lang = 'fr'")).rejects.toThrow(/CHECK/);
+    await expect(sql(cafe, "INSERT INTO venue (id, name, created_at, lang) VALUES (?, 'X', 0, 'fr')", VENUE)).rejects.toThrow(/CHECK/);
+  });
+
+  it("F4e: migration 7 carries over the F4b choices (old column -> new column)", async () => {
+    const cafe = newCafe();
+    await ensureStaff(cafe, "hana");
+    await ensureStaff(cafe, "abel");
+    // As a café upgraded from F4b holds them: chosen in the old columns, new ones at their defaults.
+    await sql(cafe, "INSERT INTO venue (id, name, created_at, language) VALUES (?, 'Abebe Cafe', 0, 'am')", VENUE);
+    await sql(cafe, "UPDATE staff SET language = 'am', lang = NULL WHERE id = 'hana'");
+
+    const copies = CAFE_MIGRATIONS.find((m) => m.version === 7)!.statements.filter((s) => s.startsWith("UPDATE"));
+    for (const statement of copies) await sql(cafe, statement);
+
+    expect(await sql(cafe, "SELECT lang FROM venue")).toEqual([{ lang: "am" }]);
+    expect(await sql(cafe, "SELECT id, lang FROM staff WHERE id IN ('hana', 'abel') ORDER BY id")).toEqual([
+      { id: "abel", lang: null },
+      { id: "hana", lang: "am" },
+    ]);
   });
 
   it("a waiter sets their own language over the WebSocket, and sign-in returns it", async () => {

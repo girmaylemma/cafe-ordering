@@ -16,7 +16,13 @@ import '../auth/auth_controller.dart';
 import '../providers.dart';
 import 'app_localizations.dart';
 
-const supportedLanguages = {'am', 'en'};
+const supportedLanguages = {'en', 'am', 'om', 'ti'};
+
+/// Each language in its own name (the same whatever language the app shows), in list order (F4e).
+const languageNames = {'en': 'English', 'am': 'አማርኛ', 'om': 'Afaan Oromoo', 'ti': 'ትግርኛ'};
+
+/// Short names for the button that shows the current language.
+const languageShortNames = {'en': 'EN', 'am': 'አማ', 'om': 'OM', 'ti': 'ትግ'};
 
 String? _known(String? language) => supportedLanguages.contains(language) ? language : null;
 

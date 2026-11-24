@@ -97,7 +97,7 @@ export function checkPin(
   const { userId, computedHash, now } = p;
   const user = sql
     .exec<StaffRow>(
-      `SELECT id, name, role, pin_hash, failed_pin_attempts, locked_until, active, language
+      `SELECT id, name, role, pin_hash, failed_pin_attempts, locked_until, active, lang AS language
          FROM staff WHERE id = ? AND venue_id = ?`,
       userId,
       p.venueId,

@@ -24,7 +24,7 @@ class CafeApp extends ConsumerWidget {
       // The café's, the waiter's or the kitchen tablet's language (F4b, l10n/language.dart).
       locale: ref.watch(appLocaleProvider),
       supportedLocales: AppLocalizations.supportedLocales,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      localizationsDelegates: appLocalizationsDelegates,
       theme: appTheme(),
       builder: (context, child) => AlertBanner(child: child!), // over every screen (F2c2)
       home: switch (auth) {

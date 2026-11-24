@@ -16,26 +16,74 @@ import 'screens_test.dart' as app;
 final am = lookupAppLocalizations(const Locale('am'));
 final en = lookupAppLocalizations(const Locale('en'));
 
-String resolve({bool paired = true, bool isKitchen = false, String? user, String? mine, String? kitchen, String? cafe}) => resolveLanguage(
-      paired: paired,
-      isKitchen: isKitchen,
-      signedInUserId: user,
-      myLanguage: mine,
-      kitchenLanguage: kitchen,
-      cafeLanguage: cafe,
-    );
+String resolve({
+  bool paired = true,
+  bool isKitchen = false,
+  String? user,
+  String? mine,
+  String? kitchen,
+  String? cafe,
+}) => resolveLanguage(
+  paired: paired,
+  isKitchen: isKitchen,
+  signedInUserId: user,
+  myLanguage: mine,
+  kitchenLanguage: kitchen,
+  cafeLanguage: cafe,
+);
 
 void main() {
   group('resolveLanguage', () {
-    test('an unpaired tablet speaks English, whatever the café', () => expect(resolve(paired: false, cafe: 'am'), 'en'));
-    test('PIN screen: the café language', () => expect(resolve(cafe: 'am'), 'am'));
-    test('PIN screen without a café language: English', () => expect(resolve(), 'en'));
-    test("PIN screen: a waiter's choice does not count (nobody signed in)", () => expect(resolve(mine: 'am', cafe: 'en'), 'en'));
-    test("signed in with a choice: the waiter's", () => expect(resolve(user: 'hana', mine: 'am', cafe: 'en'), 'am'));
-    test('signed in without a choice: the café', () => expect(resolve(user: 'hana', cafe: 'am'), 'am'));
-    test('signed in, no choice, no café: English', () => expect(resolve(user: 'hana'), 'en'));
-    test("kitchen with a choice: the tablet's", () => expect(resolve(isKitchen: true, kitchen: 'am', cafe: 'en'), 'am'));
-    test('kitchen without a choice: the café', () => expect(resolve(isKitchen: true, cafe: 'am'), 'am'));
+    test(
+      'an unpaired tablet speaks English, whatever the café',
+      () => expect(resolve(paired: false, cafe: 'am'), 'en'),
+    );
+    test(
+      'PIN screen: the café language',
+      () => expect(resolve(cafe: 'am'), 'am'),
+    );
+    test(
+      'PIN screen without a café language: English',
+      () => expect(resolve(), 'en'),
+    );
+    test(
+      "PIN screen: a waiter's choice does not count (nobody signed in)",
+      () => expect(resolve(mine: 'am', cafe: 'en'), 'en'),
+    );
+    test(
+      "signed in with a choice: the waiter's",
+      () => expect(resolve(user: 'hana', mine: 'am', cafe: 'en'), 'am'),
+    );
+    test(
+      'signed in without a choice: the café',
+      () => expect(resolve(user: 'hana', cafe: 'am'), 'am'),
+    );
+    test(
+      'signed in, no choice, no café: English',
+      () => expect(resolve(user: 'hana'), 'en'),
+    );
+    test(
+      "kitchen with a choice: the tablet's",
+      () => expect(resolve(isKitchen: true, kitchen: 'am', cafe: 'en'), 'am'),
+    );
+    test(
+      'kitchen without a choice: the café',
+      () => expect(resolve(isKitchen: true, cafe: 'am'), 'am'),
+    );
+    test(
+      "F4e: a waiter's, a kitchen's or the café's Afaan Oromoo or Tigrinya counts",
+      () {
+        expect(resolve(user: 'hana', mine: 'om', cafe: 'en'), 'om');
+        expect(resolve(user: 'hana', mine: 'ti', cafe: 'en'), 'ti');
+        expect(resolve(isKitchen: true, kitchen: 'ti', cafe: 'am'), 'ti');
+        expect(resolve(cafe: 'om'), 'om');
+      },
+    );
+    test('F4e: alerts and the notification (texts without a screen) speak Afaan Oromoo and Tigrinya too', () {
+      expect(languageTexts('om').alertTableYours('T1'), lookupAppLocalizations(const Locale('om')).alertTableYours('T1'));
+      expect(languageTexts('ti').keepAliveTitle, lookupAppLocalizations(const Locale('ti')).keepAliveTitle);
+      expect(languageTexts('ti').keepAliveTitle, isNot(languageTexts('en').keepAliveTitle));
+    });
     test('an unknown value counts as no choice', () {
       expect(resolve(user: 'hana', mine: 'fr', cafe: 'am'), 'am');
       expect(resolve(isKitchen: true, kitchen: 'xx', cafe: 'fr'), 'en');
@@ -44,12 +92,12 @@ void main() {
 
   group('the app follows it', () {
     Map<String, Object> staff(String language) => {
-          'staff': [
-            {'id': 'hana', 'name': 'Hana', 'role': 'waiter', 'language': 'am'},
-            {'id': 'abel', 'name': 'Abel', 'role': 'waiter', 'language': null},
-          ],
-          'language': language,
-        };
+      'staff': [
+        {'id': 'hana', 'name': 'Hana', 'role': 'waiter', 'language': 'am'},
+        {'id': 'abel', 'name': 'Abel', 'role': 'waiter', 'language': null},
+      ],
+      'language': language,
+    };
 
     Future<MemoryCredentialStore> pairedWaiterTablet() async {
       final store = MemoryCredentialStore();
@@ -68,7 +116,9 @@ void main() {
       await unmountAndFlush(tester);
     });
 
-    testWidgets('a café language downloaded later changes the PIN screen', (tester) async {
+    testWidgets('a café language downloaded later changes the PIN screen', (
+      tester,
+    ) async {
       final db = memoryDb();
       final api = app.fakeApi({'GET /staff': (_) => (200, staff('en'))});
       await app.pumpApp(tester, api, await pairedWaiterTablet(), db: db);
@@ -76,7 +126,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text(en.pinTitle), findsOneWidget);
 
-      await tester.runAsync(() => db.setCafeLanguage('am')); // the manager changed it; a reconnect downloaded it
+      await tester.runAsync(
+        () => db.setCafeLanguage('am'),
+      ); // the manager changed it; a reconnect downloaded it
       await tester.runAsync(settle);
       await tester.pumpAndSettle();
 
@@ -84,67 +136,99 @@ void main() {
       await unmountAndFlush(tester);
     });
 
-    testWidgets("two waiters on one phone: the next one gets the café language, not Hana's", (tester) async {
-      final api = app.fakeApi({
-        'GET /staff': (_) => (200, staff('en')),
-        'POST /auth/sign-out': (_) => (204, <String, Object>{}),
-        'POST /auth/pin': (body) => (200, {
+    testWidgets(
+      "two waiters on one phone: the next one gets the café language, not Hana's",
+      (tester) async {
+        final api = app.fakeApi({
+          'GET /staff': (_) => (200, staff('en')),
+          'POST /auth/sign-out': (_) => (204, <String, Object>{}),
+          'POST /auth/pin': (body) => (
+            200,
+            {
               'sessionToken': 's-${body['userId']}',
               'user': body['userId'] == 'hana'
-                  ? {'id': 'hana', 'name': 'Hana', 'role': 'waiter', 'language': 'am'}
-                  : {'id': 'abel', 'name': 'Abel', 'role': 'waiter', 'language': null},
+                  ? {
+                      'id': 'hana',
+                      'name': 'Hana',
+                      'role': 'waiter',
+                      'language': 'am',
+                    }
+                  : {
+                      'id': 'abel',
+                      'name': 'Abel',
+                      'role': 'waiter',
+                      'language': null,
+                    },
               'expiresAt': 1,
-            }),
-      });
-      await app.pumpApp(tester, api, await pairedWaiterTablet());
-      await tester.runAsync(settle);
-      await tester.pumpAndSettle();
-
-      Future<void> signIn(String name) async {
-        await tester.tap(find.text(name));
-        await tester.pumpAndSettle();
-        await tester.enterText(find.byKey(const Key('pin')), '1234');
-        await tester.tap(find.byType(FilledButton));
+            },
+          ),
+        });
+        await app.pumpApp(tester, api, await pairedWaiterTablet());
         await tester.runAsync(settle);
         await tester.pumpAndSettle();
-      }
 
-      await signIn('Hana');
-      expect(find.text(am.floorMine), findsOneWidget); // Hana's own language
+        Future<void> signIn(String name) async {
+          await tester.tap(find.text(name));
+          await tester.pumpAndSettle();
+          await tester.enterText(find.byKey(const Key('pin')), '1234');
+          await tester.tap(find.byType(FilledButton));
+          await tester.runAsync(settle);
+          await tester.pumpAndSettle();
+        }
 
-      await tester.tap(find.byIcon(Icons.logout));
-      await tester.runAsync(settle);
-      await tester.pumpAndSettle();
-      expect(find.text(en.pinTitle), findsOneWidget); // nobody signed in: the café's
+        await signIn('Hana');
+        expect(find.text(am.floorMine), findsOneWidget); // Hana's own language
 
-      await signIn('Abel');
-      expect(find.text(en.floorMine), findsOneWidget); // Abel has no choice: the café's
-      await unmountAndFlush(tester);
-    });
+        await tester.tap(find.byIcon(Icons.logout));
+        await tester.runAsync(settle);
+        await tester.pumpAndSettle();
+        expect(
+          find.text(en.pinTitle),
+          findsOneWidget,
+        ); // nobody signed in: the café's
+
+        await signIn('Abel');
+        expect(
+          find.text(en.floorMine),
+          findsOneWidget,
+        ); // Abel has no choice: the café's
+        await unmountAndFlush(tester);
+      },
+    );
   });
 
-  test("alerts and the notification get the texts of the app's language at that moment", () async {
-    final store = MemoryCredentialStore();
-    await store.saveDevice(PairedDevice.fromJson('t', app.waiterDevice));
-    final db = memoryDb();
-    addTearDown(db.close);
-    await db.setCafeLanguage('am');
-    final c = ProviderContainer(overrides: [
-      apiClientProvider.overrideWithValue(app.fakeApi({})),
-      credentialStoreProvider.overrideWithValue(store),
-      databaseProvider.overrideWithValue(db),
-    ]);
-    addTearDown(c.dispose);
-    final texts = c.read(appTextsProvider); // what WorkSession and the notification hold on to
-    final sub = c.listen(appLocaleProvider, (_, _) {}); // keep the language alive, as the app does
-    addTearDown(sub.close);
-    await c.read(authControllerProvider.future);
-    await settle();
+  test(
+    "alerts and the notification get the texts of the app's language at that moment",
+    () async {
+      final store = MemoryCredentialStore();
+      await store.saveDevice(PairedDevice.fromJson('t', app.waiterDevice));
+      final db = memoryDb();
+      addTearDown(db.close);
+      await db.setCafeLanguage('am');
+      final c = ProviderContainer(
+        overrides: [
+          apiClientProvider.overrideWithValue(app.fakeApi({})),
+          credentialStoreProvider.overrideWithValue(store),
+          databaseProvider.overrideWithValue(db),
+        ],
+      );
+      addTearDown(c.dispose);
+      final texts = c.read(
+        appTextsProvider,
+      ); // what WorkSession and the notification hold on to
+      final sub = c.listen(
+        appLocaleProvider,
+        (_, _) {},
+      ); // keep the language alive, as the app does
+      addTearDown(sub.close);
+      await c.read(authControllerProvider.future);
+      await settle();
 
-    expect(texts().pinTitle, am.pinTitle);
+      expect(texts().pinTitle, am.pinTitle);
 
-    await db.setCafeLanguage('en');
-    await settle();
-    expect(texts().pinTitle, en.pinTitle); // the same function, now English
-  });
+      await db.setCafeLanguage('en');
+      await settle();
+      expect(texts().pinTitle, en.pinTitle); // the same function, now English
+    },
+  );
 }

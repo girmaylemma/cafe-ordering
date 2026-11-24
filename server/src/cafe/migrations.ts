@@ -114,4 +114,17 @@ export const CAFE_MIGRATIONS: readonly Migration[] = [
       "ALTER TABLE staff ADD COLUMN language TEXT CHECK (language IN ('am', 'en'))",
     ],
   },
+  {
+    version: 7,
+    description: "languages: room for Afaan Oromoo and Tigrinya (F4e, D-94)",
+    statements: [
+      // SQLite cannot widen the CHECK of migration 6 in place (only by rebuilding the table, which
+      // D-60 rules out), so the language moves to new columns. The old ones stay, unused: a
+      // rolled-back deploy still reads them.
+      "ALTER TABLE venue ADD COLUMN lang TEXT NOT NULL DEFAULT 'en' CHECK (lang IN ('am', 'en', 'om', 'ti'))",
+      "ALTER TABLE staff ADD COLUMN lang TEXT CHECK (lang IN ('am', 'en', 'om', 'ti'))",
+      "UPDATE venue SET lang = language",
+      "UPDATE staff SET lang = language",
+    ],
+  },
 ];

@@ -27,6 +27,18 @@ void main() {
       expect(secondaryName('Tibs', '', 'en'), isNull);
     });
 
+    test("F4e: Tigrinya (Ge'ez script) puts the Amharic name first, like Amharic", () {
+      expect(primaryName('Tibs', 'ጥብስ', 'ti'), 'ጥብስ');
+      expect(secondaryName('Tibs', 'ጥብስ', 'ti'), 'Tibs');
+      expect(primaryName('Tibs', null, 'ti'), 'Tibs'); // no Amharic name: English, never empty
+      expect(secondaryName('Tibs', null, 'ti'), isNull);
+    });
+
+    test('F4e: Afaan Oromoo (Latin script) puts the English name first, like English', () {
+      expect(primaryName('Tibs', 'ጥብስ', 'om'), 'Tibs');
+      expect(secondaryName('Tibs', 'ጥብስ', 'om'), 'ጥብስ');
+    });
+
     test('optionLabel: both names on one line, English first', () {
       expect(optionLabel('Large', 'ትልቅ'), 'Large · ትልቅ');
       expect(optionLabel('Large', null), 'Large');
@@ -49,6 +61,18 @@ void main() {
       await pump(tester, const DishName(en: 'Tibs', am: 'ጥብስ', qty: 2), locale: const Locale('am'));
       expect(find.text('2× ጥብስ'), findsOneWidget);
       expect(find.text('Tibs'), findsOneWidget);
+    });
+
+    testWidgets('F4e: in Tigrinya the Amharic name comes first (kitchen ticket, table and order screens)', (tester) async {
+      await pump(tester, const DishName(en: 'Tibs', am: 'ጥብስ', qty: 2), locale: const Locale('ti'));
+      expect(find.text('2× ጥብስ'), findsOneWidget);
+      expect(find.text('Tibs'), findsOneWidget);
+    });
+
+    testWidgets('F4e: in Afaan Oromoo the English name comes first', (tester) async {
+      await pump(tester, const DishName(en: 'Tibs', am: 'ጥብስ', qty: 2), locale: const Locale('om'));
+      expect(find.text('2× Tibs'), findsOneWidget);
+      expect(find.text('ጥብስ'), findsOneWidget);
     });
 
     testWidgets('no Amharic name: one line only, never an empty one', (tester) async {

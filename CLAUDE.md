@@ -11,7 +11,8 @@ Full design: `docs/design.md`. Read the relevant section before starting any fea
 The source of truth is every requirement marked **MVP** in `docs/design.md` section 4. Summary:
 - Waiter app: PIN sign-in, floor map, take order (items, options, notes), send to kitchen,
   "Kitchen accepted" and "Ready" alerts, Delivered, close table, move/merge/hand over tables,
-  cancel before accept, void with manager PIN, sold-out greyed out, offline queue, Amharic + English.
+  cancel before accept, void with manager PIN, sold-out greyed out, offline queue, Amharic + English
+  (+ Afaan Oromoo and Tigrinya, drafts awaiting native review, D-94).
 - Kitchen/bar app: tickets (table, waiter name, items, notes), per-item Accept and Ready,
   10 s undo, sold out, timers, kiosk mode. Kitchen and bar stations are both MVP.
 - Admin dashboard (behind Cloudflare Access): menu, tables/floor map, staff + PINs,
@@ -136,7 +137,7 @@ Decisions and their reasons: `docs/decisions.md`.
 
 ### apps/tablet/ (Flutter app, run inside `apps/tablet/`)
 - Test: `flutter test`; analyze: `flutter analyze`.
-- Texts: never write English in a screen. Add the text to `lib/l10n/app_en.arb` (with an `@description`) AND `lib/l10n/app_am.arb`, run `flutter pub get` (regenerates `app_localizations*.dart`, not committed), then use `context.l10n.yourKey`. `test/no_literals_test.dart` fails on English literals in screens; `test/arb_parity_test.dart` fails on a missing or placeholder-dropping Amharic text (Flutter itself would silently show English).
+- Texts: never write English in a screen. Add the text to `lib/l10n/app_en.arb` (with an `@description`) AND `lib/l10n/app_am.arb`, `app_om.arb` and `app_ti.arb`, run `flutter pub get` (regenerates `app_localizations*.dart`, not committed), then use `context.l10n.yourKey`. `test/no_literals_test.dart` fails on English literals in screens; `test/arb_parity_test.dart` fails on a missing, placeholder-dropping or untranslated text in any of them (Flutter itself would silently show English). A new Oromo/Tigrinya text is a draft: add it to `docs/translation-review-om-ti.md` for the native reviewer.
 
 ### admin/ (dashboard, run inside `admin/`)
 - Install: `npm ci`
