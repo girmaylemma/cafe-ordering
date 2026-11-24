@@ -236,7 +236,8 @@ texts in F4d, but notes from real use are the most useful.
 
 Needs Part 1 running (the server window). The dashboard logs you in as the Dev Cafe's first manager ("Dev Manager").
 
-1. Open a **new** PowerShell window: `cd admin` then `npm run dev` (the first time: `npm ci` before it).
+1. Open a **new** PowerShell window: `cd admin` then `npm.cmd run dev` (the first time: `npm.cmd ci` before it).
+   Use `npm.cmd`, not `npm`: Windows PowerShell blocks `npm` ("running scripts is disabled on this system").
 2. On the PC, open http://localhost:5173/admin/#settings
 
 | # | Where | Do | ✅ You should see |
