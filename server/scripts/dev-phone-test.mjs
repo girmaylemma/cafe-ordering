@@ -7,7 +7,7 @@
  * Needs `npx wrangler dev --ip 0.0.0.0` running (after `node scripts/dev-access-vars.mjs`).
  * Safe to run again: it only adds what is missing. It:
  *   1. creates the "Dev Cafe" (owner dev-owner@example.com) if it doesn't exist yet,
- *   2. adds waiter Hana (PIN 1234), manager Meron (PIN 246810), 3 dishes and 3 tables,
+ *   2. adds waiters Hana (PIN 1234) and Abel (PIN 5678), manager Meron (PIN 246810), 3 dishes and 3 tables,
  *   3. pairs the pretend kitchen (scripts/dev-kitchen.mjs) and
  *   4. prints the phone's pairing code, a kitchen pairing code (a second device running the same
  *      app becomes the real kitchen screen) and the exact command to build the app for this PC.
@@ -108,12 +108,12 @@ const admin = (method, path, body) => must(method, `/admin/api${path}`, body, { 
 
 // ---------- 2. staff, menu, tables (only what is missing) ----------
 const staff = (await admin("GET", "/staff")).staff;
-for (const [name, role, pin] of [["Hana", "waiter", "1234"], ["Meron", "manager", "246810"]]) {
+for (const [name, role, pin] of [["Hana", "waiter", "1234"], ["Abel", "waiter", "5678"], ["Meron", "manager", "246810"]]) {
   const existing = staff.find((s) => s.name === name && s.active);
   if (existing) await admin("POST", `/staff/${existing.id}/pin`, { pin }); // a known PIN for the test
   else await admin("POST", "/staff", { name, role, pin });
 }
-console.log("✓ Staff: Hana (waiter, PIN 1234), Meron (manager, PIN 246810)");
+console.log("✓ Staff: Hana (waiter, PIN 1234), Abel (waiter, PIN 5678), Meron (manager, PIN 246810)");
 
 // Amharic names too (F4b), so both names show; added to an existing test café when missing.
 let food = (await admin("GET", "/categories")).categories.find((c) => c.nameEn === "Food");
@@ -149,7 +149,7 @@ const ip = addresses[0] ?? "<PC-IP>";
 console.log(`
 ==================================================================
   PHONE PAIRING CODE:     ${phone.pairingCode.code}      (works for 10 minutes)
-  Waiter: Hana   PIN 1234        Manager: Meron   PIN 246810
+  Waiters: Hana PIN 1234, Abel PIN 5678     Manager: Meron PIN 246810
 
   KITCHEN PAIRING CODE:   ${kitchenTablet.pairingCode.code}      (a 2nd phone/tablet = kitchen screen)
 ==================================================================
