@@ -32,6 +32,7 @@ class CafeApp extends ConsumerWidget {
             Unpaired(:final error) => PairScreen(error: error),
             NeedsSignIn() => PinScreen(key: ValueKey(value.device.id), state: value),
             SignedIn(:final user) => FloorMapScreen(user: user),
+            MustChangePin() => const _Placeholder(), // the "choose your own PIN" screen comes next (M1a Task 3)
             StationReady(:final device) => KitchenScreen(device: device),
           },
         AsyncError() => const _Placeholder(),

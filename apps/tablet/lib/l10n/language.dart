@@ -73,7 +73,8 @@ final appLocaleProvider = Provider<Locale>((ref) {
         cafeLanguage: cafe,
       ),
     NeedsSignIn() => resolveLanguage(paired: true, isKitchen: false, signedInUserId: null, myLanguage: null, kitchenLanguage: null, cafeLanguage: cafe),
-    SignedIn(:final user) => resolveLanguage(
+    // Choosing their own PIN (M1a) is their screen: their language, like signed in.
+    MustChangePin(:final user) || SignedIn(:final user) => resolveLanguage(
         paired: true,
         isKitchen: false,
         signedInUserId: user.id,

@@ -163,6 +163,88 @@ void main() {
     expect(await store.loadSession(), isNotNull);
   });
 
+  group('temporary PIN (M1a)', () {
+    const temporarySession = {...hanaSession, 'mustChangePin': true};
+
+    Future<(ProviderContainer, MemoryCredentialStore, List<({String route, String? session, Map<String, dynamic> body})>)> signedInTemporarily(
+      Map<String, (int, Object)> more,
+    ) async {
+      final store = MemoryCredentialStore();
+      await store.saveDevice(PairedDevice.fromJson('t', waiterDevice));
+      final (api, calls) = recordingApi({'POST /auth/pin': (200, temporarySession), ...more});
+      final c = container(api, store);
+      await c.read(authControllerProvider.future);
+      await c.read(authControllerProvider.notifier).signIn('hana', '1234');
+      return (c, store, calls);
+    }
+
+    test('a temporary PIN leads to "choose your own", and the session is not saved yet', () async {
+      final (c, store, _) = await signedInTemporarily({});
+
+      final state = c.read(authControllerProvider).value;
+      expect(state, isA<MustChangePin>());
+      expect((state as MustChangePin).user.id, 'hana');
+      expect(await store.loadSession(), isNull);
+    });
+
+    test('choosing sends the temporary PIN as the current one with the session, then signs in and saves the session', () async {
+      final (c, store, calls) = await signedInTemporarily({'POST /auth/pin/change': (200, {'ok': true})});
+
+      await c.read(authControllerProvider.notifier).choosePin('8642');
+
+      final change = calls.lastWhere((x) => x.route == 'POST /auth/pin/change');
+      expect(change.session, 'sess');
+      expect(change.body, {'currentPin': '1234', 'newPin': '8642'});
+      expect(c.read(authControllerProvider).value, isA<SignedIn>());
+      expect((await store.loadSession())?.sessionToken, 'sess');
+    });
+
+    test('a refused choice stays on "choose your own" and says why', () async {
+      final (c, store, _) = await signedInTemporarily({'POST /auth/pin/change': (400, {'error': 'SAME_PIN'})});
+
+      await c.read(authControllerProvider.notifier).choosePin('1234');
+
+      final state = c.read(authControllerProvider).value;
+      expect(state, isA<MustChangePin>());
+      expect((state as MustChangePin).error, 'SAME_PIN');
+      expect(await store.loadSession(), isNull);
+    });
+
+    test('closing the app before choosing: the next start asks for the PIN again', () async {
+      final (_, store, _) = await signedInTemporarily({});
+
+      final restarted = container(fakeApi({}), store);
+
+      expect(await restarted.read(authControllerProvider.future), isA<NeedsSignIn>());
+    });
+
+    test('changeMyPin: done is null; a refusal returns its code', () async {
+      final store = MemoryCredentialStore();
+      await store.saveDevice(PairedDevice.fromJson('t', waiterDevice));
+      await store.saveSession(SignedInUser.fromJson({'sessionToken': 'sess', 'user': hanaSession['user']}));
+      var reply = (200, <String, Object>{'ok': true});
+      final calls = <Map<String, dynamic>>[];
+      final api = ApiClient(
+        MockClient((r) async {
+          calls.add({'session': r.headers['X-Staff-Session'], ...jsonDecode(r.body) as Map<String, dynamic>});
+          return http.Response(jsonEncode(reply.$2), reply.$1, headers: {'content-type': 'application/json'});
+        }),
+        Uri.parse('http://server'),
+      );
+      final c = container(api, store);
+      await c.read(authControllerProvider.future);
+      final auth = c.read(authControllerProvider.notifier);
+
+      expect(await auth.changeMyPin('1234', '8642'), isNull);
+      expect(calls.last, {'session': 'sess', 'currentPin': '1234', 'newPin': '8642'});
+      reply = (401, {'error': 'INVALID_CREDENTIALS'});
+      expect(await auth.changeMyPin('0000', '8642'), 'INVALID_CREDENTIALS');
+      reply = (423, {'error': 'LOCKED', 'retryAfterMs': 300000});
+      expect(await auth.changeMyPin('0000', '8642'), 'LOCKED');
+      expect(c.read(authControllerProvider).value, isA<SignedIn>()); // still signed in
+    });
+  });
+
   group('languages (F4b)', () {
     Future<(ProviderContainer, AppDatabase)> pinScreen(Map<String, (int, Object)> routes) async {
       final store = MemoryCredentialStore();
@@ -203,4 +285,20 @@ void main() {
       expect(await db.watchMyLanguage('hana').first, (language: 'en', pending: true));
     });
   });
+}
+
+/// A fake server that also records each request (method, path, session header, JSON body).
+(ApiClient, List<({String route, String? session, Map<String, dynamic> body})>) recordingApi(Map<String, (int, Object)> routes) {
+  final calls = <({String route, String? session, Map<String, dynamic> body})>[];
+  final api = ApiClient(
+    MockClient((r) async {
+      final route = '${r.method} ${r.url.path}';
+      calls.add((route: route, session: r.headers['X-Staff-Session'], body: r.body.isEmpty ? {} : jsonDecode(r.body) as Map<String, dynamic>));
+      final reply = routes[route];
+      if (reply == null) return http.Response('{"error":"NOT_FOUND"}', 404);
+      return http.Response(jsonEncode(reply.$2), reply.$1, headers: {'content-type': 'application/json'});
+    }),
+    Uri.parse('http://server'),
+  );
+  return (api, calls);
 }
