@@ -85,11 +85,15 @@ function PasswordCard({ hasPassword: initially }: { hasPassword: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [show, setShow] = useState(false);
+  const kind = show ? "text" : "password";
+  const typed = [...next].length;
 
   function clear() {
     setCurrent("");
     setNext("");
     setAgain("");
+    setShow(false); // hidden again: never leave a password visible
   }
 
   async function onSave(event: FormEvent) {
@@ -122,13 +126,18 @@ function PasswordCard({ hasPassword: initially }: { hasPassword: boolean }) {
       {hasPassword && (
         <>
           <label htmlFor="password-current">Current password</label>
-          <input id="password-current" type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} />
+          <input id="password-current" type={kind} autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} />
         </>
       )}
       <label htmlFor="password-new">New password</label>
-      <input id="password-new" type="password" autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} />
+      <input id="password-new" type={kind} autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} />
+      {typed > 0 && typed < 10 && <p className="hint">{`At least 10 characters (${typed} so far).`}</p>}
       <label htmlFor="password-again">New password again</label>
-      <input id="password-again" type="password" autoComplete="new-password" value={again} onChange={(e) => setAgain(e.target.value)} />
+      <input id="password-again" type={kind} autoComplete="new-password" value={again} onChange={(e) => setAgain(e.target.value)} />
+      <label className="check" htmlFor="password-show">
+        <input id="password-show" type="checkbox" checked={show} onChange={(e) => setShow(e.target.checked)} />
+        Show passwords
+      </label>
       <button type="submit" disabled={saving || !longEnough(next) || !longEnough(again)}>
         Save password
       </button>

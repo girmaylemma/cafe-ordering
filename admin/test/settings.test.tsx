@@ -134,6 +134,34 @@ describe("Your password (M1b)", () => {
     expect(savePassword().disabled).toBe(false);
   });
 
+  it("too short: says how many characters are needed, while typing", async () => {
+    await open(MANAGER_ME);
+
+    type("New password", "short123");
+
+    expect(screen.getByText("At least 10 characters (8 so far).")).toBeTruthy();
+    type("New password", "long-enough-1");
+    expect(screen.queryByText(/At least 10 characters \(/)).toBeNull();
+  });
+
+  it("Show passwords reveals all three fields, and they are hidden again after a save", async () => {
+    await open(withPassword);
+    const kinds = () => ["Current password", "New password", "New password again"].map((label) => field(label).type);
+    expect(kinds()).toEqual(["password", "password", "password"]);
+
+    fireEvent.click(screen.getByLabelText("Show passwords"));
+    expect(kinds()).toEqual(["text", "text", "text"]);
+
+    type("Current password", "first-password-1");
+    type("New password", "second-password-2");
+    type("New password again", "second-password-2");
+    fireEvent.click(savePassword());
+    await screen.findByText("Your password is saved.");
+
+    expect(kinds()).toEqual(["password", "password", "password"]);
+    expect((screen.getByLabelText("Show passwords") as HTMLInputElement).checked).toBe(false);
+  });
+
   it("a refusal says why and clears every password field", async () => {
     await open(withPassword, [403, { error: "INVALID_CREDENTIALS" }]);
 
