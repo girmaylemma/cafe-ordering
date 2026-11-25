@@ -1,7 +1,7 @@
 import { useCallback, useState, type FormEvent } from "react";
 import { api } from "../api";
 import { errorMessage, languageName, roleLabel } from "../texts";
-import { canManage, type Me, type Role, type Staff } from "../types";
+import { canManage, type Me, type Staff } from "../types";
 import { useLoad } from "../useLoad";
 
 export function StaffPage({ me }: { me: Me }) {
@@ -11,12 +11,9 @@ export function StaffPage({ me }: { me: Me }) {
   const [notice, setNotice] = useState<string | null>(null);
 
   const [name, setName] = useState("");
-  const [role, setRole] = useState<Role>("waiter");
   const [pin, setPin] = useState("");
   const [email, setEmail] = useState("");
 
-  // Managers can't create owners (design §2); the server enforces it too.
-  const roles: Role[] = me.user.role === "owner" ? ["waiter", "manager", "owner"] : ["waiter", "manager"];
 
   async function run(action: () => Promise<unknown>, success: string | null) {
     setError(null);
@@ -32,7 +29,8 @@ export function StaffPage({ me }: { me: Me }) {
 
   async function onCreate(event: FormEvent) {
     event.preventDefault();
-    const body = { name: name.trim(), role, pin, email: email.trim() === "" ? null : email.trim() };
+    // Managers add waiters only; managers are added by the developer (D-97). The server enforces it too.
+    const body = { name: name.trim(), role: "waiter", pin, email: email.trim() === "" ? null : email.trim() };
     setPin(""); // never leave a PIN on screen, whatever happens
     await run(async () => {
       await api("POST", "/staff", body);
@@ -102,17 +100,9 @@ export function StaffPage({ me }: { me: Me }) {
 
       <form className="card" onSubmit={onCreate}>
         <h3>Add a staff member</h3>
+        <p className="hint">New staff are waiters. Managers are added by the system's developer.</p>
         <label htmlFor="staff-name">Name</label>
         <input id="staff-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} required />
-
-        <label htmlFor="staff-role">Role</label>
-        <select id="staff-role" value={role} onChange={(e) => setRole(e.target.value as Role)}>
-          {roles.map((r) => (
-            <option key={r} value={r}>
-              {roleLabel[r]}
-            </option>
-          ))}
-        </select>
 
         <label htmlFor="staff-pin">PIN</label>
         <input
@@ -122,14 +112,14 @@ export function StaffPage({ me }: { me: Me }) {
           autoComplete="off"
           value={pin}
           onChange={(e) => setPin(e.target.value)}
-          pattern={role === "waiter" ? "\\d{4,6}" : "\\d{6}"}
+          pattern="\d{4,6}"
           required
         />
-        <p className="hint">{role === "waiter" ? "4–6 digits." : "Exactly 6 digits: this PIN approves voids."}</p>
+        <p className="hint">4–6 digits.</p>
 
         <label htmlFor="staff-email">Email (optional)</label>
         <input id="staff-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <p className="hint">Managers and owners need an email to sign in to this dashboard.</p>
+        <p className="hint">Optional: waiters do not use this dashboard.</p>
 
         <button type="submit">Add staff member</button>
       </form>

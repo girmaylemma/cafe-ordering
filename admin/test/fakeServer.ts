@@ -27,10 +27,6 @@ export function fakeServer(routes: Record<string, Handler>) {
   return { calls, routes };
 }
 
-export const OWNER_ME = {
-  user: { id: "u-owner", name: "Abebe", role: "owner", email: "owner@example.com" },
-  venue: { id: "v-1", name: "Abebe Cafe" },
-};
 export const MANAGER_ME = {
   user: { id: "u-manager", name: "Meseret", role: "manager", email: "manager@example.com" },
   venue: { id: "v-1", name: "Abebe Cafe" },
