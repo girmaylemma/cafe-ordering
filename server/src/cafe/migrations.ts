@@ -127,4 +127,13 @@ export const CAFE_MIGRATIONS: readonly Migration[] = [
       "UPDATE staff SET lang = language",
     ],
   },
+  {
+    version: 8,
+    description: "no owner role: owners become managers (M0, D-97)",
+    statements: [
+      // Nothing is deleted: PINs, emails, sessions and history stay. The CHECK still allows 'owner'
+      // (it cannot be narrowed in place, D-60); the code never writes it again.
+      "UPDATE staff SET role = 'manager' WHERE role = 'owner'",
+    ],
+  },
 ];

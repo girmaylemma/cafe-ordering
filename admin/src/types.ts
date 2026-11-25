@@ -1,6 +1,7 @@
 /** Shapes returned by the admin API (server/src/admin/routes.ts). */
 
-export type Role = "waiter" | "manager" | "owner";
+/** No café owner role (D-97). */
+export type Role = "waiter" | "manager";
 
 export interface Me {
   user: { id: string; name: string; role: string; email: string | null };
@@ -99,7 +100,7 @@ export interface CafeTable {
   active: boolean;
 }
 
-/** Same rule as the server (server/src/cafe/admin.ts canManage): managers can't touch owners. */
-export function canManage(actorRole: string, targetRole: Role): boolean {
-  return actorRole === "owner" || (actorRole === "manager" && targetRole !== "owner");
+/** Same rule as the server (server/src/cafe/admin.ts canManage): managers manage waiters only (D-97). */
+export function canManage(_actorRole: string, targetRole: Role): boolean {
+  return targetRole === "waiter";
 }

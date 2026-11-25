@@ -123,8 +123,8 @@ describe("GET /tickets (kitchen reload)", () => {
   });
 
   it("the public route gives a kitchen tablet its tickets with details as objects", async () => {
-    const { ownerEmail } = await newAdminCafe();
-    const token = await stationToken(ownerEmail);
+    const { managerEmail } = await newAdminCafe();
+    const token = await stationToken(managerEmail);
 
     const response = await call("GET", "/tickets", { headers: { Authorization: `Bearer ${token}` } });
 

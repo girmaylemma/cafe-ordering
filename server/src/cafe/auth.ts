@@ -17,7 +17,8 @@ export const LOCKOUT_MS = 5 * 60_000;
  */
 export const SESSION_MAX_MS = 16 * 60 * 60_000;
 
-export type StaffRole = "waiter" | "manager" | "owner";
+/** No café owner role (D-97): the developer creates managers; managers manage waiters. */
+export type StaffRole = "waiter" | "manager";
 
 // A `type`, not an `interface`: SQL row types must be assignable to Record<string, SqlStorageValue>.
 export type DeviceRow = {
@@ -28,7 +29,7 @@ export type DeviceRow = {
   station_id: string | null;
 };
 
-/** Waiters: 4–6 digits. Managers and owners: exactly 6 digits, because their PIN approves voids (D-11). */
+/** Waiters: 4–6 digits. Managers: exactly 6 digits, because their PIN approves voids (D-11). */
 export function isValidPin(role: StaffRole, pin: string): boolean {
   return role === "waiter" ? /^\d{4,6}$/.test(pin) : /^\d{6}$/.test(pin);
 }
@@ -75,8 +76,8 @@ type StaffRow = {
   language: Language | null;
 };
 
-const ALL_ROLES: readonly StaffRole[] = ["waiter", "manager", "owner"];
-const APPROVER_ROLES: readonly StaffRole[] = ["manager", "owner"];
+const ALL_ROLES: readonly StaffRole[] = ["waiter", "manager"];
+const APPROVER_ROLES: readonly StaffRole[] = ["manager"];
 
 export type PinCheck =
   | { ok: true; user: { id: string; name: string; role: StaffRole; language: Language | null } }
@@ -186,7 +187,7 @@ export type VoidApproval =
 
 /**
  * Who approves a void (D-57). With a typed manager PIN: that manager, if the PIN is right.
- * Without one: the signed-in user, but only if they are an active manager or owner.
+ * Without one: the signed-in user, but only if they are an active manager.
  */
 export function approveVoid(
   sql: SqlStorage,
@@ -221,11 +222,11 @@ export function approveVoid(
     : { ok: false, error: "MANAGER_PIN_INVALID" };
 }
 
-/** An active manager or owner of this café: may act on any table (D-46, D-78). */
+/** An active manager of this café: may act on any table (D-46, D-78). */
 export function isManagerHere(sql: SqlStorage, venueId: string, userId: string): boolean {
   return (
     sql
-      .exec("SELECT 1 FROM staff WHERE id = ? AND venue_id = ? AND active = 1 AND role IN ('manager', 'owner')", userId, venueId)
+      .exec("SELECT 1 FROM staff WHERE id = ? AND venue_id = ? AND active = 1 AND role = 'manager'", userId, venueId)
       .toArray().length > 0
   );
 }

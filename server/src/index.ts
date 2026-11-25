@@ -13,7 +13,8 @@
  *   POST /auth/sign-out   Bearer device + X-Staff-Session -> 204
  *   GET  /ws              Bearer device (+ X-Staff-Session for waiters), Upgrade: websocket
  *   /admin/api/*          dashboard API behind Cloudflare Access (src/admin/routes.ts)
- *   POST /installer/venues  Bearer INSTALLER_SECRET: create a café and its owner
+ *   POST /installer/venues  Bearer INSTALLER_SECRET: create a café and its first manager
+ *   POST /installer/venues/:venueId/managers  Bearer INSTALLER_SECRET: add a manager (D-97)
  */
 import { venueOfDeviceToken } from "./auth/crypto";
 import { handleAdmin, handleInstaller } from "./admin/routes";
@@ -32,7 +33,9 @@ export default {
     if (url.pathname.startsWith("/admin/api/")) return handleAdmin(request, env);
     // Everything else under /admin is the dashboard's files (Cloudflare Access protects /admin).
     if (url.pathname === "/admin" || url.pathname.startsWith("/admin/")) return serveDashboard(request, env.ASSETS);
-    if (route === "POST /installer/venues") return handleInstaller(request, env);
+    if (route === "POST /installer/venues" || (request.method === "POST" && /^\/installer\/venues\/[^/]+\/managers$/.test(url.pathname))) {
+      return handleInstaller(request, env);
+    }
 
     switch (route) {
       case "POST /devices/pair":

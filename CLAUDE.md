@@ -2,8 +2,8 @@
 
 ## What this project is
 Waiters take orders on a tablet. Each order appears instantly on a fixed kitchen tablet. The kitchen
-taps Accept, then Ready (per item), and only the table's current waiter is alerted to deliver it. The owner
-and manager get sales reports in a Telegram bot.
+taps Accept, then Ready (per item), and only the table's current waiter is alerted to deliver it. The
+managers get sales reports in a Telegram bot.
 
 Full design: `docs/design.md`. Read the relevant section before starting any feature.
 
@@ -127,7 +127,8 @@ Decisions and their reasons: `docs/decisions.md`.
 - Cloudflare Access config: `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` in `wrangler.jsonc` vars (placeholders
   until the domain exists; the admin API refuses everything until they are real).
 - Create a café (installer): set `$env:INSTALLER_SECRET`, then
-  `npm run new-cafe -- --api <url> --name "<café>" --owner-name "<name>" --owner-email <email>`.
+  `npm run new-cafe -- --api <url> --name "<café>" --manager-name "<name>" --manager-email <email>` (creates the café and its
+  first manager; there is no owner role, D-97). Add a manager: `npm run new-manager -- --api <url> --venue <venueId> --name "<name>" --email <email>`.
 - Run locally: `npx wrangler dev` (uses `.dev.vars`).
 - Pretend kitchen tablet for testing the waiter app before F3: `node scripts/dev-kitchen.mjs --api http://127.0.0.1:8787 --code <kitchen pairing code>`
   (first time; afterwards without `--code`). Type `a N` accept, `r N` ready, `u N` undo, `l` list, `q` quit.
@@ -145,5 +146,5 @@ Decisions and their reasons: `docs/decisions.md`.
 - Build: `npm run build` (writes `server/public/admin`, served by the Worker under `/admin/`)
 - Local dev, three terminals:
   1. `cd server; node scripts/dev-access-vars.mjs; npx wrangler dev` (fake `.invalid` Access team, local only)
-  2. once: `cd server; $env:INSTALLER_SECRET = "dev-only-installer-secret"; npm run new-cafe -- --api http://127.0.0.1:8787 --name "Dev Cafe" --owner-name "Dev Owner" --owner-email dev-owner@example.com`
+  2. once: `cd server; $env:INSTALLER_SECRET = "dev-only-installer-secret"; npm run new-cafe -- --api http://127.0.0.1:8787 --name "Dev Cafe" --manager-name "Dev Manager" --manager-email dev-owner@example.com`
   3. `cd admin; npm run dev`, then open http://localhost:5173/admin/ (log in as another email: `$env:DEV_EMAIL = "..."`)

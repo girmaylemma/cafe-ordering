@@ -29,7 +29,7 @@ String _stateLabel(AppLocalizations t, String state) => switch (state) {
       _ => state,
     };
 
-const _approverRoles = {'manager', 'owner'};
+const _approverRoles = {'manager'}; // D-97: no owner role
 
 /// One table's current visit: every item with its state, round by round. Tap an item for what
 /// can be done with it; the menu at the top has the table actions (W-09).

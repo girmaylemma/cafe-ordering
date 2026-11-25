@@ -38,7 +38,9 @@ class StaffMember {
   factory StaffMember.fromJson(Map<String, dynamic> json) => StaffMember(
         id: json['id'] as String,
         name: json['name'] as String,
-        role: json['role'] as String,
+        // No owner role since migration 8 (D-97): every owner became a manager, but a phone signed in
+        // before that still has 'owner' saved. Read it as what it is now (the server checks every action).
+        role: switch (json['role'] as String) { 'owner' => 'manager', final role => role },
         language: json['language'] as String?, // missing (older server or saved session): null
       );
   final String id;

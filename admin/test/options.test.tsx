@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { OptionsPage } from "../src/pages/OptionsPage";
-import { OWNER_ME, fakeServer } from "./fakeServer";
+import { MANAGER_ME, fakeServer } from "./fakeServer";
 
 const GROUPS = [
   {
@@ -21,7 +21,7 @@ const optionRow = (name: string) => screen.getByText(name).closest("tr")!;
 describe("OptionsPage", () => {
   it("shows each group's rule in words and each option's extra", async () => {
     fakeServer({ "GET /option-groups": [200, { groups: GROUPS }] });
-    render(<OptionsPage me={OWNER_ME} />);
+    render(<OptionsPage me={MANAGER_ME} />);
 
     expect(within(await screen.findByTestId("group-g-size")).getByText("Choose exactly 1")).toBeTruthy();
     expect(within(group("group-g-extras")).getByText("Optional: up to 2")).toBeTruthy();
@@ -32,7 +32,7 @@ describe("OptionsPage", () => {
 
   it("adds a group; a minimum above the maximum is refused in the page", async () => {
     const s = fakeServer({ "GET /option-groups": [200, { groups: [] }], "POST /option-groups": [201, { group: { id: "g-new" } }] });
-    render(<OptionsPage me={OWNER_ME} />);
+    render(<OptionsPage me={MANAGER_ME} />);
     await screen.findByRole("heading", { name: "Options" });
 
     fireEvent.change(screen.getByLabelText("Group name (English)"), { target: { value: "Milk" } });
@@ -49,7 +49,7 @@ describe("OptionsPage", () => {
 
   it("adds an option to a group with its extra as text; a badly written extra is refused in the page", async () => {
     const s = fakeServer({ "GET /option-groups": [200, { groups: GROUPS }], "POST /option-groups/g-extras/options": [201, { option: { id: "o-new" } }] });
-    render(<OptionsPage me={OWNER_ME} />);
+    render(<OptionsPage me={MANAGER_ME} />);
     const extras = await screen.findByTestId("group-g-extras");
 
     fireEvent.change(within(extras).getByLabelText("New option (English)"), { target: { value: "Honey" } });
@@ -65,7 +65,7 @@ describe("OptionsPage", () => {
   it("deactivating an option asks first, then sends active: false", async () => {
     const s = fakeServer({ "GET /option-groups": [200, { groups: GROUPS }], "PATCH /options/o-large": [200, { option: {} }] });
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
-    render(<OptionsPage me={OWNER_ME} />);
+    render(<OptionsPage me={MANAGER_ME} />);
     await screen.findByTestId("group-g-size");
 
     fireEvent.click(within(optionRow("Large")).getByRole("button", { name: "Deactivate" }));

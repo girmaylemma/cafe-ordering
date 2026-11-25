@@ -7,7 +7,8 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "types": "wrangler types --include-runtime=false",
-    "new-cafe": "node scripts/new-cafe.mjs"
+    "new-cafe": "node scripts/new-cafe.mjs",
+    "new-manager": "node scripts/new-manager.mjs"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "1.6.1",

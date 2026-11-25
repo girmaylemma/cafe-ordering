@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { api, ApiError } from "../src/api";
 import { App } from "../src/App";
-import { OWNER_ME, fakeServer } from "./fakeServer";
+import { MANAGER_ME, fakeServer } from "./fakeServer";
 
 describe("api()", () => {
   it("sends JSON with the same-origin credentials, and returns the parsed body", async () => {
@@ -22,12 +22,12 @@ describe("api()", () => {
 
 describe("App shell", () => {
   it("shows the café, the signed-in person and the navigation", async () => {
-    fakeServer({ "GET /me": [200, OWNER_ME], "GET /staff": [200, { staff: [] }] });
+    fakeServer({ "GET /me": [200, MANAGER_ME], "GET /staff": [200, { staff: [] }] });
 
     render(<App />);
 
     expect(await screen.findByText("Abebe Cafe")).toBeTruthy();
-    expect(screen.getByText("Abebe (owner)")).toBeTruthy();
+    expect(screen.getByText("Meseret (manager)")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Staff" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Tablets" })).toBeTruthy();
   });
@@ -39,7 +39,7 @@ describe("App shell", () => {
   });
 
   it("switches pages from the navigation and remembers the page in the address", async () => {
-    fakeServer({ "GET /me": [200, OWNER_ME], "GET /staff": [200, { staff: [] }], "GET /devices": [200, { devices: [] }] });
+    fakeServer({ "GET /me": [200, MANAGER_ME], "GET /staff": [200, { staff: [] }], "GET /devices": [200, { devices: [] }] });
     render(<App />);
     await screen.findByText("Abebe Cafe");
 
@@ -51,7 +51,7 @@ describe("App shell", () => {
 
   it("has a Settings page (F4c) that shows the café language", async () => {
     fakeServer({
-      "GET /me": [200, OWNER_ME],
+      "GET /me": [200, MANAGER_ME],
       "GET /staff": [200, { staff: [] }],
       "GET /venue": [200, { venue: { id: "v-1", name: "Abebe Cafe", language: "en" } }],
     });

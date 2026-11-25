@@ -61,12 +61,6 @@ describe("voids with a manager PIN", () => {
     expect(JSON.parse(event!.details)).toEqual({ reason: "customer changed mind", approvedBy: "abebe" });
   });
 
-  it("an owner's PIN can approve too", async () => {
-    const { cafe, waiter, itemId } = await setup();
-    await ensureStaff(cafe, "owner-1", "owner");
-    expect(await voidVia(waiter, voidMessage(itemId, { managerId: "owner-1", managerPin: MANAGER_PIN }))).toMatchObject({ ok: true });
-  });
-
   it("the PIN never reaches the database", async () => {
     const { cafe, waiter, itemId } = await setup();
     await voidVia(waiter, voidMessage(itemId));

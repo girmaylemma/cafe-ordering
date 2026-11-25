@@ -22,6 +22,9 @@ export interface Notice {
   message: ServerMessage;
 }
 
+/** Who did it: a café person or station, or the developer's installer tool (M0, D-97). */
+export type EventActor = Actor | { kind: "installer" };
+
 export interface NewEvent {
   venueId: string;
   sessionId?: string | null;
@@ -30,7 +33,7 @@ export interface NewEvent {
   type: string;
   from?: string | null;
   to?: string | null;
-  actor: Actor;
+  actor: EventActor;
   at: number;
   details?: Record<string, unknown> | undefined;
 }

@@ -41,7 +41,7 @@ class TableCommands extends _LiveCommands {
   Future<ActionResult> delivered(String itemId) => _item(itemId, {'type': 'delivered'});
   Future<ActionResult> cancel(String itemId) => _item(itemId, {'type': 'cancel'});
 
-  /// No [approval] means the signed-in user approves it themselves (managers and owners only:
+  /// No [approval] means the signed-in user approves it themselves (managers only:
   /// the server checks the role, never this tablet).
   Future<ActionResult> voidItem(String itemId, {required String reason, ManagerApproval? approval}) => _item(itemId, {
         'type': 'void',

@@ -91,6 +91,17 @@ describe("the real migration lists", () => {
     expect(list.map((m) => m.version)).toEqual(list.map((_m, i) => i + 1));
   });
 
+  it("migration 8 turns owners into managers, keeping PIN and email (M0, D-97)", async () => {
+    const cafe = newCafe();
+    await sql(cafe, "INSERT INTO staff (id, venue_id, name, role, pin_hash, pin_salt, email, active) VALUES ('boss', 'v-test', 'Abebe', 'owner', 'hash-1', 'salt-1', 'boss@example.com', 1)");
+
+    const m8 = CAFE_MIGRATIONS.find((m) => m.version === 8);
+    expect(m8, "migration 8 exists").toBeDefined();
+    for (const statement of m8!.statements) await sql(cafe, statement);
+
+    expect(await sql(cafe, "SELECT role, pin_hash, email FROM staff WHERE id = 'boss'")).toEqual([{ role: "manager", pin_hash: "hash-1", email: "boss@example.com" }]);
+  });
+
   it("a new café is at the latest version", async () => {
     const rows = await sql<{ version: number }>(newCafe(), "SELECT version FROM schema_migrations ORDER BY version");
     expect(rows.map((r) => r.version)).toEqual(CAFE_MIGRATIONS.map((m) => m.version));

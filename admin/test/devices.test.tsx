@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { DevicesPage } from "../src/pages/DevicesPage";
-import { OWNER_ME, fakeServer } from "./fakeServer";
+import { MANAGER_ME, fakeServer } from "./fakeServer";
 
 const DEVICES = [
   { id: "d-k", name: "Kitchen 1", kind: "station", stationId: "kitchen", status: "paired" },
@@ -14,7 +14,7 @@ const row = (name: string) => screen.getByText(name).closest("tr")!;
 describe("DevicesPage", () => {
   it("lists tablets with type and status", async () => {
     fakeServer({ "GET /devices": [200, { devices: DEVICES }] });
-    render(<DevicesPage me={OWNER_ME} />);
+    render(<DevicesPage me={MANAGER_ME} />);
 
     expect(await screen.findByText("Kitchen 1")).toBeTruthy();
     expect(within(row("Kitchen 1")).getByText("Kitchen station")).toBeTruthy();
@@ -24,7 +24,7 @@ describe("DevicesPage", () => {
 
   it("the station choice only appears for kitchen/bar tablets", async () => {
     fakeServer({ "GET /devices": [200, { devices: [] }] });
-    render(<DevicesPage me={OWNER_ME} />);
+    render(<DevicesPage me={MANAGER_ME} />);
     await screen.findByRole("heading", { name: "Tablets" });
 
     expect(screen.queryByLabelText("Station")).toBeNull();
@@ -37,7 +37,7 @@ describe("DevicesPage", () => {
       "GET /devices": [200, { devices: [] }],
       "POST /devices": [201, { device: { id: "d-new", name: "Bar 1", kind: "station", stationId: "bar", status: "unpaired" }, pairingCode: { code: "482913", expiresAt: Date.now() + 600_000 } }],
     });
-    render(<DevicesPage me={OWNER_ME} />);
+    render(<DevicesPage me={MANAGER_ME} />);
     await screen.findByRole("heading", { name: "Tablets" });
 
     fireEvent.change(screen.getByLabelText("Tablet name"), { target: { value: "Bar 1" } });
@@ -53,7 +53,7 @@ describe("DevicesPage", () => {
 
   it("only unpaired tablets offer a new code; only non-revoked tablets offer Revoke", async () => {
     fakeServer({ "GET /devices": [200, { devices: DEVICES }] });
-    render(<DevicesPage me={OWNER_ME} />);
+    render(<DevicesPage me={MANAGER_ME} />);
     await screen.findByText("Kitchen 1");
 
     expect(within(row("Tablet A")).getByRole("button", { name: /new code/i })).toBeTruthy();
@@ -64,7 +64,7 @@ describe("DevicesPage", () => {
   it("revoking asks first, explains it can't be undone, and cancelling sends nothing", async () => {
     const server = fakeServer({ "GET /devices": [200, { devices: DEVICES }], "POST /devices/d-k/revoke": [200, {}] });
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
-    render(<DevicesPage me={OWNER_ME} />);
+    render(<DevicesPage me={MANAGER_ME} />);
     await screen.findByText("Kitchen 1");
 
     fireEvent.click(within(row("Kitchen 1")).getByRole("button", { name: /revoke/i }));

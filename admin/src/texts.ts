@@ -4,7 +4,7 @@
  */
 import { ApiError } from "./api";
 
-export const roleLabel: Record<string, string> = { waiter: "Waiter", manager: "Manager", owner: "Owner" };
+export const roleLabel: Record<string, string> = { waiter: "Waiter", manager: "Manager" };
 export const stationLabel: Record<string, string> = { kitchen: "Kitchen", bar: "Bar" };
 /** A language as the staff list names it (F4c). */
 export const languageName: Record<string, string> = { en: "English", am: "Amharic", om: "Afaan Oromoo", ti: "Tigrinya" };
@@ -29,7 +29,7 @@ const errors: Record<string, string> = {
   NOT_FOUND: "Not found. Someone may have changed it; reload the page.",
   INVALID_INPUT: "Please check the form: something is missing or not valid.",
   INVALID_REQUEST: "Please check the form: something is missing or not valid.",
-  INVALID_PIN: "The PIN must be 4–6 digits (managers and owners: exactly 6).",
+  INVALID_PIN: "The PIN must be 4–6 digits (managers: exactly 6).",
   EMAIL_TAKEN: "This email is already used by another account.",
   CANNOT_DEACTIVATE_SELF: "You can't deactivate yourself.",
   ALREADY_PAIRED: "This tablet is already paired.",
@@ -49,4 +49,4 @@ export const seatsFormatMessage = "Seats must be a whole number from 1 to 99, or
 export const minMaxMessage = "“At least” can't be more than “At most”, and “At most” must be 1 to 10.";
 
 export const noAccessMessage =
-  "This email has no access to the dashboard. Ask the café owner to add you as a manager with this email.";
+  "This email has no access to the dashboard. Ask the system's developer to add you as a manager with this email.";

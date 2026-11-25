@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { describe, expect, it, vi } from "vitest";
 import { App } from "../src/App";
 import { TablesPage } from "../src/pages/TablesPage";
-import { OWNER_ME, fakeServer } from "./fakeServer";
+import { MANAGER_ME, fakeServer } from "./fakeServer";
 
 const TABLES = [
   { id: "t7", name: "Table 7", area: "Terrace", seats: 4, sortOrder: 0, active: true },
@@ -13,7 +13,7 @@ const row = (name: string) => screen.getByText(name).closest("tr")!;
 describe("TablesPage", () => {
   it("lists tables with area, seats and status", async () => {
     fakeServer({ "GET /tables": [200, { tables: TABLES }] });
-    render(<TablesPage me={OWNER_ME} />);
+    render(<TablesPage me={MANAGER_ME} />);
 
     expect(await screen.findByText("Table 7")).toBeTruthy();
     expect(within(row("Table 7")).getByText("Terrace")).toBeTruthy();
@@ -23,7 +23,7 @@ describe("TablesPage", () => {
 
   it("adds a table; empty area and seats are sent as null", async () => {
     const s = fakeServer({ "GET /tables": [200, { tables: [] }], "POST /tables": [201, { table: { id: "t9" } }] });
-    render(<TablesPage me={OWNER_ME} />);
+    render(<TablesPage me={MANAGER_ME} />);
     await screen.findByRole("heading", { name: "Tables" });
 
     fireEvent.change(screen.getByLabelText("Table name"), { target: { value: "Table 9" } });
@@ -34,7 +34,7 @@ describe("TablesPage", () => {
 
   it("editing sends only what changed", async () => {
     const s = fakeServer({ "GET /tables": [200, { tables: TABLES }], "PATCH /tables/t7": [200, { table: {} }] });
-    render(<TablesPage me={OWNER_ME} />);
+    render(<TablesPage me={MANAGER_ME} />);
     await screen.findByText("Table 7");
 
     fireEvent.click(within(row("Table 7")).getByRole("button", { name: "Edit" }));
@@ -47,7 +47,7 @@ describe("TablesPage", () => {
   it("deactivating asks first; if guests are seated, the server's refusal is explained", async () => {
     fakeServer({ "GET /tables": [200, { tables: TABLES }], "PATCH /tables/t7": [409, { error: "TABLE_IN_USE" }] });
     vi.spyOn(window, "confirm").mockReturnValue(true);
-    render(<TablesPage me={OWNER_ME} />);
+    render(<TablesPage me={MANAGER_ME} />);
     await screen.findByText("Table 7");
 
     fireEvent.click(within(row("Table 7")).getByRole("button", { name: "Deactivate" }));
@@ -58,7 +58,7 @@ describe("TablesPage", () => {
 
 describe("navigation", () => {
   it("the dashboard has Menu, Options, Tables and (F4c) Settings pages", async () => {
-    fakeServer({ "GET /me": [200, OWNER_ME], "GET /staff": [200, { staff: [] }] });
+    fakeServer({ "GET /me": [200, MANAGER_ME], "GET /staff": [200, { staff: [] }] });
     render(<App />);
     await screen.findByText("Abebe Cafe");
     const nav = screen.getByRole("navigation");

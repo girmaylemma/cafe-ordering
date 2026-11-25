@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { MenuPage } from "../src/pages/MenuPage";
-import { OWNER_ME, fakeServer } from "./fakeServer";
+import { MANAGER_ME, fakeServer } from "./fakeServer";
 
 const CATEGORIES = [
   { id: "c-food", nameEn: "Food", nameAm: "ምግብ", sortOrder: 1, active: true },
@@ -34,7 +34,7 @@ const categoryRow = (name: string) => within(screen.getByTestId("categories")).g
 describe("MenuPage: list", () => {
   it("shows items under their category with both names, price in ETB, station and fasting", async () => {
     server();
-    render(<MenuPage me={OWNER_ME} />);
+    render(<MenuPage me={MANAGER_ME} />);
 
     const food = await screen.findByTestId("items-c-food");
     expect(within(food).getByText("Shiro")).toBeTruthy();
@@ -50,7 +50,7 @@ describe("MenuPage: list", () => {
 describe("MenuPage: categories", () => {
   it("adds a category; an empty Amharic name is sent as null", async () => {
     const s = server({ "POST /categories": [201, { category: { id: "c-new" } }] });
-    render(<MenuPage me={OWNER_ME} />);
+    render(<MenuPage me={MANAGER_ME} />);
     await screen.findByTestId("items-c-food");
 
     fireEvent.change(screen.getByLabelText("Category name (English)"), { target: { value: "Breakfast" } });
@@ -62,7 +62,7 @@ describe("MenuPage: categories", () => {
   it("deactivating asks first and says how many active items leave the tablets; cancelling sends nothing", async () => {
     const s = server({ "PATCH /categories/c-food": [200, { category: {} }] });
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
-    render(<MenuPage me={OWNER_ME} />);
+    render(<MenuPage me={MANAGER_ME} />);
     await screen.findByTestId("items-c-food");
 
     fireEvent.click(within(categoryRow("Food")).getByRole("button", { name: "Deactivate" }));
@@ -74,7 +74,7 @@ describe("MenuPage: categories", () => {
   it("reactivating a category sends active: true without asking", async () => {
     const s = server({ "PATCH /categories/c-old": [200, { category: {} }] });
     const confirm = vi.spyOn(window, "confirm");
-    render(<MenuPage me={OWNER_ME} />);
+    render(<MenuPage me={MANAGER_ME} />);
     await screen.findByTestId("items-c-food");
 
     fireEvent.click(within(categoryRow("Old specials")).getByRole("button", { name: "Reactivate" }));
@@ -87,7 +87,7 @@ describe("MenuPage: categories", () => {
 describe("MenuPage: items", () => {
   it("adds an item with the price as text (never a number), the station and the fasting tag", async () => {
     const s = server({ "POST /menu-items": [201, { item: { id: "i-new" } }] });
-    render(<MenuPage me={OWNER_ME} />);
+    render(<MenuPage me={MANAGER_ME} />);
     await screen.findByTestId("items-c-food");
 
     fireEvent.change(screen.getByLabelText("Category"), { target: { value: "c-drinks" } });
@@ -114,7 +114,7 @@ describe("MenuPage: items", () => {
 
   it("refuses a badly written price before sending anything", async () => {
     const s = server();
-    render(<MenuPage me={OWNER_ME} />);
+    render(<MenuPage me={MANAGER_ME} />);
     await screen.findByTestId("items-c-food");
 
     fireEvent.change(screen.getByLabelText("Item name (English)"), { target: { value: "X" } });
@@ -127,7 +127,7 @@ describe("MenuPage: items", () => {
 
   it("the category choice offers active categories only", async () => {
     server();
-    render(<MenuPage me={OWNER_ME} />);
+    render(<MenuPage me={MANAGER_ME} />);
     await screen.findByTestId("items-c-food");
 
     const options = within(screen.getByLabelText("Category")).getAllByRole("option").map((o) => o.textContent);
@@ -136,7 +136,7 @@ describe("MenuPage: items", () => {
 
   it("editing fills the form and sends only the fields that changed", async () => {
     const s = server({ "PATCH /menu-items/i-shiro": [200, { item: {} }] });
-    render(<MenuPage me={OWNER_ME} />);
+    render(<MenuPage me={MANAGER_ME} />);
     await screen.findByTestId("items-c-food");
 
     fireEvent.click(within(itemRow("Shiro")).getByRole("button", { name: "Edit" }));
@@ -149,7 +149,7 @@ describe("MenuPage: items", () => {
 
   it("shows the server's reason when saving fails", async () => {
     server({ "POST /menu-items": [400, { error: "INVALID_INPUT" }] });
-    render(<MenuPage me={OWNER_ME} />);
+    render(<MenuPage me={MANAGER_ME} />);
     await screen.findByTestId("items-c-food");
 
     fireEvent.change(screen.getByLabelText("Item name (English)"), { target: { value: "X" } });
@@ -163,7 +163,7 @@ describe("MenuPage: items", () => {
 describe("MenuPage: sold out and option groups", () => {
   it("marks an item sold out from its row, and offers 'Back in stock' for a sold-out one", async () => {
     const s = server({ "PATCH /menu-items/i-shiro": [200, { item: {} }] });
-    render(<MenuPage me={OWNER_ME} />);
+    render(<MenuPage me={MANAGER_ME} />);
     await screen.findByTestId("items-c-food");
 
     expect(within(itemRow("Tibs")).getByText("Sold out")).toBeTruthy();
@@ -176,7 +176,7 @@ describe("MenuPage: sold out and option groups", () => {
 
   it("the item form lists active option groups to attach; adding sends the chosen ids", async () => {
     const s = server({ "POST /menu-items": [201, { item: { id: "i-new" } }] });
-    render(<MenuPage me={OWNER_ME} />);
+    render(<MenuPage me={MANAGER_ME} />);
     await screen.findByTestId("items-c-food");
 
     expect(screen.queryByLabelText("Old group")).toBeNull();
@@ -190,7 +190,7 @@ describe("MenuPage: sold out and option groups", () => {
 
   it("editing an item with groups doesn't resend unchanged groups (arrays compared by content)", async () => {
     const s = server({ "PATCH /menu-items/i-mac": [200, { item: {} }] });
-    render(<MenuPage me={OWNER_ME} />);
+    render(<MenuPage me={MANAGER_ME} />);
     await screen.findByTestId("items-c-food");
 
     fireEvent.click(within(itemRow("Macchiato")).getByRole("button", { name: "Edit" }));

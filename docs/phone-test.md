@@ -234,7 +234,7 @@ texts in F4d, but notes from real use are the most useful.
 
 ## Part 6: The café language in the dashboard (F4c)
 
-Needs Part 1 running (the server window). The dashboard logs you in as the Dev Cafe owner.
+Needs Part 1 running (the server window). The dashboard logs you in as the Dev Cafe's first manager ("Dev Manager").
 
 1. Open a **new** PowerShell window: `cd admin` then `npm run dev` (the first time: `npm ci` before it).
 2. On the PC, open http://localhost:5173/admin/#settings

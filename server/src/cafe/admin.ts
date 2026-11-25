@@ -21,23 +21,27 @@ export type AdminResult<T extends object = object> = ({ ok: true } & T) | { ok: 
 
 export const fail = (error: AdminError): { ok: false; error: AdminError } => ({ ok: false, error });
 
-export type AdminActor = { id: string; venue_id: string; name: string; role: "manager" | "owner"; email: string | null };
+export type AdminActor = { id: string; venue_id: string; name: string; role: "manager"; email: string | null };
 
-/** The signed-in dashboard user, if they are still an active manager or owner in this café. */
+/** The signed-in dashboard user, if they are still an active manager in this café. */
 export function findAdmin(sql: SqlStorage, userId: string): AdminActor | null {
   return (
     sql
       .exec<AdminActor>(
-        "SELECT id, venue_id, name, role, email FROM staff WHERE id = ? AND active = 1 AND role IN ('manager', 'owner')",
+        "SELECT id, venue_id, name, role, email FROM staff WHERE id = ? AND active = 1 AND role = 'manager'",
         userId,
       )
       .toArray()[0] ?? null
   );
 }
 
-/** Managers manage everyone except owners; owners manage everyone (design §2). */
-export function canManage(actorRole: AdminActor["role"], targetRole: StaffRole): boolean {
-  return actorRole === "owner" || targetRole !== "owner";
+/**
+ * Managers manage waiters only (D-97). Managers are created and reset only by the developer
+ * (installer tools now, the developer console in M4). Since managers cannot deactivate managers
+ * and nobody deactivates themselves, a café always keeps an active manager.
+ */
+export function canManage(_actorRole: AdminActor["role"], targetRole: StaffRole): boolean {
+  return targetRole === "waiter";
 }
 
 export type StaffRow = { id: string; name: string; role: StaffRole; email: string | null; active: number };

@@ -6,7 +6,7 @@ import { useLoad } from "../useLoad";
 
 /**
  * Café settings (F4c). Only the café language for now; VAT, service charge and the business day
- * join this page later (design spec 5.3). Only managers and owners reach the dashboard at all.
+ * join this page later (design spec 5.3). Only managers reach the dashboard at all.
  */
 export function SettingsPage(_props: { me: Me }) {
   const loadVenue = useCallback(() => api<{ venue: Venue }>("GET", "/venue"), []);
