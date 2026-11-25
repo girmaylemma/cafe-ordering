@@ -134,25 +134,28 @@ describe("Your password (M1b)", () => {
     expect(server.calls.some((c) => c.method === "PUT")).toBe(false);
   });
 
-  it("Save password stays off until the new password has 10 characters", async () => {
+  it("Save password stays off until the new password follows every rule", async () => {
     await open(MANAGER_ME);
 
-    type("New password", "123456789");
-    type("New password again", "123456789");
-    expect(savePassword().disabled).toBe(true);
-    type("New password", "1234567890");
-    type("New password again", "1234567890");
+    for (const weak of ["abcdefg1", "abcdefg!", "1234567!", "ab1!"]) {
+      type("New password", weak);
+      type("New password again", weak);
+      expect(savePassword().disabled, weak).toBe(true);
+    }
+    type("New password", "abcde1!x");
+    type("New password again", "abcde1!x");
     expect(savePassword().disabled).toBe(false);
   });
 
-  it("too short: says how many characters are needed, while typing", async () => {
+  it("while typing, it says what is still needed", async () => {
     await open(MANAGER_ME);
 
-    type("New password", "short123");
-
-    expect(screen.getByText("At least 10 characters (8 so far).")).toBeTruthy();
-    type("New password", "long-enough-1");
-    expect(screen.queryByText(/At least 10 characters \(/)).toBeNull();
+    type("New password", "abc");
+    expect(screen.getByText("Still needed: 5 more characters, a number, a symbol.")).toBeTruthy();
+    type("New password", "abcdefg1");
+    expect(screen.getByText("Still needed: a symbol.")).toBeTruthy();
+    type("New password", "abcdefg1!");
+    expect(screen.queryByText(/Still needed/)).toBeNull();
   });
 
   it("Show passwords reveals all three fields, and they are hidden again after a save", async () => {

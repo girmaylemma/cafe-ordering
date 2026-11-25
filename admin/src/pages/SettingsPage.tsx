@@ -70,8 +70,21 @@ export function SettingsPage(_props: { me: Me }) {
   );
 }
 
-/** 10 to 128 characters, counted like the server (code points). */
-const longEnough = (password: string) => [...password].length >= 10;
+/**
+ * What the new password still needs, by the server's rule (D-99): 8 to 128 characters (code points),
+ * a letter (any script), a number and a symbol. Empty = ready. The server checks again.
+ */
+function stillNeeded(password: string): string[] {
+  const characters = [...password];
+  const needed: string[] = [];
+  const missing = 8 - characters.length;
+  if (missing > 0) needed.push(`${missing} more character${missing === 1 ? "" : "s"}`);
+  if (characters.length > 128) needed.push("at most 128 characters");
+  if (!/\p{L}/u.test(password)) needed.push("a letter");
+  if (!/\p{Nd}/u.test(password)) needed.push("a number");
+  if (!characters.some((c) => !/[\p{L}\p{Nd}\s]/u.test(c))) needed.push("a symbol");
+  return needed;
+}
 
 /**
  * The manager's own password (M1b, D-99): it unlocks the app's management screens (M2). Set here
@@ -92,7 +105,7 @@ function PasswordCard() {
   const [saving, setSaving] = useState(false);
   const [show, setShow] = useState(false);
   const kind = show ? "text" : "password";
-  const typed = [...next].length;
+  const needed = stillNeeded(next);
 
   function clear() {
     setCurrent("");
@@ -127,7 +140,7 @@ function PasswordCard() {
   return (
     <form className="card" onSubmit={onSave}>
       <h3>Your password</h3>
-      <p className="hint">At least 10 characters. You will use it to open the management screens in the app.</p>
+      <p className="hint">At least 8 characters, with a letter, a number and a symbol (e.g. ! - #). You will use it to open the management screens in the app.</p>
       {error !== null && <p role="alert">{error}</p>}
       {notice !== null && <p role="status">{notice}</p>}
       {hasPassword && (
@@ -138,14 +151,14 @@ function PasswordCard() {
       )}
       <label htmlFor="password-new">New password</label>
       <input id="password-new" type={kind} autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} />
-      {typed > 0 && typed < 10 && <p className="hint">{`At least 10 characters (${typed} so far).`}</p>}
+      {next.length > 0 && needed.length > 0 && <p className="hint">{`Still needed: ${needed.join(", ")}.`}</p>}
       <label htmlFor="password-again">New password again</label>
       <input id="password-again" type={kind} autoComplete="new-password" value={again} onChange={(e) => setAgain(e.target.value)} />
       <label className="check" htmlFor="password-show">
         <input id="password-show" type="checkbox" checked={show} onChange={(e) => setShow(e.target.checked)} />
         Show passwords
       </label>
-      <button type="submit" disabled={saving || !longEnough(next) || !longEnough(again)}>
+      <button type="submit" disabled={saving || needed.length > 0 || stillNeeded(again).length > 0}>
         Save password
       </button>
     </form>

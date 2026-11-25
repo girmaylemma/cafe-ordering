@@ -36,7 +36,7 @@ const errors: Record<string, string> = {
   DEVICE_REVOKED: "This tablet was revoked. Add it again as a new tablet.",
   TABLE_IN_USE: "Guests are seated at this table. Close it first.",
   INVALID_CREDENTIALS: "The current password is not right.",
-  INVALID_PASSWORD: "A password needs 10 to 128 characters.",
+  INVALID_PASSWORD: "A password needs 8 to 128 characters, with a letter, a number and a symbol.",
   SAME_PASSWORD: "Choose a password different from the current one.",
   LOCKED: "Too many wrong passwords. Try again in 5 minutes.",
 };
