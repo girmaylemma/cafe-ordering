@@ -109,18 +109,69 @@ const token = await accessToken();
 const admin = (method, path, body) => must(method, `/admin/api${path}`, body, { "Cf-Access-Jwt-Assertion": token, Origin: API });
 
 // ---------- 2. staff, menu, tables (only what is missing) ----------
+// A PIN set through the dashboard or the installer is temporary (M1a): the person chooses their own
+// at the next sign-in. So the guide's PINs stay true, each test person ends with that PIN, chosen
+// through the real change route on a helper tablet (paired here, revoked at the end).
+const stamp = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+const TEMPORARY = "975310"; // a throwaway PIN valid for waiters and managers, never the final one
+let helper = null;
+async function helperTablet() {
+  if (helper !== null) return helper;
+  const created = await admin("POST", "/devices", { name: `Setup helper ${stamp}`, kind: "waiter" });
+  const paired = await must("POST", "/devices/pair", { code: created.pairingCode.code });
+  helper = { id: created.device.id, auth: { Authorization: `Bearer ${paired.token}` } };
+  return helper;
+}
+async function signIn(userId, pin) {
+  const { auth } = await helperTablet();
+  return call("POST", "/auth/pin", { userId, pin }, auth);
+}
+async function signOut(session) {
+  const { auth } = await helperTablet();
+  await call("POST", "/auth/sign-out", {}, { ...auth, "X-Staff-Session": session.sessionToken });
+}
+/** Sign in with the temporary PIN and choose `pin`, as a phone does at a first sign-in. */
+async function choose(userId, pin) {
+  const { auth } = await helperTablet();
+  const session = await signIn(userId, TEMPORARY);
+  if (!session.ok) stop(`Could not sign in to choose a PIN: ${session.error ?? session.status}`);
+  if (session.mustChangePin) await must("POST", "/auth/pin/change", { currentPin: TEMPORARY, newPin: pin }, { ...auth, "X-Staff-Session": session.sessionToken });
+  await signOut(session);
+}
+/** Make sure `person` signs in with `pin`, not temporary. `reset` sets a temporary PIN (null: not possible). */
+async function ensurePin(userId, pin, reset) {
+  const known = await signIn(userId, pin);
+  if (known.ok && !known.mustChangePin) return signOut(known); // already right: nothing to do
+  if (!known.ok) {
+    const temporary = await signIn(userId, TEMPORARY); // left over from an interrupted run?
+    if (temporary.ok && temporary.mustChangePin) return choose(userId, pin);
+  }
+  if (reset === null) stop(`${userId}'s PIN is not the one in the guide, and only the developer can reset a manager (npm run new-manager adds a new one).`);
+  await reset(TEMPORARY);
+  await choose(userId, pin);
+}
+
 const staff = (await admin("GET", "/staff")).staff;
 for (const [name, pin] of [["Hana", "1234"], ["Abel", "5678"]]) {
-  const existing = staff.find((s) => s.name === name && s.active);
-  if (existing) await admin("POST", `/staff/${existing.id}/pin`, { pin }); // a known PIN for the test
-  else await admin("POST", "/staff", { name, role: "waiter", pin });
+  let person = staff.find((s) => s.name === name && s.active);
+  if (person === undefined) {
+    person = (await admin("POST", "/staff", { name, role: "waiter", pin: TEMPORARY })).staff;
+    await choose(person.id, pin);
+  } else {
+    await ensurePin(person.id, pin, (temporary) => admin("POST", `/staff/${person.id}/pin`, { pin: temporary }));
+  }
 }
 // Only the developer adds managers (D-97): through the installer route. A manager's PIN cannot be
-// reset from the dashboard, so an existing Meron keeps hers (246810 unless someone changed it).
-if (!staff.some((s) => s.name === "Meron" && s.active)) {
+// reset from the dashboard, so an existing Meron is only checked.
+const meron = staff.find((s) => s.name === "Meron" && s.active);
+if (meron === undefined) {
   const venueId = (await admin("GET", "/me")).venue.id;
-  await must("POST", `/installer/venues/${venueId}/managers`, { name: "Meron", email: "meron@dev-cafe.example", pin: "246810" }, installer);
+  const added = await must("POST", `/installer/venues/${venueId}/managers`, { name: "Meron", email: "meron@dev-cafe.example", pin: TEMPORARY }, installer);
+  await choose(added.manager.id, "246810");
+} else {
+  await ensurePin(meron.id, "246810", null);
 }
+if (helper !== null) await admin("POST", `/devices/${helper.id}/revoke`, {});
 console.log("✓ Staff: Hana (waiter, PIN 1234), Abel (waiter, PIN 5678), Meron (manager, PIN 246810)");
 
 // Amharic names too (F4b), so both names show; added to an existing test café when missing.
@@ -142,7 +193,6 @@ for (const [i, name] of ["Table 1", "Table 2", "Table 3"].entries()) {
 console.log("✓ Tables: Table 1, Table 2, Table 3");
 
 // ---------- 3. the pretend kitchen: paired here, so dev-kitchen.mjs needs no code ----------
-const stamp = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 const kitchen = await admin("POST", "/devices", { name: `Test kitchen ${stamp}`, kind: "station", stationId: "kitchen" });
 const paired = await must("POST", "/devices/pair", { code: kitchen.pairingCode.code });
 writeFileSync(here("../.dev-kitchen-token"), paired.token);

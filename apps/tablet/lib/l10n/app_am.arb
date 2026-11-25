@@ -140,5 +140,18 @@
   "keepAliveIdle": "መተግበሪያውን ከበስተጀርባ ክፍት ይተዉት። አያስወግዱት።",
   "keepAliveChannelName": "የካፌ ማንቂያዎች",
   "keepAliveChannelDescription": "የ'ዝግጁ' ማንቂያዎች መብራታቸውንና የመጨረሻውን ማንቂያ ያሳያል።",
-  "languageSwitch": "ቋንቋ ቀይር"
+  "languageSwitch": "ቋንቋ ቀይር",
+  "pinChooseTitle": "የራስዎን ፒን ይምረጡ",
+  "pinChooseHelp": "ፒንዎ በሌላ ሰው ተዘጋጅቷል። እርስዎ ብቻ የሚያውቁትን ይምረጡ።",
+  "pinNew": "አዲስ ፒን",
+  "pinNewAgain": "አዲሱን ፒን እንደገና",
+  "pinRuleWaiter": "ከ4 እስከ 6 አሃዝ",
+  "pinRuleManager": "ልክ 6 አሃዝ",
+  "pinMismatch": "ሁለቱ ፒኖች አንድ አይደሉም።",
+  "pinSave": "አስቀምጥ",
+  "pinCurrent": "የአሁኑ ፒን",
+  "floorChangePin": "ፒኔን ቀይር",
+  "pinChanged": "ፒንዎ ተቀይሯል።",
+  "errorSamePin": "ከተሰጠዎት ፒን የተለየ ይምረጡ።",
+  "errorPinChangeRequired": "መጀመሪያ የራስዎን ፒን ይምረጡ።"
 }

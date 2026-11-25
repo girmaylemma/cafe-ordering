@@ -79,10 +79,35 @@ export default {
             return json(400, { error: "INVALID_REQUEST" });
           }
           const result = await cafe.signIn({ deviceToken: token, userId: body.userId, pin: body.pin });
-          if (result.ok) return json(200, { sessionToken: result.sessionToken, user: result.user, expiresAt: result.expiresAt });
+          if (result.ok) {
+            return json(200, { sessionToken: result.sessionToken, user: result.user, expiresAt: result.expiresAt, mustChangePin: result.mustChangePin });
+          }
           switch (result.error) {
             case "LOCKED":
               return json(423, { error: result.error, retryAfterMs: result.retryAfterMs });
+            case "NOT_A_WAITER_DEVICE":
+              return json(403, { error: result.error });
+            default:
+              return json(401, { error: result.error });
+          }
+        });
+      case "POST /auth/pin/change":
+        // A signed-in person changes their own PIN, also the way out of a temporary one (M1a).
+        return withCafe(request, env, async (cafe, token) => {
+          const sessionToken = request.headers.get("X-Staff-Session");
+          const body = await readJson(request);
+          if (sessionToken === null) return json(401, { error: "SESSION_ENDED" });
+          if (body === null || typeof body.currentPin !== "string" || typeof body.newPin !== "string") {
+            return json(400, { error: "INVALID_REQUEST" });
+          }
+          const result = await cafe.changePin({ deviceToken: token, sessionToken, currentPin: body.currentPin, newPin: body.newPin });
+          if (result.ok) return json(200, { ok: true });
+          switch (result.error) {
+            case "LOCKED":
+              return json(423, { error: result.error, retryAfterMs: result.retryAfterMs });
+            case "INVALID_PIN":
+            case "SAME_PIN":
+              return json(400, { error: result.error });
             case "NOT_A_WAITER_DEVICE":
               return json(403, { error: result.error });
             default:

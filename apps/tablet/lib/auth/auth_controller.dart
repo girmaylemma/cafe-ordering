@@ -35,6 +35,16 @@ class NeedsSignIn extends AuthState {
   final Duration? retryAfter;
 }
 
+/// Signed in with a PIN someone else set (M1a): they choose their own before anything else. The
+/// session is NOT saved until then, so closing the app goes back to the PIN screen. [error] is the
+/// server's code from the last refused choice (e.g. SAME_PIN).
+class MustChangePin extends AuthState {
+  const MustChangePin(this.device, this.user, {this.error});
+  final DeviceInfo device;
+  final StaffMember user;
+  final String? error;
+}
+
 class SignedIn extends AuthState {
   const SignedIn(this.device, this.user, {this.error});
   final DeviceInfo device;
@@ -103,13 +113,13 @@ class AuthController extends AsyncNotifier<AuthState> {
     }
     try {
       final result = await _api.signIn(device.token, userId, pin);
-      await _store.saveSession(SignedInUser(sessionToken: result.sessionToken, user: result.user));
-      // The server's copy of their language, unless this tablet still has a newer one to send.
-      final db = ref.read(databaseProvider);
-      if (!(await db.watchMyLanguage(result.user.id).first).pending) {
-        await db.setMyLanguage(result.user.id, result.user.language, pending: false);
+      if (result.mustChangePin) {
+        // Kept in memory only, for choosePin (the typed PIN is the "current" one).
+        _pending = (session: SignedInUser(sessionToken: result.sessionToken, user: result.user), temporaryPin: pin);
+        state = AsyncData(MustChangePin(device.info, result.user));
+        return;
       }
-      state = AsyncData(SignedIn(device.info, result.user));
+      await _completeSignIn(device, SignedInUser(sessionToken: result.sessionToken, user: result.user));
     } on ApiException catch (e) {
       // A revoked or unknown tablet must pair again; it can never sign anyone in.
       if (e.code == 'UNAUTHORIZED_DEVICE') return _forgetDevice();
@@ -117,6 +127,60 @@ class AuthController extends AsyncNotifier<AuthState> {
     } on NetworkException {
       state = AsyncData(NeedsSignIn(device.info, error: 'NETWORK'));
     }
+  }
+
+  /// A signed-in session waiting for "choose your own PIN" (M1a). Memory only, never stored.
+  ({SignedInUser session, String temporaryPin})? _pending;
+
+  /// The person chooses their own PIN after a temporary one (M1a). Done: signed in as usual.
+  Future<void> choosePin(String newPin) async {
+    final pending = _pending;
+    final device = await _store.loadDevice();
+    if (pending == null || device == null) {
+      state = AsyncData(device == null ? const Unpaired() : NeedsSignIn(device.info));
+      return;
+    }
+    try {
+      await _api.changePin(device.token, pending.session.sessionToken, pending.temporaryPin, newPin);
+      _pending = null;
+      await _completeSignIn(device, pending.session);
+    } on ApiException catch (e) {
+      if (e.code == 'UNAUTHORIZED_DEVICE') return _forgetDevice();
+      if (e.code == 'SESSION_ENDED' || e.code == 'LOCKED') {
+        _pending = null; // start again from the PIN screen
+        state = AsyncData(NeedsSignIn(device.info, error: e.code, retryAfter: e.retryAfter));
+        return;
+      }
+      state = AsyncData(MustChangePin(device.info, pending.session.user, error: e.code));
+    } on NetworkException {
+      state = AsyncData(MustChangePin(device.info, pending.session.user, error: 'NETWORK'));
+    }
+  }
+
+  /// A signed-in person changes their own PIN (M1a). Returns null when done, else the error code.
+  Future<String?> changeMyPin(String currentPin, String newPin) async {
+    final device = await _store.loadDevice();
+    final session = await _store.loadSession();
+    if (device == null || session == null) return 'SESSION_ENDED';
+    try {
+      await _api.changePin(device.token, session.sessionToken, currentPin, newPin);
+      return null;
+    } on ApiException catch (e) {
+      return e.code;
+    } on NetworkException {
+      return 'NETWORK';
+    }
+  }
+
+  /// Save the session and show the person's tables (a plain sign-in, or after choosing a PIN).
+  Future<void> _completeSignIn(PairedDevice device, SignedInUser signedIn) async {
+    await _store.saveSession(signedIn);
+    // The server's copy of their language, unless this tablet still has a newer one to send.
+    final db = ref.read(databaseProvider);
+    if (!(await db.watchMyLanguage(signedIn.user.id).first).pending) {
+      await db.setMyLanguage(signedIn.user.id, signedIn.user.language, pending: false);
+    }
+    state = AsyncData(SignedIn(device.info, signedIn.user));
   }
 
   /// Ends the PIN session; the tablet stays paired. The server is told when reachable.

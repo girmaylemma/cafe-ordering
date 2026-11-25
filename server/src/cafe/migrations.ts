@@ -136,4 +136,12 @@ export const CAFE_MIGRATIONS: readonly Migration[] = [
       "UPDATE staff SET role = 'manager' WHERE role = 'owner'",
     ],
   },
+  {
+    version: 9,
+    description: "temporary PINs: a PIN set by someone else must be changed at the next sign-in (M1a)",
+    statements: [
+      // Existing staff keep their PINs as they are (0).
+      "ALTER TABLE staff ADD COLUMN pin_must_change INTEGER NOT NULL DEFAULT 0 CHECK (pin_must_change IN (0, 1))",
+    ],
+  },
 ];

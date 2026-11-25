@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'auth/auth_controller.dart';
 import 'l10n/l10n.dart';
 import 'ui/alert_banner.dart';
+import 'ui/choose_pin_screen.dart';
 import 'ui/floor_map_screen.dart';
 import 'ui/kitchen_screen.dart';
 import 'ui/pair_screen.dart';
@@ -32,6 +33,7 @@ class CafeApp extends ConsumerWidget {
             Unpaired(:final error) => PairScreen(error: error),
             NeedsSignIn() => PinScreen(key: ValueKey(value.device.id), state: value),
             SignedIn(:final user) => FloorMapScreen(user: user),
+            MustChangePin() => ChoosePinScreen(state: value), // a temporary PIN: choose your own first (M1a)
             StationReady(:final device) => KitchenScreen(device: device),
           },
         AsyncError() => const _Placeholder(),

@@ -3,8 +3,10 @@ import { isValidVenueId, makeDeviceToken, pinHash, randomSecret, sha256Hex } fro
 import type { Actor } from "../domain/itemState";
 import {
   approveVoid,
+  changeOwnPin,
   completeSignIn,
   findLiveSession,
+  type ChangePinResult,
   findPairedDevice,
   isManagerHere,
   isValidPin,
@@ -144,6 +146,8 @@ export class CafeDO extends DurableObject<Env> {
     pin: string;
     /** Dashboard login (managers). Registered in the Directory, unique in the whole system. */
     email?: string | null;
+    /** Set by someone else (dashboard, installer): the person chooses their own at sign-in (M1a). */
+    temporaryPin?: boolean;
   }): Promise<{ ok: true } | Fail<"INVALID_INPUT" | "INVALID_PIN" | "STAFF_EXISTS" | "EMAIL_TAKEN">> {
     const { venueId, id, name, role, pin } = input;
     if (!isValidVenueId(venueId) || !isId(id) || !isName(name) || !isRole(role)) {
@@ -167,7 +171,7 @@ export class CafeDO extends DurableObject<Env> {
       return { ok: false, error: "STAFF_EXISTS" };
     }
     sql.exec(
-      "INSERT INTO staff (id, venue_id, name, role, pin_salt, pin_hash, email) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO staff (id, venue_id, name, role, pin_salt, pin_hash, email, pin_must_change) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
       id,
       venueId,
       name,
@@ -175,6 +179,7 @@ export class CafeDO extends DurableObject<Env> {
       salt,
       hash,
       email,
+      input.temporaryPin === true ? 1 : 0,
     );
     return { ok: true };
   }
@@ -189,7 +194,7 @@ export class CafeDO extends DurableObject<Env> {
   }): Promise<AdminResult> {
     if (!isName(input.name)) return fail("INVALID_INPUT");
     if (this.ctx.storage.sql.exec("SELECT 1 FROM venue").toArray().length > 0) return fail("VENUE_EXISTS");
-    const created = await this.createStaff({ venueId: input.venueId, role: "manager", ...input.manager });
+    const created = await this.createStaff({ venueId: input.venueId, role: "manager", ...input.manager, temporaryPin: true });
     if (!created.ok) return fail(created.error === "STAFF_EXISTS" ? "INVALID_INPUT" : created.error);
     this.ctx.storage.sql.exec("INSERT INTO venue (id, name, created_at) VALUES (?, ?, ?)", input.venueId, input.name.trim(), Date.now());
     return { ok: true };
@@ -205,7 +210,7 @@ export class CafeDO extends DurableObject<Env> {
     const { name, email, pin } = input;
     if (typeof name !== "string" || typeof email !== "string" || typeof pin !== "string") return fail("INVALID_INPUT");
     const id = crypto.randomUUID();
-    const created = await this.createStaff({ venueId: venue.id, id, name: name.trim(), role: "manager", pin, email });
+    const created = await this.createStaff({ venueId: venue.id, id, name: name.trim(), role: "manager", pin, email, temporaryPin: true });
     if (!created.ok) return fail(created.error === "STAFF_EXISTS" ? "INVALID_INPUT" : created.error);
     insertEvent(this.ctx.storage.sql, { venueId: venue.id, type: "staff.created", actor: { kind: "installer" }, at: Date.now(), details: { staffId: id, role: "manager" } });
     return { ok: true, manager: { id } };
@@ -265,7 +270,7 @@ export class CafeDO extends DurableObject<Env> {
 
     const id = crypto.randomUUID();
     const email = (input.email as string | null | undefined) ?? null;
-    const created = await this.createStaff({ venueId: actor.venue_id, id, name: name.trim(), role, pin, email });
+    const created = await this.createStaff({ venueId: actor.venue_id, id, name: name.trim(), role, pin, email, temporaryPin: true });
     if (!created.ok) return fail(created.error === "STAFF_EXISTS" ? "INVALID_INPUT" : created.error);
     audit(this.ctx.storage.sql, actor, "staff.created", { staffId: id, role });
     const staffEmail = email === null ? null : normalizeEmail(email);
@@ -285,7 +290,7 @@ export class CafeDO extends DurableObject<Env> {
     return { ok: true };
   }
 
-  /** New PIN; also clears a lockout (the usual reason for a reset). */
+  /** New PIN, temporary (M1a); also clears a lockout (the usual reason for a reset). */
   async adminResetPin(actorId: string, targetId: string, pin: unknown): Promise<AdminResult> {
     const before = this.#manageableStaff(actorId, targetId);
     if (!before.ok) return before;
@@ -296,7 +301,7 @@ export class CafeDO extends DurableObject<Env> {
     const after = this.#manageableStaff(actorId, targetId); // re-check after the await
     if (!after.ok) return after;
     this.ctx.storage.sql.exec(
-      "UPDATE staff SET pin_salt = ?, pin_hash = ?, failed_pin_attempts = 0, locked_until = NULL WHERE id = ?",
+      "UPDATE staff SET pin_salt = ?, pin_hash = ?, failed_pin_attempts = 0, locked_until = NULL, pin_must_change = 1 WHERE id = ?",
       salt,
       hash,
       targetId,
@@ -432,7 +437,9 @@ export class CafeDO extends DurableObject<Env> {
   async tabletLines(
     deviceToken: string,
     sessionToken: string,
-  ): Promise<({ ok: true } & ReturnType<typeof waiterLines>) | Fail<"UNAUTHORIZED_DEVICE" | "NOT_A_WAITER_DEVICE" | "SESSION_ENDED">> {
+  ): Promise<
+    ({ ok: true } & ReturnType<typeof waiterLines>) | Fail<"UNAUTHORIZED_DEVICE" | "NOT_A_WAITER_DEVICE" | "SESSION_ENDED" | "PIN_CHANGE_REQUIRED">
+  > {
     const deviceTokenHash = await sha256Hex(deviceToken);
     const sessionHash = await sha256Hex(sessionToken);
     // After the awaits, everything below is synchronous.
@@ -442,6 +449,7 @@ export class CafeDO extends DurableObject<Env> {
     if (device.kind !== "waiter") return { ok: false, error: "NOT_A_WAITER_DEVICE" };
     const session = findLiveSession(sql, sessionHash, device.id, Date.now());
     if (session === null) return { ok: false, error: "SESSION_ENDED" };
+    if (session.pinMustChange) return { ok: false, error: "PIN_CHANGE_REQUIRED" }; // M1a
     const everyTable = isManagerHere(sql, device.venue_id, session.userId); // D-78
     return { ok: true, ...waiterLines(sql, device.venue_id, everyTable ? null : session.userId) };
   }
@@ -598,6 +606,53 @@ export class CafeDO extends DurableObject<Env> {
     });
   }
 
+  /** A signed-in person changes their own PIN (M1a): also the way out of a temporary one. */
+  async changePin(input: {
+    deviceToken: string;
+    sessionToken: string;
+    currentPin: string;
+    newPin: string;
+  }): Promise<ChangePinResult | Fail<"UNAUTHORIZED_DEVICE" | "NOT_A_WAITER_DEVICE" | "SESSION_ENDED">> {
+    const deviceTokenHash = await sha256Hex(input.deviceToken);
+    const sessionHash = await sha256Hex(input.sessionToken);
+    const sql = this.ctx.storage.sql;
+    const live = () => {
+      const device = findPairedDevice(sql, deviceTokenHash);
+      if (device === null) return { ok: false as const, error: "UNAUTHORIZED_DEVICE" as const };
+      if (device.kind !== "waiter") return { ok: false as const, error: "NOT_A_WAITER_DEVICE" as const };
+      const session = findLiveSession(sql, sessionHash, device.id, Date.now());
+      if (session === null) return { ok: false as const, error: "SESSION_ENDED" as const };
+      return { ok: true as const, device, userId: session.userId };
+    };
+    const before = live();
+    if (!before.ok) return before;
+    const salt = sql.exec<{ pin_salt: string }>("SELECT pin_salt FROM staff WHERE id = ?", before.userId).toArray()[0]?.pin_salt;
+    const newSalt = randomSecret(16);
+    const [currentHash, newWithOldSalt, newHash] = await Promise.all([
+      salt === undefined ? null : pinHash(this.env.SERVER_SECRET, salt, input.currentPin),
+      salt === undefined ? null : pinHash(this.env.SERVER_SECRET, salt, input.newPin),
+      pinHash(this.env.SERVER_SECRET, newSalt, input.newPin),
+    ]);
+
+    // After the awaits, everything below is synchronous (D-37): check again, then change.
+    const after = live();
+    if (!after.ok) return after;
+    if (after.userId !== before.userId) return { ok: false, error: "SESSION_ENDED" };
+    const stillSalt = sql.exec<{ pin_salt: string }>("SELECT pin_salt FROM staff WHERE id = ?", after.userId).toArray()[0]?.pin_salt;
+    if (stillSalt !== salt) return { ok: false, error: "INVALID_CREDENTIALS" }; // changed meanwhile: try again
+    return changeOwnPin(sql, {
+      venueId: after.device.venue_id,
+      userId: after.userId,
+      deviceId: after.device.id,
+      newPin: input.newPin,
+      currentHash,
+      newWithOldSalt,
+      newSalt,
+      newHash,
+      now: Date.now(),
+    });
+  }
+
   async signOut(input: { deviceToken: string; sessionToken: string }): Promise<{ ok: true } | Fail<"UNAUTHORIZED_DEVICE">> {
     const deviceTokenHash = await sha256Hex(input.deviceToken);
     const sessionHash = await sha256Hex(input.sessionToken);
@@ -621,6 +676,7 @@ export class CafeDO extends DurableObject<Env> {
       return new Response("Expected a WebSocket upgrade", { status: 426 });
     }
     const auth = await this.#authenticate(request.headers);
+    if (auth === "PIN_CHANGE_REQUIRED") return Response.json({ error: auth }, { status: 401 }); // M1a
     if (auth === null) return new Response("Unauthorized", { status: 401 });
 
     const [client, server] = Object.values(new WebSocketPair()) as [WebSocket, WebSocket];
@@ -681,7 +737,7 @@ export class CafeDO extends DurableObject<Env> {
 
   // ---------- authentication ----------
 
-  async #authenticate(headers: Headers): Promise<SocketAuth | null> {
+  async #authenticate(headers: Headers): Promise<SocketAuth | "PIN_CHANGE_REQUIRED" | null> {
     const token = bearerToken(headers.get("Authorization"));
     if (token === null) {
       // Only the internal live view connects without a token (the Worker strips X-Cafe-* headers).
@@ -707,6 +763,7 @@ export class CafeDO extends DurableObject<Env> {
     if (sessionHash === null) return null; // a waiter tablet needs a PIN session
     const session = findLiveSession(sql, sessionHash, device.id, Date.now());
     if (session === null) return null;
+    if (session.pinMustChange) return "PIN_CHANGE_REQUIRED";
     return {
       identity: {
         role: "staff",
@@ -734,7 +791,9 @@ export class CafeDO extends DurableObject<Env> {
     const device = findPairedDevice(sql, auth.deviceTokenHash);
     if (device === null) return false;
     if (auth.sessionHash === null) return device.kind === "station";
-    return findLiveSession(sql, auth.sessionHash, device.id, Date.now()) !== null;
+    // A PIN reset makes the PIN temporary: an open socket ends at its next message (M1a).
+    const session = findLiveSession(sql, auth.sessionHash, device.id, Date.now());
+    return session !== null && !session.pinMustChange;
   }
 
   #unpairedDevice(deviceId: string): { ok: true; venueId: string } | Fail<"DEVICE_NOT_FOUND" | "ALREADY_PAIRED" | "DEVICE_REVOKED"> {

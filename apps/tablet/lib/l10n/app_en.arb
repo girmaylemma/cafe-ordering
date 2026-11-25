@@ -724,5 +724,57 @@
   "languageSwitch": "Switch language",
   "@languageSwitch": {
     "description": "Tooltip of the language button (shows the current language, opens the list of all four) on the floor map and kitchen screen."
+  },
+  "pinChooseTitle": "Choose your own PIN",
+  "@pinChooseTitle": {
+    "description": "Title of the screen shown after signing in with a PIN someone else set (M1a)."
+  },
+  "pinChooseHelp": "Your PIN was set by someone else. Choose one only you know.",
+  "@pinChooseHelp": {
+    "description": "Choose-your-own-PIN screen: why it is shown."
+  },
+  "pinNew": "New PIN",
+  "@pinNew": {
+    "description": "Choose / change PIN: label of the new PIN field."
+  },
+  "pinNewAgain": "New PIN again",
+  "@pinNewAgain": {
+    "description": "Choose / change PIN: label of the field that repeats the new PIN."
+  },
+  "pinRuleWaiter": "4 to 6 digits",
+  "@pinRuleWaiter": {
+    "description": "Choose / change PIN: the rule for a waiter's PIN."
+  },
+  "pinRuleManager": "Exactly 6 digits",
+  "@pinRuleManager": {
+    "description": "Choose / change PIN: the rule for a manager's PIN (it approves voids)."
+  },
+  "pinMismatch": "The two PINs are not the same.",
+  "@pinMismatch": {
+    "description": "Choose / change PIN: the new PIN and its repeat differ."
+  },
+  "pinSave": "Save",
+  "@pinSave": {
+    "description": "Choose / change PIN: the save button."
+  },
+  "pinCurrent": "Current PIN",
+  "@pinCurrent": {
+    "description": "Change my PIN: label of the field for the PIN used now."
+  },
+  "floorChangePin": "Change my PIN",
+  "@floorChangePin": {
+    "description": "Floor map menu: change your own PIN."
+  },
+  "pinChanged": "Your PIN was changed.",
+  "@pinChanged": {
+    "description": "Change my PIN: shown after a successful change."
+  },
+  "errorSamePin": "Choose a PIN different from the one you were given.",
+  "@errorSamePin": {
+    "description": "Choose / change PIN: the new PIN is the same as the current one."
+  },
+  "errorPinChangeRequired": "Choose your own PIN first.",
+  "@errorPinChangeRequired": {
+    "description": "Any screen: the server needs the person to choose their own PIN first."
   }
 }

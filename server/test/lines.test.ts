@@ -163,6 +163,12 @@ describe("GET /lines (waiter reload)", () => {
       body: { userId: manager.id, pin: "123456" },
     });
     const { sessionToken } = await json<{ sessionToken: string }>(signIn);
+    // The installer's PIN is temporary (M1a): choose one first, as a real first sign-in does.
+    const chosen = await call("POST", "/auth/pin/change", {
+      headers: { Authorization: `Bearer ${token}`, "X-Staff-Session": sessionToken, "Content-Type": "application/json" },
+      body: { currentPin: "123456", newPin: "246802" },
+    });
+    expect(chosen.status).toBe(200);
 
     const response = await call("GET", "/lines", { headers: { Authorization: `Bearer ${token}`, "X-Staff-Session": sessionToken } });
 

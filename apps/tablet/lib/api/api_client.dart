@@ -60,9 +60,12 @@ class StaffDownload {
 }
 
 class SessionResult {
-  const SessionResult({required this.sessionToken, required this.user});
+  const SessionResult({required this.sessionToken, required this.user, this.mustChangePin = false});
   final String sessionToken;
   final StaffMember user;
+
+  /// The PIN was set by someone else: choose your own before anything else (M1a).
+  final bool mustChangePin;
 }
 
 /// The server answered with an error code (e.g. INVALID_CODE, LOCKED, UNAUTHORIZED_DEVICE).
@@ -111,7 +114,15 @@ class ApiClient {
     return SessionResult(
       sessionToken: json['sessionToken'] as String,
       user: StaffMember.fromJson(json['user'] as Map<String, dynamic>),
+      mustChangePin: json['mustChangePin'] == true, // missing from an older server: false
     );
+  }
+
+  /// Change your own PIN (M1a); also the way out of a temporary one. Throws [ApiException] with
+  /// INVALID_CREDENTIALS, LOCKED, INVALID_PIN, SAME_PIN or SESSION_ENDED.
+  Future<void> changePin(String deviceToken, String sessionToken, String currentPin, String newPin) async {
+    await _send('POST', '/auth/pin/change',
+        deviceToken: deviceToken, sessionToken: sessionToken, body: {'currentPin': currentPin, 'newPin': newPin});
   }
 
   Future<void> signOut(String deviceToken, String sessionToken) async {

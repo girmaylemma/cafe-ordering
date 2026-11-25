@@ -236,7 +236,8 @@ texts in F4d, but notes from real use are the most useful.
 
 Needs Part 1 running (the server window). The dashboard logs you in as the Dev Cafe's first manager ("Dev Manager").
 
-1. Open a **new** PowerShell window: `cd admin` then `npm run dev` (the first time: `npm ci` before it).
+1. Open a **new** PowerShell window: `cd admin` then `npm.cmd run dev` (the first time: `npm.cmd ci` before it).
+   Use `npm.cmd`, not `npm`: Windows PowerShell blocks `npm` ("running scripts is disabled on this system").
 2. On the PC, open http://localhost:5173/admin/#settings
 
 | # | Where | Do | ✅ You should see |
@@ -249,6 +250,21 @@ Needs Part 1 running (the server window). The dashboard logs you in as the Dev C
 | 6.6 | PC, then PHONE | Settings → back to **English** → Save; on the phone sign out | the PIN screen is English again |
 
 ---
+
+## Part 7: A new waiter's first sign-in (M1a)
+
+A PIN set by someone else is temporary: the person chooses their own at the first sign-in.
+
+| # | Where | Do | ✅ You should see |
+|---|---|---|---|
+| 7.1 | PC | Dashboard → **Staff** → add **Selam**, PIN **4321** | "Selam was added. The PIN is temporary…" |
+| 7.2 | PHONE | Sign out, tap **Selam**, PIN **4321** | **Choose your own PIN**, not the tables |
+| 7.3 | PHONE | Type **4321** twice → **Save** | "Choose a PIN different from the one you were given." |
+| 7.4 | PHONE | Close the app completely, open it again | the PIN screen (nothing was saved) |
+| 7.5 | PHONE | Selam, **4321**, then **8642** twice → **Save** | the tables, titled **Selam** |
+| 7.6 | PHONE | Menu (⋮) → **Change my PIN**: current **8642**, new **9753** twice | "Your PIN was changed." Sign out: **9753** works, **8642** does not |
+
+Hana, Abel and Meron keep the PINs in this guide: the setup chooses them for you.
 
 ## When you are finished
 Close both black windows (the X at the top right). That stops everything.

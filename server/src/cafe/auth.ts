@@ -46,22 +46,38 @@ export function findPairedDevice(sql: SqlStorage, tokenHash: string): DeviceRow 
   );
 }
 
-/** The signed-in user of a live session on this device, or null if ended, expired or deactivated. */
-export function findLiveSession(sql: SqlStorage, sessionHash: string, deviceId: string, now: number): { userId: string } | null {
+/**
+ * The signed-in user of a live session on this device, or null if ended, expired or deactivated.
+ * `pinMustChange`: their PIN was set by someone else (M1a); until they choose their own, the session
+ * may only be used to do that (callers refuse everything else with PIN_CHANGE_REQUIRED).
+ */
+export function findLiveSession(
+  sql: SqlStorage,
+  sessionHash: string,
+  deviceId: string,
+  now: number,
+): { userId: string; pinMustChange: boolean } | null {
   const row = sql
-    .exec<{ user_id: string }>(
-      `SELECT s.user_id FROM staff_sessions s JOIN staff u ON u.id = s.user_id
+    .exec<{ user_id: string; pin_must_change: number }>(
+      `SELECT s.user_id, u.pin_must_change FROM staff_sessions s JOIN staff u ON u.id = s.user_id
         WHERE s.token_hash = ? AND s.device_id = ? AND s.ended_at IS NULL AND s.expires_at > ? AND u.active = 1`,
       sessionHash,
       deviceId,
       now,
     )
     .toArray()[0];
-  return row === undefined ? null : { userId: row.user_id };
+  return row === undefined ? null : { userId: row.user_id, pinMustChange: row.pin_must_change === 1 };
 }
 
 export type SignInResult =
-  | { ok: true; sessionToken: string; user: { id: string; name: string; role: StaffRole; language: Language | null }; expiresAt: number }
+  | {
+      ok: true;
+      sessionToken: string;
+      user: { id: string; name: string; role: StaffRole; language: Language | null };
+      expiresAt: number;
+      /** Their PIN was set by someone else: choose their own before anything else (M1a). */
+      mustChangePin: boolean;
+    }
   | { ok: false; error: "UNAUTHORIZED_DEVICE" | "NOT_A_WAITER_DEVICE" | "INVALID_CREDENTIALS" }
   | { ok: false; error: "LOCKED"; retryAfterMs: number };
 
@@ -177,7 +193,60 @@ export function completeSignIn(
     at: now,
     details: { deviceId: device.id },
   });
-  return { ok: true, sessionToken: p.sessionToken, user, expiresAt };
+  const mustChangePin =
+    sql.exec<{ pin_must_change: number }>("SELECT pin_must_change FROM staff WHERE id = ?", user.id).toArray()[0]?.pin_must_change === 1;
+  return { ok: true, sessionToken: p.sessionToken, user, expiresAt, mustChangePin };
+}
+
+export type ChangePinResult =
+  | { ok: true }
+  | { ok: false; error: "INVALID_CREDENTIALS" | "INVALID_PIN" | "SAME_PIN" }
+  | { ok: false; error: "LOCKED"; retryAfterMs: number };
+
+/**
+ * A signed-in person changes their own PIN (M1a). The hashes are computed before (D-37):
+ * `currentHash` = the typed current PIN with the stored salt, `newWithOldSalt` = the new PIN with
+ * the stored salt (to refuse the same PIN), `newSalt` + `newHash` = what is stored.
+ * The current PIN is checked by checkPin, so wrong tries share the person's lockout (D-58).
+ */
+export function changeOwnPin(
+  sql: SqlStorage,
+  p: {
+    venueId: string;
+    userId: string;
+    deviceId: string;
+    newPin: string;
+    currentHash: string | null;
+    newWithOldSalt: string | null;
+    newSalt: string;
+    newHash: string;
+    now: number;
+  },
+): ChangePinResult {
+  const check = checkPin(sql, {
+    venueId: p.venueId,
+    userId: p.userId,
+    computedHash: p.currentHash,
+    allowedRoles: ALL_ROLES,
+    deviceId: p.deviceId,
+    now: p.now,
+  });
+  if (!check.ok) return check.error === "LOCKED" ? check : { ok: false, error: "INVALID_CREDENTIALS" };
+  if (!isValidPin(check.user.role, p.newPin)) return { ok: false, error: "INVALID_PIN" };
+  const stored = sql
+    .exec<{ pin_hash: string; pin_must_change: number }>("SELECT pin_hash, pin_must_change FROM staff WHERE id = ?", p.userId)
+    .one();
+  if (p.newWithOldSalt !== null && timingSafeEqualText(p.newWithOldSalt, stored.pin_hash)) return { ok: false, error: "SAME_PIN" };
+
+  sql.exec("UPDATE staff SET pin_salt = ?, pin_hash = ?, pin_must_change = 0 WHERE id = ?", p.newSalt, p.newHash, p.userId);
+  insertEvent(sql, {
+    venueId: p.venueId,
+    type: "auth.pin_changed",
+    actor: { kind: "staff", userId: p.userId },
+    at: p.now,
+    details: { deviceId: p.deviceId, wasTemporary: stored.pin_must_change === 1 },
+  });
+  return { ok: true };
 }
 
 export type VoidApproval =
