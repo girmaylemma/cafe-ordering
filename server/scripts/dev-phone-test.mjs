@@ -6,7 +6,7 @@
  *
  * Needs `npx wrangler dev --ip 0.0.0.0` running (after `node scripts/dev-access-vars.mjs`).
  * Safe to run again: it only adds what is missing. It:
- *   1. creates the "Dev Cafe" (owner dev-owner@example.com) if it doesn't exist yet,
+ *   1. creates the "Dev Cafe" (first manager "Dev Manager", dev-owner@example.com) if it doesn't exist yet,
  *   2. adds waiters Hana (PIN 1234) and Abel (PIN 5678), manager Meron (PIN 246810), 3 dishes and 3 tables,
  *   3. pairs the pretend kitchen (scripts/dev-kitchen.mjs) and
  *   4. prints the phone's pairing code, a kitchen pairing code (a second device running the same
@@ -98,7 +98,9 @@ if (API === null) stop(`The server is not running. Open another PowerShell windo
 Wait for "Ready on", then run this again.`);
 
 // ---------- 1. the café ----------
-const created = await call("POST", "/installer/venues", { name: "Dev Cafe", ownerName: "Dev Owner", ownerEmail: OWNER, ownerPin: "135790" }, { Authorization: `Bearer ${setting("INSTALLER_SECRET")}` });
+// The email keeps its old name: the dashboard's dev login (admin/vite.config.ts) signs in as it.
+const installer = { Authorization: `Bearer ${setting("INSTALLER_SECRET")}` };
+const created = await call("POST", "/installer/venues", { name: "Dev Cafe", managerName: "Dev Manager", managerEmail: OWNER, managerPin: "135790" }, installer);
 if (created.ok) console.log("✓ Created the café \"Dev Cafe\"");
 else if (created.error === "EMAIL_TAKEN") console.log("✓ The café already exists");
 else stop(`Could not create the café: ${created.error ?? created.status}`);
@@ -108,10 +110,16 @@ const admin = (method, path, body) => must(method, `/admin/api${path}`, body, { 
 
 // ---------- 2. staff, menu, tables (only what is missing) ----------
 const staff = (await admin("GET", "/staff")).staff;
-for (const [name, role, pin] of [["Hana", "waiter", "1234"], ["Abel", "waiter", "5678"], ["Meron", "manager", "246810"]]) {
+for (const [name, pin] of [["Hana", "1234"], ["Abel", "5678"]]) {
   const existing = staff.find((s) => s.name === name && s.active);
   if (existing) await admin("POST", `/staff/${existing.id}/pin`, { pin }); // a known PIN for the test
-  else await admin("POST", "/staff", { name, role, pin });
+  else await admin("POST", "/staff", { name, role: "waiter", pin });
+}
+// Only the developer adds managers (D-97): through the installer route. A manager's PIN cannot be
+// reset from the dashboard, so an existing Meron keeps hers (246810 unless someone changed it).
+if (!staff.some((s) => s.name === "Meron" && s.active)) {
+  const venueId = (await admin("GET", "/me")).venue.id;
+  await must("POST", `/installer/venues/${venueId}/managers`, { name: "Meron", email: "meron@dev-cafe.example", pin: "246810" }, installer);
 }
 console.log("✓ Staff: Hana (waiter, PIN 1234), Abel (waiter, PIN 5678), Meron (manager, PIN 246810)");
 
