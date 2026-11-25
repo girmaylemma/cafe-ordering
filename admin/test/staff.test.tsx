@@ -89,6 +89,18 @@ describe("StaffPage", () => {
     expect((screen.getByLabelText("PIN") as HTMLInputElement).value).toBe(""); // the PIN never stays on screen
   });
 
+  it("M1a: the new person's PIN is temporary, and the dashboard says so", async () => {
+    fakeServer({ "GET /staff": [200, { staff: STAFF }], "POST /staff": [201, { staff: { id: "u-new" } }] });
+    render(<StaffPage me={MANAGER_ME} />);
+    await screen.findByText("Hana");
+
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Selam" } });
+    fireEvent.change(screen.getByLabelText("PIN"), { target: { value: "4321" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add staff member" }));
+
+    expect((await screen.findByRole("status")).textContent).toMatch(/Selam was added\. The PIN is temporary: they choose their own at their next sign-in\./);
+  });
+
   it("shows the server's reason when creating fails", async () => {
     fakeServer({ "GET /staff": [200, { staff: STAFF }], "POST /staff": [409, { error: "EMAIL_TAKEN" }] });
     render(<StaffPage me={MANAGER_ME} />);
@@ -133,6 +145,6 @@ describe("StaffPage", () => {
     fireEvent.click(within(row("Hana")).getByRole("button", { name: /reset pin/i }));
 
     await waitFor(() => expect(server.calls.find((c) => c.path === "/staff/u-hana/pin")?.body).toEqual({ pin: "9876" }));
-    expect(await screen.findByText(/PIN changed for Hana/i)).toBeTruthy();
+    expect(await screen.findByText(/New temporary PIN for Hana: they choose their own at their next sign-in/)).toBeTruthy();
   });
 });

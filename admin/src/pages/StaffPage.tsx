@@ -36,7 +36,7 @@ export function StaffPage({ me }: { me: Me }) {
       await api("POST", "/staff", body);
       setName("");
       setEmail("");
-    }, `${body.name} was added.`);
+    }, `${body.name} was added. The PIN is temporary: they choose their own at their next sign-in.`);
   }
 
   function onDeactivate(s: Staff) {
@@ -46,9 +46,9 @@ export function StaffPage({ me }: { me: Me }) {
 
   function onResetPin(s: Staff) {
     const digits = s.role === "waiter" ? "4–6 digits" : "exactly 6 digits";
-    const newPin = window.prompt(`New PIN for ${s.name} (${digits}). This also unlocks a locked account.`);
+    const newPin = window.prompt(`New temporary PIN for ${s.name} (${digits}). They choose their own at their next sign-in. This also unlocks a locked account.`);
     if (newPin === null) return;
-    void run(() => api("POST", `/staff/${encodeURIComponent(s.id)}/pin`, { pin: newPin.trim() }), `PIN changed for ${s.name}.`);
+    void run(() => api("POST", `/staff/${encodeURIComponent(s.id)}/pin`, { pin: newPin.trim() }), `New temporary PIN for ${s.name}: they choose their own at their next sign-in.`);
   }
 
   return (
