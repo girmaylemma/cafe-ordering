@@ -90,8 +90,8 @@ A forgotten one is reset by the level above (a manager's by the developer).
 
 - **PIN** (everyone, unchanged rules: waiters 4–6 digits, managers exactly 6). Signs in to the
   app and approves voids, as today.
-- **Password** (managers only): unlocks the management screens. At least 10 characters
-  (builder's call on the exact rule; no "must contain a symbol" rules, length matters most).
+- **Password** (managers only): unlocks the management screens. Rule (decided in M1b, D-99): 8 to 128
+  characters with at least one letter (any script), one number and one symbol.
 - **Temporary first credentials.** When someone creates or resets a person, the PIN (and password)
   they type is temporary: the server marks it "must change". At the next sign-in the app shows a
   "choose your own PIN" screen before anything else; the session can do nothing but that until it
