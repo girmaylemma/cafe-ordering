@@ -154,17 +154,27 @@ void main() {
     await unmountAndFlush(tester);
   });
 
-  for (final role in ['manager', 'owner']) {
-    testWidgets("a signed-in $role opens another waiter's table (D-78)", (tester) async {
-      await pumpFloor(tester, online: true, user: StaffMember(id: 'boss', name: 'Boss', role: role));
+  testWidgets("a signed-in manager opens another waiter's table (D-78)", (tester) async {
+    await pumpFloor(tester, online: true, user: const StaffMember(id: 'boss', name: 'Boss', role: 'manager'));
 
-      await tester.tap(find.byKey(const Key('table-t3')));
-      await tester.runAsync(settle);
-      await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('table-t3')));
+    await tester.runAsync(settle);
+    await tester.pumpAndSettle();
 
-      expect(find.byType(TableScreen), findsOneWidget);
+    expect(find.byType(TableScreen), findsOneWidget);
 
-      await unmountAndFlush(tester);
-    });
-  }
+    await unmountAndFlush(tester);
+  });
+
+  testWidgets("M0 (D-97): a stale 'owner' role gets no manager power: another waiter's table stays closed", (tester) async {
+    await pumpFloor(tester, online: true, user: const StaffMember(id: 'boss', name: 'Boss', role: 'owner'));
+
+    await tester.tap(find.byKey(const Key('table-t3')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TableScreen), findsNothing);
+    expect(find.textContaining('Meron'), findsWidgets);
+
+    await unmountAndFlush(tester);
+  });
 }

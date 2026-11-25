@@ -16,7 +16,7 @@ import '../l10n/l10n.dart';
 import '../texts.dart';
 import 'table_screen.dart';
 
-const _anyTableRoles = {'manager', 'owner'};
+const _anyTableRoles = {'manager'}; // D-97: no owner role
 
 /// The waiter's home: every table with its live state (W-02), grouped by area.
 class FloorMapScreen extends ConsumerStatefulWidget {
@@ -110,7 +110,7 @@ class _FloorMapScreenState extends ConsumerState<FloorMapScreen> {
   Future<void> _onTap(CafeTable t) async {
     final messenger = ScaffoldMessenger.of(context);
     if (t.state == 'free') return _openTable(t);
-    // A manager or owner may act on any table (D-78); the server checks it again.
+    // A manager may act on any table (D-78); the server checks it again.
     if (t.waiterId == widget.user.id || _anyTableRoles.contains(widget.user.role)) {
       await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TableScreen(tableId: t.id)));
       return;
