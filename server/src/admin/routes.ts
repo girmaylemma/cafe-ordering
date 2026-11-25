@@ -5,7 +5,7 @@
  * (2) the Cloudflare Access token is verified (D-62), (3) the Directory says which café and staff
  * member the email belongs to, (4) the café re-checks that person's role and permissions.
  */
-import { randomSecret, timingSafeEqualText } from "../auth/crypto";
+import { isValidVenueId, randomSecret, timingSafeEqualText } from "../auth/crypto";
 import type { AdminError, AdminResult } from "../cafe/admin";
 import { normalizeEmail } from "../cafe/admin";
 import { json, readJson } from "../http";
@@ -129,25 +129,39 @@ export async function handleAdmin(request: Request, env: Env): Promise<Response>
 }
 
 /**
- * POST /installer/venues — the installer creates a café and its owner (D-64).
- * Protected by INSTALLER_SECRET; café owners never use this.
+ * The developer's installer routes (D-64), protected by INSTALLER_SECRET; café staff never use them.
+ *   POST /installer/venues                      create a café and its first manager (D-97)
+ *   POST /installer/venues/:venueId/managers    add a manager (until the developer console, M4)
  */
 export async function handleInstaller(request: Request, env: Env): Promise<Response> {
   const given = request.headers.get("Authorization")?.match(/^Bearer (.+)$/)?.[1];
   const secret = env.INSTALLER_SECRET;
   if (!secret || given === undefined || !timingSafeEqualText(given, secret)) return json(401, { error: "UNAUTHORIZED" });
 
+  const path = new URL(request.url).pathname;
+  const addManager = path.match(/^\/installer\/venues\/([^/]+)\/managers$/);
+  if (addManager !== null) {
+    const venueId = decodeURIComponent(addManager[1] ?? "");
+    if (!isValidVenueId(venueId)) return json(404, { error: "NOT_FOUND" });
+    const body = await readJson(request);
+    if (body === null) return json(400, { error: "INVALID_REQUEST" });
+    const cafe = env.CAFE.get(env.CAFE.idFromName(venueId));
+    const result = await cafe.installerAddManager({ name: body.name, email: body.email, pin: body.pin });
+    if (!result.ok) return json(result.error === "INVALID_INPUT" ? 400 : STATUS[result.error], { error: result.error === "INVALID_INPUT" ? "INVALID_REQUEST" : result.error });
+    return json(201, { manager: result.manager });
+  }
+
   const body = await readJson(request);
-  const ownerEmail = normalizeEmail(body?.ownerEmail);
-  const { name, ownerName, ownerPin } = body ?? {};
-  if (typeof name !== "string" || typeof ownerName !== "string" || typeof ownerPin !== "string" || ownerEmail === null) {
+  const managerEmail = normalizeEmail(body?.managerEmail);
+  const { name, managerName, managerPin } = body ?? {};
+  if (typeof name !== "string" || typeof managerName !== "string" || typeof managerPin !== "string" || managerEmail === null) {
     return json(400, { error: "INVALID_REQUEST" });
   }
 
   const venueId = `v-${randomSecret(9)}`; // unguessable; the signed device tokens carry it (D-50)
-  const ownerId = crypto.randomUUID();
+  const managerId = crypto.randomUUID();
   const cafe = env.CAFE.get(env.CAFE.idFromName(venueId));
-  const result = await cafe.bootstrapVenue({ venueId, name, owner: { id: ownerId, name: ownerName, email: ownerEmail, pin: ownerPin } });
+  const result = await cafe.bootstrapVenue({ venueId, name, manager: { id: managerId, name: managerName, email: managerEmail, pin: managerPin } });
   if (!result.ok) return json(STATUS[result.error], { error: result.error });
-  return json(201, { venueId, owner: { id: ownerId } });
+  return json(201, { venueId, manager: { id: managerId } });
 }

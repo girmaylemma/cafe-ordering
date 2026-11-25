@@ -12,12 +12,12 @@ export type ConnectionIdentity =
   /** A kitchen or bar tablet. Acts as the station (D-25). */
   | { role: "station"; venueId: string; deviceId: string; stationId: string }
   /**
-   * A waiter (or manager) signed in on a tablet. `manager`: an active manager or owner, decided at
+   * A waiter (or manager) signed in on a tablet. `manager`: an active manager, decided at
    * connect time (roles never change; deactivating closes the socket). Such a tablet sees every
    * open table (D-78). Missing on sockets accepted before this field existed: treated as false.
    */
   | { role: "staff"; venueId: string; deviceId: string; userId: string; manager?: boolean }
-  /** The manager/owner live view in the dashboard. Read-only. */
+  /** The manager live view in the dashboard. Read-only. */
   | { role: "live"; venueId: string; userId: string };
 
 /** Prefix of internal headers; the public Worker strips every header starting with it. */

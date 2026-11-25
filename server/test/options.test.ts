@@ -179,17 +179,17 @@ describe("option admin rules", () => {
   });
 
   it("the dashboard API routes work end to end (create group, add option, attach)", async () => {
-    const { ownerEmail } = await newVenue();
-    const category = (await json<{ category: { id: string } }>(await admin("POST", "/admin/api/categories", ownerEmail, { nameEn: "Drinks" }))).category;
-    const item = (await json<{ item: { id: string } }>(await admin("POST", "/admin/api/menu-items", ownerEmail, { categoryId: category.id, nameEn: "Tea", price: "20", stationId: "bar" }))).item;
+    const { managerEmail } = await newVenue();
+    const category = (await json<{ category: { id: string } }>(await admin("POST", "/admin/api/categories", managerEmail, { nameEn: "Drinks" }))).category;
+    const item = (await json<{ item: { id: string } }>(await admin("POST", "/admin/api/menu-items", managerEmail, { categoryId: category.id, nameEn: "Tea", price: "20", stationId: "bar" }))).item;
 
-    const created = await admin("POST", "/admin/api/option-groups", ownerEmail, { nameEn: "Sugar", minChoices: 0, maxChoices: 1 });
+    const created = await admin("POST", "/admin/api/option-groups", managerEmail, { nameEn: "Sugar", minChoices: 0, maxChoices: 1 });
     expect(created.status).toBe(201);
     const group = (await json<{ group: { id: string } }>(created)).group;
-    expect((await admin("POST", `/admin/api/option-groups/${group.id}/options`, ownerEmail, { nameEn: "No sugar", extra: "0" })).status).toBe(201);
-    expect((await admin("PATCH", `/admin/api/menu-items/${item.id}`, ownerEmail, { optionGroupIds: [group.id] })).status).toBe(200);
+    expect((await admin("POST", `/admin/api/option-groups/${group.id}/options`, managerEmail, { nameEn: "No sugar", extra: "0" })).status).toBe(201);
+    expect((await admin("PATCH", `/admin/api/menu-items/${item.id}`, managerEmail, { optionGroupIds: [group.id] })).status).toBe(200);
 
-    const list = await json<{ groups: Group[] }>(await admin("GET", "/admin/api/option-groups", ownerEmail));
+    const list = await json<{ groups: Group[] }>(await admin("GET", "/admin/api/option-groups", managerEmail));
     expect(list.groups.map((g) => [g.id, g.options.map((o) => o.nameEn)])).toEqual([[group.id, ["No sugar"]]]);
   });
 });

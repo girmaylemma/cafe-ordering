@@ -13,16 +13,18 @@ export function call(method: string, path: string, init: { headers?: Record<stri
   return worker.fetch(new Request(`${ORIGIN}${path}`, { method, headers: init.headers ?? {}, body }), env);
 }
 
-/** Create a café and its owner through the installer route; returns the owner's email. */
+const INSTALLER = { Authorization: "Bearer test-installer-secret", "Content-Type": "application/json" };
+
+/** Create a café and its first manager through the installer route (D-97). */
 export async function newCafe(name = "Abebe Cafe") {
-  const ownerEmail = `owner-${uid()}@example.com`;
+  const managerEmail = `manager-${uid()}@example.com`;
   const response = await call("POST", "/installer/venues", {
-    headers: { Authorization: "Bearer test-installer-secret", "Content-Type": "application/json" },
-    body: { name, ownerName: "Abebe", ownerEmail, ownerPin: "123456" },
+    headers: INSTALLER,
+    body: { name, managerName: "Abebe", managerEmail, managerPin: "123456" },
   });
   expect(response.status).toBe(201);
-  const body = (await response.json()) as { venueId: string; owner: { id: string } };
-  return { ...body, ownerEmail };
+  const body = (await response.json()) as { venueId: string; manager: { id: string } };
+  return { ...body, managerEmail };
 }
 
 /** A dashboard request as the browser sends it behind Access: same-origin JSON plus the Access token. */
@@ -40,12 +42,15 @@ export async function json<T = Record<string, unknown>>(response: Response): Pro
   return (await response.json()) as T;
 }
 
-/** An owner plus a manager with dashboard access. */
+/** A café with two managers: the first, and another added by the installer (only it can add managers, D-97). */
 export async function cafeWithManager() {
   const cafe = await newCafe();
-  const managerEmail = `manager-${uid()}@example.com`;
-  const created = await admin("POST", "/admin/api/staff", cafe.ownerEmail, { name: "Meseret", role: "manager", pin: "654321", email: managerEmail });
+  const otherManagerEmail = `other-${uid()}@example.com`;
+  const created = await call("POST", `/installer/venues/${cafe.venueId}/managers`, {
+    headers: INSTALLER,
+    body: { name: "Meseret", email: otherManagerEmail, pin: "654321" },
+  });
   expect(created.status).toBe(201);
-  const { staff } = await json<{ staff: { id: string } }>(created);
-  return { ...cafe, managerEmail, managerId: staff.id };
+  const { manager } = (await created.json()) as { manager: { id: string } };
+  return { ...cafe, otherManagerEmail, otherManagerId: manager.id };
 }

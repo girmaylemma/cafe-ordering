@@ -16,7 +16,7 @@ import {
   type Cafe,
 } from "./helpers";
 
-const staff = (cafe: Cafe, id: string, role: "waiter" | "manager" | "owner", pin: string) =>
+const staff = (cafe: Cafe, id: string, role: "waiter" | "manager", pin: string) =>
   cafe.createStaff({ venueId: VENUE, id, name: id, role, pin });
 
 // ---------- staff and PINs ----------
@@ -26,7 +26,7 @@ describe("staff PINs", () => {
     ["too long", "waiter", "1234567"],
     ["not digits", "waiter", "12a4"],
     ["a 4-digit manager PIN (managers need 6, D-11)", "manager", "1234"],
-    ["a 5-digit owner PIN", "owner", "12345"],
+    ["a 5-digit manager PIN", "manager", "12345"],
   ] as const)("refuses %s", async (_label, role, pin) => {
     const cafe = newCafe();
     expect(await staff(cafe, "x", role, pin)).toEqual({ ok: false, error: "INVALID_PIN" });

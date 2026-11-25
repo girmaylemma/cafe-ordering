@@ -152,8 +152,8 @@ describe("languages (F4b)", () => {
   });
 
   it("the public /staff route returns the café language", async () => {
-    const { ownerEmail } = await newAdminCafe();
-    const token = await pairedWaiterTablet(ownerEmail);
+    const { managerEmail } = await newAdminCafe();
+    const token = await pairedWaiterTablet(managerEmail);
 
     const response = await call("GET", "/staff", { headers: { Authorization: `Bearer ${token}` } });
 

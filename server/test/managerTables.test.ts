@@ -51,15 +51,6 @@ describe("a manager's tablet sees every open table (D-78)", () => {
     expect(result.ok && result.lines.map((l) => l.itemId)).toEqual(["i1"]);
   });
 
-  it("GET /lines gives an owner the same", async () => {
-    const { cafe } = await setup();
-    const owner = await signedInWaiter(cafe, "abebe", "owner");
-
-    const result = await cafe.tabletLines(owner.token, owner.sessionToken);
-
-    expect(result.ok && result.lines.map((l) => l.itemId)).toEqual(["i1"]);
-  });
-
   it("GET /lines still gives a waiter only their own tables", async () => {
     const { cafe } = await setup();
     const abel = await signedInWaiter(cafe, "abel");

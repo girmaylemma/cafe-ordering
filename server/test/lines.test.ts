@@ -148,19 +148,19 @@ describe("GET /lines (waiter reload)", () => {
   it("the public route refuses a request without a device token or without a PIN session", async () => {
     expect((await call("GET", "/lines")).status).toBe(401);
 
-    const { ownerEmail } = await newAdminCafe();
-    const token = await pairedWaiterTablet(ownerEmail);
+    const { managerEmail } = await newAdminCafe();
+    const token = await pairedWaiterTablet(managerEmail);
     const response = await call("GET", "/lines", { headers: { Authorization: `Bearer ${token}` } });
     expect(response.status).toBe(401);
     expect(await json(response)).toEqual({ error: "SESSION_ENDED" });
   });
 
   it("the public route gives a signed-in waiter the lines with details as objects", async () => {
-    const { ownerEmail, owner } = await newAdminCafe();
-    const token = await pairedWaiterTablet(ownerEmail);
+    const { managerEmail, manager } = await newAdminCafe();
+    const token = await pairedWaiterTablet(managerEmail);
     const signIn = await call("POST", "/auth/pin", {
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: { userId: owner.id, pin: "123456" },
+      body: { userId: manager.id, pin: "123456" },
     });
     const { sessionToken } = await json<{ sessionToken: string }>(signIn);
 

@@ -41,7 +41,7 @@ import {
   updateMenuItem,
   updateTable,
 } from "./menu";
-import { EVENT_COLUMNS, rowToWireEvent, type EventRow, type Handled, type Notice } from "./events";
+import { EVENT_COLUMNS, insertEvent, rowToWireEvent, type EventRow, type Handled, type Notice } from "./events";
 import { handleItemCommand, type ItemCommandInput, type ItemCommandResult } from "./items";
 import { refreshTableStates, setSoldOut, soldOutNotice, tablesOfItems } from "./live";
 import { createOption, createOptionGroup, listOptionGroups, updateOption, updateOptionGroup } from "./options";
@@ -142,11 +142,11 @@ export class CafeDO extends DurableObject<Env> {
     name: string;
     role: StaffRole;
     pin: string;
-    /** Dashboard login (managers/owners). Registered in the Directory, unique in the whole system. */
+    /** Dashboard login (managers). Registered in the Directory, unique in the whole system. */
     email?: string | null;
   }): Promise<{ ok: true } | Fail<"INVALID_INPUT" | "INVALID_PIN" | "STAFF_EXISTS" | "EMAIL_TAKEN">> {
     const { venueId, id, name, role, pin } = input;
-    if (!isValidVenueId(venueId) || !isId(id) || !isName(name) || !["waiter", "manager", "owner"].includes(role)) {
+    if (!isValidVenueId(venueId) || !isId(id) || !isName(name) || !isRole(role)) {
       return { ok: false, error: "INVALID_INPUT" };
     }
     const email = input.email === undefined || input.email === null ? null : normalizeEmail(input.email);
@@ -181,18 +181,34 @@ export class CafeDO extends DurableObject<Env> {
 
   // ---------- RPC: installer and dashboard (called by the Worker after authentication) ----------
 
-  /** Installer only (POST /installer/venues): name the café and create its owner. */
+  /** Installer only (POST /installer/venues): name the café and create its first manager (D-97). */
   async bootstrapVenue(input: {
     venueId: string;
     name: string;
-    owner: { id: string; name: string; email: string; pin: string };
+    manager: { id: string; name: string; email: string; pin: string };
   }): Promise<AdminResult> {
     if (!isName(input.name)) return fail("INVALID_INPUT");
     if (this.ctx.storage.sql.exec("SELECT 1 FROM venue").toArray().length > 0) return fail("VENUE_EXISTS");
-    const created = await this.createStaff({ venueId: input.venueId, role: "owner", ...input.owner });
+    const created = await this.createStaff({ venueId: input.venueId, role: "manager", ...input.manager });
     if (!created.ok) return fail(created.error === "STAFF_EXISTS" ? "INVALID_INPUT" : created.error);
     this.ctx.storage.sql.exec("INSERT INTO venue (id, name, created_at) VALUES (?, ?, ?)", input.venueId, input.name.trim(), Date.now());
     return { ok: true };
+  }
+
+  /**
+   * Installer only (POST /installer/venues/:venueId/managers): the developer adds a manager (D-97).
+   * The developer console (M4) replaces this. Audited with the installer as the actor.
+   */
+  async installerAddManager(input: { name: unknown; email: unknown; pin: unknown }): Promise<AdminResult<{ manager: { id: string } }>> {
+    const venue = this.ctx.storage.sql.exec<{ id: string }>("SELECT id FROM venue").toArray()[0];
+    if (venue === undefined) return fail("NOT_FOUND");
+    const { name, email, pin } = input;
+    if (typeof name !== "string" || typeof email !== "string" || typeof pin !== "string") return fail("INVALID_INPUT");
+    const id = crypto.randomUUID();
+    const created = await this.createStaff({ venueId: venue.id, id, name: name.trim(), role: "manager", pin, email });
+    if (!created.ok) return fail(created.error === "STAFF_EXISTS" ? "INVALID_INPUT" : created.error);
+    insertEvent(this.ctx.storage.sql, { venueId: venue.id, type: "staff.created", actor: { kind: "installer" }, at: Date.now(), details: { staffId: id, role: "manager" } });
+    return { ok: true, manager: { id } };
   }
 
   adminMe(actorId: string): AdminResult<{ user: { id: string; name: string; role: string; email: string | null }; venue: { id: string; name: string | null } }> {
@@ -214,7 +230,7 @@ export class CafeDO extends DurableObject<Env> {
   }
 
   /**
-   * A manager or owner sets the café's language (F4c). Tablets pick it up at their next /staff
+   * A manager sets the café's language (F4c). Tablets pick it up at their next /staff
    * download (start or reconnect); no live push for a setting changed a few times a year.
    */
   adminSetVenueLanguage(actorId: string, language: unknown): AdminResult<{ venue: { id: string; name: string; language: Language } }> {
@@ -430,7 +446,7 @@ export class CafeDO extends DurableObject<Env> {
     return { ok: true, ...waiterLines(sql, device.venue_id, everyTable ? null : session.userId) };
   }
 
-  /** Run a dashboard action as `actorId`, who must be an active manager or owner here. One synchronous step. */
+  /** Run a dashboard action as `actorId`, who must be an active manager here. One synchronous step. */
   #asAdmin<T extends object>(actorId: string, action: (sql: SqlStorage, actor: AdminActor) => AdminResult<T>): AdminResult<T> {
     const sql = this.ctx.storage.sql;
     return this.ctx.storage.transactionSync(() => {
@@ -966,7 +982,7 @@ function bearerToken(header: string | null): string | null {
 }
 
 function isRole(value: unknown): value is StaffRole {
-  return value === "waiter" || value === "manager" || value === "owner";
+  return value === "waiter" || value === "manager";
 }
 
 function isName(value: unknown): value is string {

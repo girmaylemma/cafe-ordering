@@ -5,7 +5,7 @@ import type { ServerMessage } from "../src/cafe/protocol";
 
 export const VENUE = "venue-abebe";
 
-/** The PIN every test waiter gets. Managers and owners need 6 digits (D-11). */
+/** The PIN every test waiter gets. Managers need 6 digits (D-11). */
 export const TEST_PIN = "1234";
 
 /** A fresh café Durable Object per test, so tests never share data. */
@@ -84,7 +84,7 @@ export async function pairDevice(cafe: Cafe, kind: "waiter" | "station", station
 }
 
 /** Make sure a staff member exists (waiters get TEST_PIN). */
-export async function ensureStaff(cafe: Cafe, userId: string, role: "waiter" | "manager" | "owner" = "waiter") {
+export async function ensureStaff(cafe: Cafe, userId: string, role: "waiter" | "manager" = "waiter") {
   const pin = role === "waiter" ? TEST_PIN : "123456";
   const name = userId.charAt(0).toUpperCase() + userId.slice(1);
   const created = await cafe.createStaff({ venueId: VENUE, id: userId, name, role, pin });
@@ -92,8 +92,8 @@ export async function ensureStaff(cafe: Cafe, userId: string, role: "waiter" | "
   return { pin };
 }
 
-/** A paired waiter tablet with `userId` signed in (a manager or owner can sign in on it too). */
-export async function signedInWaiter(cafe: Cafe, userId: string, role: "waiter" | "manager" | "owner" = "waiter") {
+/** A paired waiter tablet with `userId` signed in (a manager can sign in on it too). */
+export async function signedInWaiter(cafe: Cafe, userId: string, role: "waiter" | "manager" = "waiter") {
   const { pin } = await ensureStaff(cafe, userId, role);
   const device = await pairDevice(cafe, "waiter");
   const signedIn = await cafe.signIn({ deviceToken: device.token, userId, pin });
@@ -105,13 +105,13 @@ export async function signedInWaiter(cafe: Cafe, userId: string, role: "waiter" 
 
 /** Descriptors for connect(); credentials are created when connecting. */
 export const stationHeaders = (stationId: string, _label?: string) => ({ who: "station" as const, stationId });
-export const staffHeaders = (userId: string, role: "waiter" | "manager" | "owner" = "waiter") => ({
+export const staffHeaders = (userId: string, role: "waiter" | "manager" = "waiter") => ({
   who: "staff" as const,
   userId,
   role,
 });
 /** The live view has no public route yet; internal code identifies it with this header. */
-export const liveHeaders = { "X-Cafe-Venue": VENUE, "X-Cafe-Role": "live", "X-Cafe-User": "owner-1" };
+export const liveHeaders = { "X-Cafe-Venue": VENUE, "X-Cafe-Role": "live", "X-Cafe-User": "manager-1" };
 
 type Who = ReturnType<typeof stationHeaders> | ReturnType<typeof staffHeaders> | Record<string, string>;
 
@@ -121,7 +121,7 @@ async function headersFor(cafe: Cafe, who: Who): Promise<Record<string, string>>
     return { Authorization: `Bearer ${token}` };
   }
   if (who.who === "staff") {
-    const { token, sessionToken } = await signedInWaiter(cafe, who.userId as string, who.role as "waiter" | "manager" | "owner");
+    const { token, sessionToken } = await signedInWaiter(cafe, who.userId as string, who.role as "waiter" | "manager");
     return { Authorization: `Bearer ${token}`, "X-Staff-Session": sessionToken };
   }
   return who as Record<string, string>;
