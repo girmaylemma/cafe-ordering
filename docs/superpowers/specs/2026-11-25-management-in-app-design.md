@@ -98,17 +98,17 @@ A forgotten one is reset by the level above (a manager's by the developer).
   is done. The same for the password, the first time management is unlocked.
 - **Change your own** PIN or password at any time (in the app: type the current one, then the new one twice).
 - **Reset by the level above:** manager → waiters; developer → anyone. A reset is always temporary again.
-- **Storage:** like PINs today, a keyed hash with the server secret (`SERVER_SECRET`) and a per-person
-  salt, so a stolen database alone is not enough to guess passwords. Add a slow hash (PBKDF2 via
-  WebCrypto) only if it fits the free plan's CPU limit (verify; builder measures). Never stored or
-  logged in plain text; never sent back by the API.
+- **Storage (decided, D-99):** a keyed hash with the server secret (`SERVER_SECRET`, its own derived
+  key "password") and a per-person salt, so a stolen database alone is not enough to guess passwords.
+  No slow hash: measured ~170 ms for PBKDF2 at 100,000 iterations, far over the free plan's ~10 ms CPU.
+  Never stored or logged in plain text; never sent back by the API.
 - **Lockout:** 5 wrong passwords = 5 minutes, like PINs, but a **separate counter**: wrong passwords
   lock management only, never the person's ordering. Audited (`auth.password_locked`); the Telegram
   alert comes with the bot, like PIN lockouts.
-- New columns (migration 9, additive): on `staff`: `pin_must_change`, `password_hash`,
-  `password_salt`, `password_must_change`, `failed_password_attempts`, `password_locked_until`.
-  Existing staff keep their PINs (not "must change"); existing managers have no password until one
-  is set for them, then it is temporary.
+- New columns (as built): migration 9 `pin_must_change` (M1a); migration 10 `password_salt`,
+  `password_hash`, `failed_password_attempts`, `password_locked_until` (M1b). Existing staff keep their
+  PINs (not "must change"); existing managers have no password until they set one. A temporary
+  password (`password_must_change`) comes with M4, when the developer first sets passwords for others.
 - **Until the developer console exists (M4)** (Claude's call): the current browser dashboard gets a
   "set your password" action, so a manager (already verified by Cloudflare Access there) can set
   their own first password. After M4 the developer sets temporary ones; after M5 only the app and
