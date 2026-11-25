@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { SettingsPage } from "../src/pages/SettingsPage";
 import { MANAGER_ME, fakeServer } from "./fakeServer";
@@ -72,5 +72,77 @@ describe("SettingsPage (F4c)", () => {
 
     expect((await screen.findByRole("alert")).textContent).toMatch(/Not found/);
     expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+  });
+});
+
+describe("Your password (M1b)", () => {
+  const withPassword = { ...MANAGER_ME, user: { ...MANAGER_ME.user, hasPassword: true } };
+  const field = (label: string) => screen.getByLabelText(label) as HTMLInputElement;
+  const savePassword = () => screen.getByRole("button", { name: "Save password" }) as HTMLButtonElement;
+  async function open(me: typeof MANAGER_ME, reply: [number, unknown] = [200, {}]) {
+    const server = fakeServer({ "GET /venue": [200, venue("en")], "PUT /me/password": reply });
+    render(<SettingsPage me={me} />);
+    await screen.findByText("Your password");
+    return server;
+  }
+  const type = (label: string, value: string) => fireEvent.change(field(label), { target: { value } });
+
+  it("the first password: no current one asked; Save sends only the new one; the fields are emptied", async () => {
+    const server = await open(MANAGER_ME);
+    expect(screen.queryByLabelText("Current password")).toBeNull();
+
+    type("New password", "first-password-1");
+    type("New password again", "first-password-1");
+    fireEvent.click(savePassword());
+
+    expect((await screen.findByText("Your password is saved."))).toBeTruthy();
+    expect(server.calls.find((c) => c.method === "PUT")?.body).toEqual({ newPassword: "first-password-1" });
+    expect(field("New password").value).toBe("");
+    expect(field("New password again").value).toBe("");
+  });
+
+  it("changing it: the current password is asked for and sent", async () => {
+    const server = await open(withPassword);
+
+    type("Current password", "first-password-1");
+    type("New password", "second-password-2");
+    type("New password again", "second-password-2");
+    fireEvent.click(savePassword());
+
+    await waitFor(() => expect(server.calls.find((c) => c.method === "PUT")?.body).toEqual({ currentPassword: "first-password-1", newPassword: "second-password-2" }));
+  });
+
+  it("two different new passwords: says so, nothing is sent", async () => {
+    const server = await open(MANAGER_ME);
+
+    type("New password", "first-password-1");
+    type("New password again", "first-password-2");
+    fireEvent.click(savePassword());
+
+    expect(await screen.findByText("The two passwords are not the same.")).toBeTruthy();
+    expect(server.calls.some((c) => c.method === "PUT")).toBe(false);
+  });
+
+  it("Save password stays off until the new password has 10 characters", async () => {
+    await open(MANAGER_ME);
+
+    type("New password", "123456789");
+    type("New password again", "123456789");
+    expect(savePassword().disabled).toBe(true);
+    type("New password", "1234567890");
+    type("New password again", "1234567890");
+    expect(savePassword().disabled).toBe(false);
+  });
+
+  it("a refusal says why and clears every password field", async () => {
+    await open(withPassword, [403, { error: "INVALID_CREDENTIALS" }]);
+
+    type("Current password", "wrong-password-0");
+    type("New password", "second-password-2");
+    type("New password again", "second-password-2");
+    fireEvent.click(savePassword());
+
+    expect((await screen.findByRole("alert")).textContent).toBe("The current password is not right.");
+    for (const label of ["Current password", "New password", "New password again"]) expect(field(label).value, label).toBe("");
   });
 });

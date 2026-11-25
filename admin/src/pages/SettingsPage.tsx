@@ -8,7 +8,7 @@ import { useLoad } from "../useLoad";
  * Café settings (F4c). Only the café language for now; VAT, service charge and the business day
  * join this page later (design spec 5.3). Only managers reach the dashboard at all.
  */
-export function SettingsPage(_props: { me: Me }) {
+export function SettingsPage({ me }: { me: Me }) {
   const loadVenue = useCallback(() => api<{ venue: Venue }>("GET", "/venue"), []);
   const { data, error: loadError } = useLoad(loadVenue);
   const [saved, setSaved] = useState<Language | null>(null); // the language the server has now
@@ -65,6 +65,73 @@ export function SettingsPage(_props: { me: Me }) {
           </button>
         </form>
       )}
+      <PasswordCard hasPassword={me.user.hasPassword === true} />
     </section>
+  );
+}
+
+/** 10 to 128 characters, counted like the server (code points). */
+const longEnough = (password: string) => [...password].length >= 10;
+
+/**
+ * The manager's own password (M1b, D-99): it unlocks the app's management screens (M2). Set here
+ * until the developer console exists (M4). Passwords never stay on screen after a save or refusal.
+ */
+function PasswordCard({ hasPassword: initially }: { hasPassword: boolean }) {
+  const [hasPassword, setHasPassword] = useState(initially);
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [again, setAgain] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  function clear() {
+    setCurrent("");
+    setNext("");
+    setAgain("");
+  }
+
+  async function onSave(event: FormEvent) {
+    event.preventDefault();
+    setError(null);
+    setNotice(null);
+    if (next !== again) {
+      setError("The two passwords are not the same.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await api("PUT", "/me/password", hasPassword ? { currentPassword: current, newPassword: next } : { newPassword: next });
+      setHasPassword(true);
+      setNotice("Your password is saved.");
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      clear(); // never leave a password on screen, whatever happened
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form className="card" onSubmit={onSave}>
+      <h3>Your password</h3>
+      <p className="hint">At least 10 characters. You will use it to open the management screens in the app.</p>
+      {error !== null && <p role="alert">{error}</p>}
+      {notice !== null && <p role="status">{notice}</p>}
+      {hasPassword && (
+        <>
+          <label htmlFor="password-current">Current password</label>
+          <input id="password-current" type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} />
+        </>
+      )}
+      <label htmlFor="password-new">New password</label>
+      <input id="password-new" type="password" autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} />
+      <label htmlFor="password-again">New password again</label>
+      <input id="password-again" type="password" autoComplete="new-password" value={again} onChange={(e) => setAgain(e.target.value)} />
+      <button type="submit" disabled={saving || !longEnough(next) || !longEnough(again)}>
+        Save password
+      </button>
+    </form>
   );
 }

@@ -4,7 +4,8 @@
 export type Role = "waiter" | "manager";
 
 export interface Me {
-  user: { id: string; name: string; role: string; email: string | null };
+  /** hasPassword: the manager set a password (M1b); absent from older servers. */
+  user: { id: string; name: string; role: string; email: string | null; hasPassword?: boolean };
   venue: { id: string; name: string | null };
 }
 
