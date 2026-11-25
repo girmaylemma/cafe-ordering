@@ -9,7 +9,7 @@ const save = () => screen.getByRole("button", { name: "Save" }) as HTMLButtonEle
 
 describe("SettingsPage (F4c)", () => {
   it("shows the café's current language", async () => {
-    fakeServer({ "GET /venue": [200, venue("am")] });
+    fakeServer({ "GET /me": [200, MANAGER_ME], "GET /venue": [200, venue("am")] });
     render(<SettingsPage me={MANAGER_ME} />);
 
     await screen.findByLabelText("Café language");
@@ -17,7 +17,7 @@ describe("SettingsPage (F4c)", () => {
   });
 
   it("offers all four languages; Afaan Oromoo and Tigrinya are marked as drafts", async () => {
-    fakeServer({ "GET /venue": [200, venue("en")] });
+    fakeServer({ "GET /me": [200, MANAGER_ME], "GET /venue": [200, venue("en")] });
     render(<SettingsPage me={MANAGER_ME} />);
     await screen.findByLabelText("Café language");
 
@@ -29,7 +29,7 @@ describe("SettingsPage (F4c)", () => {
   });
 
   it("Save sends only the language, says it is saved and when tablets switch", async () => {
-    const server = fakeServer({ "GET /venue": [200, venue("en")], "PATCH /venue": (body) => [200, venue((body as { language: string }).language)] });
+    const server = fakeServer({ "GET /me": [200, MANAGER_ME], "GET /venue": [200, venue("en")], "PATCH /venue": (body) => [200, venue((body as { language: string }).language)] });
     render(<SettingsPage me={MANAGER_ME} />);
     await screen.findByLabelText("Café language");
 
@@ -42,7 +42,7 @@ describe("SettingsPage (F4c)", () => {
   });
 
   it("Save is disabled until the language is changed", async () => {
-    fakeServer({ "GET /venue": [200, venue("am")] });
+    fakeServer({ "GET /me": [200, MANAGER_ME], "GET /venue": [200, venue("am")] });
     render(<SettingsPage me={MANAGER_ME} />);
     await screen.findByLabelText("Café language");
 
@@ -54,7 +54,7 @@ describe("SettingsPage (F4c)", () => {
   });
 
   it("a refused save shows the reason and keeps the choice on screen", async () => {
-    fakeServer({ "GET /venue": [200, venue("en")], "PATCH /venue": [403, { error: "FORBIDDEN" }] });
+    fakeServer({ "GET /me": [200, MANAGER_ME], "GET /venue": [200, venue("en")], "PATCH /venue": [403, { error: "FORBIDDEN" }] });
     render(<SettingsPage me={MANAGER_ME} />);
     await screen.findByLabelText("Café language");
 
@@ -67,7 +67,7 @@ describe("SettingsPage (F4c)", () => {
   });
 
   it("a failed load shows the reason (no form to save over)", async () => {
-    fakeServer({ "GET /venue": [404, { error: "NOT_FOUND" }] });
+    fakeServer({ "GET /me": [200, MANAGER_ME], "GET /venue": [404, { error: "NOT_FOUND" }] });
     render(<SettingsPage me={MANAGER_ME} />);
 
     expect((await screen.findByRole("alert")).textContent).toMatch(/Not found/);
@@ -80,12 +80,23 @@ describe("Your password (M1b)", () => {
   const field = (label: string) => screen.getByLabelText(label) as HTMLInputElement;
   const savePassword = () => screen.getByRole("button", { name: "Save password" }) as HTMLButtonElement;
   async function open(me: typeof MANAGER_ME, reply: [number, unknown] = [200, {}]) {
-    const server = fakeServer({ "GET /venue": [200, venue("en")], "PUT /me/password": reply });
+    const server = fakeServer({ "GET /venue": [200, venue("en")], "GET /me": [200, me], "PUT /me/password": reply });
     render(<SettingsPage me={me} />);
     await screen.findByText("Your password");
     return server;
   }
   const type = (label: string, value: string) => fireEvent.change(field(label), { target: { value } });
+
+  it("bug: the page's copy says 'no password' but one was set meanwhile -> Current password is still asked for", async () => {
+    // The app loads "me" once at start; setting a password (or a page refresh while developing) makes it stale.
+    fakeServer({
+      "GET /venue": [200, venue("en")],
+      "GET /me": [200, { ...MANAGER_ME, user: { ...MANAGER_ME.user, hasPassword: true } }],
+    });
+    render(<SettingsPage me={MANAGER_ME} />); // stale: hasPassword false
+
+    expect(await screen.findByLabelText("Current password")).toBeTruthy();
+  });
 
   it("the first password: no current one asked; Save sends only the new one; the fields are emptied", async () => {
     const server = await open(MANAGER_ME);

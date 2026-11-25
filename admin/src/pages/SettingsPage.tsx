@@ -8,7 +8,7 @@ import { useLoad } from "../useLoad";
  * Café settings (F4c). Only the café language for now; VAT, service charge and the business day
  * join this page later (design spec 5.3). Only managers reach the dashboard at all.
  */
-export function SettingsPage({ me }: { me: Me }) {
+export function SettingsPage(_props: { me: Me }) {
   const loadVenue = useCallback(() => api<{ venue: Venue }>("GET", "/venue"), []);
   const { data, error: loadError } = useLoad(loadVenue);
   const [saved, setSaved] = useState<Language | null>(null); // the language the server has now
@@ -65,7 +65,7 @@ export function SettingsPage({ me }: { me: Me }) {
           </button>
         </form>
       )}
-      <PasswordCard hasPassword={me.user.hasPassword === true} />
+      <PasswordCard />
     </section>
   );
 }
@@ -77,8 +77,13 @@ const longEnough = (password: string) => [...password].length >= 10;
  * The manager's own password (M1b, D-99): it unlocks the app's management screens (M2). Set here
  * until the developer console exists (M4). Passwords never stay on screen after a save or refusal.
  */
-function PasswordCard({ hasPassword: initially }: { hasPassword: boolean }) {
-  const [hasPassword, setHasPassword] = useState(initially);
+function PasswordCard() {
+  // Asked fresh from the server, not taken from the "me" loaded when the dashboard opened: that copy
+  // goes stale once a password is set (bug: Current password was hidden although one existed).
+  const loadMe = useCallback(() => api<Me>("GET", "/me"), []);
+  const { data: me, error: loadError } = useLoad(loadMe);
+  const [saved, setSaved] = useState(false); // set or changed since the card opened
+  const hasPassword = saved || me?.user.hasPassword === true;
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [again, setAgain] = useState("");
@@ -107,7 +112,7 @@ function PasswordCard({ hasPassword: initially }: { hasPassword: boolean }) {
     setSaving(true);
     try {
       await api("PUT", "/me/password", hasPassword ? { currentPassword: current, newPassword: next } : { newPassword: next });
-      setHasPassword(true);
+      setSaved(true);
       setNotice("Your password is saved.");
     } catch (e) {
       setError(errorMessage(e));
@@ -117,6 +122,8 @@ function PasswordCard({ hasPassword: initially }: { hasPassword: boolean }) {
     }
   }
 
+  if (loadError !== null) return <p role="alert">{errorMessage(loadError)}</p>;
+  if (me === null) return null; // a moment, until the server says whether a password exists
   return (
     <form className="card" onSubmit={onSave}>
       <h3>Your password</h3>
