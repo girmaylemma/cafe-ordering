@@ -13,7 +13,7 @@ export class ApiError extends Error {
   }
 }
 
-export async function api<T>(method: "GET" | "POST" | "PATCH", path: string, body?: unknown): Promise<T> {
+export async function api<T>(method: "GET" | "POST" | "PATCH" | "PUT", path: string, body?: unknown): Promise<T> {
   const init: RequestInit = { method, credentials: "same-origin" };
   if (body !== undefined) {
     init.headers = { "Content-Type": "application/json" };

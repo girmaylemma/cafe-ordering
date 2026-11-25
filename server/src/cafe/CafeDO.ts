@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import { isValidVenueId, makeDeviceToken, pinHash, randomSecret, sha256Hex } from "../auth/crypto";
+import { isValidVenueId, makeDeviceToken, passwordHash, pinHash, randomSecret, sha256Hex } from "../auth/crypto";
 import type { Actor } from "../domain/itemState";
 import {
   approveVoid,
@@ -52,6 +52,7 @@ import { mergeSession, moveSession, transferSession } from "./tableMoves";
 import { waiterLines } from "./lines";
 import { stationTickets } from "./tickets";
 import { cafeLanguage, isLanguage, setStaffLanguage, type Language } from "./language";
+import { setOwnPassword } from "./passwords";
 import {
   isId,
   MAX_CATCH_UP_EVENTS,
@@ -216,11 +217,49 @@ export class CafeDO extends DurableObject<Env> {
     return { ok: true, manager: { id } };
   }
 
-  adminMe(actorId: string): AdminResult<{ user: { id: string; name: string; role: string; email: string | null }; venue: { id: string; name: string | null } }> {
-    const actor = findAdmin(this.ctx.storage.sql, actorId);
+  adminMe(actorId: string): AdminResult<{
+    user: { id: string; name: string; role: string; email: string | null; hasPassword: boolean };
+    venue: { id: string; name: string | null };
+  }> {
+    const sql = this.ctx.storage.sql;
+    const actor = findAdmin(sql, actorId);
     if (actor === null) return fail("FORBIDDEN");
-    const name = this.ctx.storage.sql.exec<{ name: string }>("SELECT name FROM venue WHERE id = ?", actor.venue_id).toArray()[0]?.name ?? null;
-    return { ok: true, user: { id: actor.id, name: actor.name, role: actor.role, email: actor.email }, venue: { id: actor.venue_id, name } };
+    const name = sql.exec<{ name: string }>("SELECT name FROM venue WHERE id = ?", actor.venue_id).toArray()[0]?.name ?? null;
+    const hasPassword = sql.exec("SELECT 1 FROM staff WHERE id = ? AND password_hash IS NOT NULL", actor.id).toArray().length > 0;
+    return { ok: true, user: { id: actor.id, name: actor.name, role: actor.role, email: actor.email, hasPassword }, venue: { id: actor.venue_id, name } };
+  }
+
+  /** A manager sets their first password or changes it, from the dashboard until M4 (M1b, D-99). */
+  async adminSetOwnPassword(actorId: string, input: { currentPassword: unknown; newPassword: unknown }): Promise<AdminResult> {
+    const sql = this.ctx.storage.sql;
+    const { currentPassword, newPassword } = input;
+    if (typeof newPassword !== "string" || (currentPassword !== undefined && typeof currentPassword !== "string")) return fail("INVALID_INPUT");
+    const before = findAdmin(sql, actorId);
+    if (before === null) return fail("FORBIDDEN");
+    const salt = sql.exec<{ password_salt: string | null }>("SELECT password_salt FROM staff WHERE id = ?", before.id).one().password_salt;
+    const newSalt = randomSecret(16);
+    const [currentHash, newWithOldSalt, newHash] = await Promise.all([
+      salt === null || currentPassword === undefined ? null : passwordHash(this.env.SERVER_SECRET, salt, currentPassword),
+      salt === null ? null : passwordHash(this.env.SERVER_SECRET, salt, newPassword),
+      passwordHash(this.env.SERVER_SECRET, newSalt, newPassword),
+    ]);
+
+    // After the awaits, everything below is synchronous (D-37): check again, then change.
+    const actor = findAdmin(sql, actorId);
+    if (actor === null) return fail("FORBIDDEN");
+    const stillSalt = sql.exec<{ password_salt: string | null }>("SELECT password_salt FROM staff WHERE id = ?", actor.id).one().password_salt;
+    if (stillSalt !== salt) return fail("INVALID_CREDENTIALS"); // changed meanwhile: try again
+    const result = setOwnPassword(sql, {
+      venueId: actor.venue_id,
+      userId: actor.id,
+      newPassword,
+      currentHash,
+      newWithOldSalt,
+      newSalt,
+      newHash,
+      now: Date.now(),
+    });
+    return result.ok ? { ok: true } : result;
   }
 
   /** The café's name and language (F4c). A café made before the installer has no venue row: NOT_FOUND. */

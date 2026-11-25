@@ -22,11 +22,18 @@ const STATUS: Record<AdminError, number> = {
   DEVICE_REVOKED: 409,
   VENUE_EXISTS: 409,
   TABLE_IN_USE: 409,
+  INVALID_CREDENTIALS: 403,
+  INVALID_PASSWORD: 400,
+  SAME_PASSWORD: 400,
+  LOCKED: 423,
 };
 
 /** Turn a café admin result into a response: `ok` fields as the body, errors as status codes. */
 function respond(result: AdminResult<object>, okStatus = 200): Response {
-  if (!result.ok) return json(STATUS[result.error], { error: result.error });
+  if (!result.ok) {
+    const { retryAfterMs } = result;
+    return json(STATUS[result.error], retryAfterMs === undefined ? { error: result.error } : { error: result.error, retryAfterMs });
+  }
   const { ok: _ok, ...body } = result;
   return json(okStatus, body);
 }
@@ -67,7 +74,7 @@ export async function handleAdmin(request: Request, env: Env): Promise<Response>
   // "/staff/abc/pin" -> "/staff/:id/pin", "/tables/abc" -> "/tables/:id"
   const route = `${request.method} ${path.replace(/^\/(staff|devices|categories|menu-items|tables|option-groups|options)\/[^/]+(?=\/|$)/, "/$1/:id")}`;
   const id = decodeURIComponent(path.split("/")[2] ?? "");
-  const hasBody = request.method === "POST" || request.method === "PATCH";
+  const hasBody = request.method === "POST" || request.method === "PATCH" || request.method === "PUT";
   const body = hasBody ? await readJson(request, 2048) : null;
   if (hasBody && body === null) return json(400, { error: "INVALID_REQUEST" });
   const b = body ?? {};
@@ -75,6 +82,8 @@ export async function handleAdmin(request: Request, env: Env): Promise<Response>
   switch (route) {
     case "GET /me":
       return respond(await cafe.adminMe(me));
+    case "PUT /me/password":
+      return respond(await cafe.adminSetOwnPassword(me, { currentPassword: b.currentPassword, newPassword: b.newPassword }));
     case "GET /venue":
       return respond(await cafe.adminGetVenue(me));
     case "PATCH /venue":

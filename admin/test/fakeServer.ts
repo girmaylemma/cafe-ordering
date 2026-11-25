@@ -28,6 +28,6 @@ export function fakeServer(routes: Record<string, Handler>) {
 }
 
 export const MANAGER_ME = {
-  user: { id: "u-manager", name: "Meseret", role: "manager", email: "manager@example.com" },
+  user: { id: "u-manager", name: "Meseret", role: "manager", email: "manager@example.com", hasPassword: false },
   venue: { id: "v-1", name: "Abebe Cafe" },
 };

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { SettingsPage } from "../src/pages/SettingsPage";
 import { MANAGER_ME, fakeServer } from "./fakeServer";
@@ -9,7 +9,7 @@ const save = () => screen.getByRole("button", { name: "Save" }) as HTMLButtonEle
 
 describe("SettingsPage (F4c)", () => {
   it("shows the café's current language", async () => {
-    fakeServer({ "GET /venue": [200, venue("am")] });
+    fakeServer({ "GET /me": [200, MANAGER_ME], "GET /venue": [200, venue("am")] });
     render(<SettingsPage me={MANAGER_ME} />);
 
     await screen.findByLabelText("Café language");
@@ -17,7 +17,7 @@ describe("SettingsPage (F4c)", () => {
   });
 
   it("offers all four languages; Afaan Oromoo and Tigrinya are marked as drafts", async () => {
-    fakeServer({ "GET /venue": [200, venue("en")] });
+    fakeServer({ "GET /me": [200, MANAGER_ME], "GET /venue": [200, venue("en")] });
     render(<SettingsPage me={MANAGER_ME} />);
     await screen.findByLabelText("Café language");
 
@@ -29,7 +29,7 @@ describe("SettingsPage (F4c)", () => {
   });
 
   it("Save sends only the language, says it is saved and when tablets switch", async () => {
-    const server = fakeServer({ "GET /venue": [200, venue("en")], "PATCH /venue": (body) => [200, venue((body as { language: string }).language)] });
+    const server = fakeServer({ "GET /me": [200, MANAGER_ME], "GET /venue": [200, venue("en")], "PATCH /venue": (body) => [200, venue((body as { language: string }).language)] });
     render(<SettingsPage me={MANAGER_ME} />);
     await screen.findByLabelText("Café language");
 
@@ -42,7 +42,7 @@ describe("SettingsPage (F4c)", () => {
   });
 
   it("Save is disabled until the language is changed", async () => {
-    fakeServer({ "GET /venue": [200, venue("am")] });
+    fakeServer({ "GET /me": [200, MANAGER_ME], "GET /venue": [200, venue("am")] });
     render(<SettingsPage me={MANAGER_ME} />);
     await screen.findByLabelText("Café language");
 
@@ -54,7 +54,7 @@ describe("SettingsPage (F4c)", () => {
   });
 
   it("a refused save shows the reason and keeps the choice on screen", async () => {
-    fakeServer({ "GET /venue": [200, venue("en")], "PATCH /venue": [403, { error: "FORBIDDEN" }] });
+    fakeServer({ "GET /me": [200, MANAGER_ME], "GET /venue": [200, venue("en")], "PATCH /venue": [403, { error: "FORBIDDEN" }] });
     render(<SettingsPage me={MANAGER_ME} />);
     await screen.findByLabelText("Café language");
 
@@ -67,10 +67,124 @@ describe("SettingsPage (F4c)", () => {
   });
 
   it("a failed load shows the reason (no form to save over)", async () => {
-    fakeServer({ "GET /venue": [404, { error: "NOT_FOUND" }] });
+    fakeServer({ "GET /me": [200, MANAGER_ME], "GET /venue": [404, { error: "NOT_FOUND" }] });
     render(<SettingsPage me={MANAGER_ME} />);
 
     expect((await screen.findByRole("alert")).textContent).toMatch(/Not found/);
     expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+  });
+});
+
+describe("Your password (M1b)", () => {
+  const withPassword = { ...MANAGER_ME, user: { ...MANAGER_ME.user, hasPassword: true } };
+  const field = (label: string) => screen.getByLabelText(label) as HTMLInputElement;
+  const savePassword = () => screen.getByRole("button", { name: "Save password" }) as HTMLButtonElement;
+  async function open(me: typeof MANAGER_ME, reply: [number, unknown] = [200, {}]) {
+    const server = fakeServer({ "GET /venue": [200, venue("en")], "GET /me": [200, me], "PUT /me/password": reply });
+    render(<SettingsPage me={me} />);
+    await screen.findByText("Your password");
+    return server;
+  }
+  const type = (label: string, value: string) => fireEvent.change(field(label), { target: { value } });
+
+  it("bug: the page's copy says 'no password' but one was set meanwhile -> Current password is still asked for", async () => {
+    // The app loads "me" once at start; setting a password (or a page refresh while developing) makes it stale.
+    fakeServer({
+      "GET /venue": [200, venue("en")],
+      "GET /me": [200, { ...MANAGER_ME, user: { ...MANAGER_ME.user, hasPassword: true } }],
+    });
+    render(<SettingsPage me={MANAGER_ME} />); // stale: hasPassword false
+
+    expect(await screen.findByLabelText("Current password")).toBeTruthy();
+  });
+
+  it("the first password: no current one asked; Save sends only the new one; the fields are emptied", async () => {
+    const server = await open(MANAGER_ME);
+    expect(screen.queryByLabelText("Current password")).toBeNull();
+
+    type("New password", "first-password-1");
+    type("New password again", "first-password-1");
+    fireEvent.click(savePassword());
+
+    expect((await screen.findByText("Your password is saved."))).toBeTruthy();
+    expect(server.calls.find((c) => c.method === "PUT")?.body).toEqual({ newPassword: "first-password-1" });
+    expect(field("New password").value).toBe("");
+    expect(field("New password again").value).toBe("");
+  });
+
+  it("changing it: the current password is asked for and sent", async () => {
+    const server = await open(withPassword);
+
+    type("Current password", "first-password-1");
+    type("New password", "second-password-2");
+    type("New password again", "second-password-2");
+    fireEvent.click(savePassword());
+
+    await waitFor(() => expect(server.calls.find((c) => c.method === "PUT")?.body).toEqual({ currentPassword: "first-password-1", newPassword: "second-password-2" }));
+  });
+
+  it("two different new passwords: says so, nothing is sent", async () => {
+    const server = await open(MANAGER_ME);
+
+    type("New password", "first-password-1");
+    type("New password again", "first-password-2");
+    fireEvent.click(savePassword());
+
+    expect(await screen.findByText("The two passwords are not the same.")).toBeTruthy();
+    expect(server.calls.some((c) => c.method === "PUT")).toBe(false);
+  });
+
+  it("Save password stays off until the new password follows every rule", async () => {
+    await open(MANAGER_ME);
+
+    for (const weak of ["abcdefg1", "abcdefg!", "1234567!", "ab1!"]) {
+      type("New password", weak);
+      type("New password again", weak);
+      expect(savePassword().disabled, weak).toBe(true);
+    }
+    type("New password", "abcde1!x");
+    type("New password again", "abcde1!x");
+    expect(savePassword().disabled).toBe(false);
+  });
+
+  it("while typing, it says what is still needed", async () => {
+    await open(MANAGER_ME);
+
+    type("New password", "abc");
+    expect(screen.getByText("Still needed: 5 more characters, a number, a symbol.")).toBeTruthy();
+    type("New password", "abcdefg1");
+    expect(screen.getByText("Still needed: a symbol.")).toBeTruthy();
+    type("New password", "abcdefg1!");
+    expect(screen.queryByText(/Still needed/)).toBeNull();
+  });
+
+  it("Show passwords reveals all three fields, and they are hidden again after a save", async () => {
+    await open(withPassword);
+    const kinds = () => ["Current password", "New password", "New password again"].map((label) => field(label).type);
+    expect(kinds()).toEqual(["password", "password", "password"]);
+
+    fireEvent.click(screen.getByLabelText("Show passwords"));
+    expect(kinds()).toEqual(["text", "text", "text"]);
+
+    type("Current password", "first-password-1");
+    type("New password", "second-password-2");
+    type("New password again", "second-password-2");
+    fireEvent.click(savePassword());
+    await screen.findByText("Your password is saved.");
+
+    expect(kinds()).toEqual(["password", "password", "password"]);
+    expect((screen.getByLabelText("Show passwords") as HTMLInputElement).checked).toBe(false);
+  });
+
+  it("a refusal says why and clears every password field", async () => {
+    await open(withPassword, [403, { error: "INVALID_CREDENTIALS" }]);
+
+    type("Current password", "wrong-password-0");
+    type("New password", "second-password-2");
+    type("New password again", "second-password-2");
+    fireEvent.click(savePassword());
+
+    expect((await screen.findByRole("alert")).textContent).toBe("The current password is not right.");
+    for (const label of ["Current password", "New password", "New password again"]) expect(field(label).value, label).toBe("");
   });
 });

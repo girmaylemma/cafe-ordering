@@ -65,6 +65,102 @@ export function SettingsPage(_props: { me: Me }) {
           </button>
         </form>
       )}
+      <PasswordCard />
     </section>
+  );
+}
+
+/**
+ * What the new password still needs, by the server's rule (D-99): 8 to 128 characters (code points),
+ * a letter (any script), a number and a symbol. Empty = ready. The server checks again.
+ */
+function stillNeeded(password: string): string[] {
+  const characters = [...password];
+  const needed: string[] = [];
+  const missing = 8 - characters.length;
+  if (missing > 0) needed.push(`${missing} more character${missing === 1 ? "" : "s"}`);
+  if (characters.length > 128) needed.push("at most 128 characters");
+  if (!/\p{L}/u.test(password)) needed.push("a letter");
+  if (!/\p{Nd}/u.test(password)) needed.push("a number");
+  if (!characters.some((c) => !/[\p{L}\p{Nd}\s]/u.test(c))) needed.push("a symbol");
+  return needed;
+}
+
+/**
+ * The manager's own password (M1b, D-99): it unlocks the app's management screens (M2). Set here
+ * until the developer console exists (M4). Passwords never stay on screen after a save or refusal.
+ */
+function PasswordCard() {
+  // Asked fresh from the server, not taken from the "me" loaded when the dashboard opened: that copy
+  // goes stale once a password is set (bug: Current password was hidden although one existed).
+  const loadMe = useCallback(() => api<Me>("GET", "/me"), []);
+  const { data: me, error: loadError } = useLoad(loadMe);
+  const [saved, setSaved] = useState(false); // set or changed since the card opened
+  const hasPassword = saved || me?.user.hasPassword === true;
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [again, setAgain] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [show, setShow] = useState(false);
+  const kind = show ? "text" : "password";
+  const needed = stillNeeded(next);
+
+  function clear() {
+    setCurrent("");
+    setNext("");
+    setAgain("");
+    setShow(false); // hidden again: never leave a password visible
+  }
+
+  async function onSave(event: FormEvent) {
+    event.preventDefault();
+    setError(null);
+    setNotice(null);
+    if (next !== again) {
+      setError("The two passwords are not the same.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await api("PUT", "/me/password", hasPassword ? { currentPassword: current, newPassword: next } : { newPassword: next });
+      setSaved(true);
+      setNotice("Your password is saved.");
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      clear(); // never leave a password on screen, whatever happened
+      setSaving(false);
+    }
+  }
+
+  if (loadError !== null) return <p role="alert">{errorMessage(loadError)}</p>;
+  if (me === null) return null; // a moment, until the server says whether a password exists
+  return (
+    <form className="card" onSubmit={onSave}>
+      <h3>Your password</h3>
+      <p className="hint">At least 8 characters, with a letter, a number and a symbol (e.g. ! - #). You will use it to open the management screens in the app.</p>
+      {error !== null && <p role="alert">{error}</p>}
+      {notice !== null && <p role="status">{notice}</p>}
+      {hasPassword && (
+        <>
+          <label htmlFor="password-current">Current password</label>
+          <input id="password-current" type={kind} autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} />
+        </>
+      )}
+      <label htmlFor="password-new">New password</label>
+      <input id="password-new" type={kind} autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} />
+      {next.length > 0 && needed.length > 0 && <p className="hint">{`Still needed: ${needed.join(", ")}.`}</p>}
+      <label htmlFor="password-again">New password again</label>
+      <input id="password-again" type={kind} autoComplete="new-password" value={again} onChange={(e) => setAgain(e.target.value)} />
+      <label className="check" htmlFor="password-show">
+        <input id="password-show" type="checkbox" checked={show} onChange={(e) => setShow(e.target.checked)} />
+        Show passwords
+      </label>
+      <button type="submit" disabled={saving || needed.length > 0 || stillNeeded(again).length > 0}>
+        Save password
+      </button>
+    </form>
   );
 }
