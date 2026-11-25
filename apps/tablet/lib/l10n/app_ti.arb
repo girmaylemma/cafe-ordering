@@ -140,5 +140,18 @@
   "keepAliveIdle": "ነቲ ኣፕ ኣብ ድሕሪት ክፉት ግደፍዎ። ኣይትዕጸውዎ።",
   "keepAliveChannelName": "መጠንቀቕታታት ካፌ",
   "keepAliveChannelDescription": "መጠንቀቕታ ድሉው ክፉት ምዃኑን እቲ ናይ መወዳእታ መጠንቀቕታን የርኢ።",
-  "languageSwitch": "ቋንቋ ቀይር"
+  "languageSwitch": "ቋንቋ ቀይር",
+  "pinChooseTitle": "ናይ ባዕልኹም ፒን ምረጹ",
+  "pinChooseHelp": "ፒንኩም ብኻልእ ሰብ እዩ ተዳልዩ። ንስኹም ጥራይ እትፈልጥዎ ምረጹ።",
+  "pinNew": "ሓድሽ ፒን",
+  "pinNewAgain": "ሓድሽ ፒን እንደገና",
+  "pinRuleWaiter": "ካብ 4 ክሳብ 6 ኣሃዝ",
+  "pinRuleManager": "ልክዕ 6 ኣሃዝ",
+  "pinMismatch": "እቶም ክልተ ፒናት ሓደ ኣይኮኑን።",
+  "pinSave": "ዓቅብ",
+  "pinCurrent": "ናይ ሕጂ ፒን",
+  "floorChangePin": "ፒነይ ቀይር",
+  "pinChanged": "ፒንኩም ተቐይሩ።",
+  "errorSamePin": "ካብቲ ዝተዋህበኩም ፒን ዝተፈልየ ምረጹ።",
+  "errorPinChangeRequired": "ቅድም ናይ ባዕልኹም ፒን ምረጹ።"
 }

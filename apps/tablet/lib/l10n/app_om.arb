@@ -140,5 +140,18 @@
   "keepAliveIdle": "Appicha duubaan banaa dhiisi. Hin cufiin.",
   "keepAliveChannelName": "Beeksisa Kaafee",
   "keepAliveChannelDescription": "Beeksisni qophaa'uu banaa ta'uu fi beeksisa dhumaa agarsiisa.",
-  "languageSwitch": "Afaan jijjiiri"
+  "languageSwitch": "Afaan jijjiiri",
+  "pinChooseTitle": "PIN mataa keetii filadhu",
+  "pinChooseHelp": "PIN kee namni biraa qopheesse. Kan ati qofti beektu filadhu.",
+  "pinNew": "PIN haaraa",
+  "pinNewAgain": "PIN haaraa irra deebi'ii",
+  "pinRuleWaiter": "lakkoofsa 4 hanga 6",
+  "pinRuleManager": "lakkoofsa 6 qofa",
+  "pinMismatch": "PIN lamaan wal hin fakkaatan.",
+  "pinSave": "Olkaa'i",
+  "pinCurrent": "PIN ammaa",
+  "floorChangePin": "PIN koo jijjiiri",
+  "pinChanged": "PIN kee jijjiirameera.",
+  "errorSamePin": "PIN siif kenname irraa adda kan ta'e filadhu.",
+  "errorPinChangeRequired": "Dursa PIN mataa keetii filadhu."
 }

@@ -9,6 +9,7 @@ import '../data/database.dart';
 import '../ids.dart';
 import '../providers.dart';
 import '../session/providers.dart';
+import 'choose_pin_screen.dart';
 import 'language_button.dart';
 import '../sync/connection.dart';
 import '../sync/outbox.dart';
@@ -63,6 +64,12 @@ class _FloorMapScreenState extends ConsumerState<FloorMapScreen> {
               // No session yet (still starting): keep the choice; it is sent after connecting.
               unawaited(work != null ? work.setMyLanguage(language) : ref.read(databaseProvider).setMyLanguage(widget.user.id, language, pending: true));
             },
+          ),
+          PopupMenuButton<void>(
+            key: const Key('floor-menu'),
+            itemBuilder: (_) => [
+              PopupMenuItem<void>(onTap: () => showChangePinDialog(context, widget.user), child: Text(context.l10n.floorChangePin)),
+            ],
           ),
           IconButton(
             tooltip: context.l10n.floorSignOut,

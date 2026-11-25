@@ -37,8 +37,11 @@
 | `tableActionClose` | Close table | Table menu (⋮). | Minjaala cufi |  | ጣውላ ዕጸው |  |
 | `lineActionDismiss` | Dismiss | Line menu: forget a refused round. | Irraanfadhu |  | ረስዖ |  |
 | `tableRemove` | Remove | Table screen: confirm button for removing a round. | Baasi |  | ኣልዮ |  |
+| `pinSave` | Save | Choose / change PIN: the save button. | Olkaa'i |  | ዓቅብ |  |
+| `pinNew` | New PIN | Choose / change PIN: label of the new PIN field. | PIN haaraa |  | ሓድሽ ፒን |  |
+| `pinCurrent` | Current PIN | Change my PIN: label of the field for the PIN used now. | PIN ammaa |  | ናይ ሕጂ ፒን |  |
 
-## Part 2: every text (141)
+## Part 2: every text (154)
 
 | Key | English | Where | Afaan Oromoo | Correction | Tigrinya | Correction |
 |---|---|---|---|---|---|---|
@@ -183,3 +186,16 @@
 | `keepAliveChannelName` | Café alerts | Android settings: name of the notification channel. | Beeksisa Kaafee |  | መጠንቀቕታታት ካፌ |  |
 | `keepAliveChannelDescription` | Shows that Ready alerts are on, and the latest alert. | Android settings: description of the notification channel. | Beeksisni qophaa'uu banaa ta'uu fi beeksisa dhumaa agarsiisa. |  | መጠንቀቕታ ድሉው ክፉት ምዃኑን እቲ ናይ መወዳእታ መጠንቀቕታን የርኢ። |  |
 | `languageSwitch` | Switch language | Tooltip of the language button (shows the current language, opens the list of all four) on the floor map and kitchen screen. | Afaan jijjiiri |  | ቋንቋ ቀይር |  |
+| `pinChooseTitle` | Choose your own PIN | Title of the screen shown after signing in with a PIN someone else set (M1a). | PIN mataa keetii filadhu |  | ናይ ባዕልኹም ፒን ምረጹ |  |
+| `pinChooseHelp` | Your PIN was set by someone else. Choose one only you know. | Choose-your-own-PIN screen: why it is shown. | PIN kee namni biraa qopheesse. Kan ati qofti beektu filadhu. |  | ፒንኩም ብኻልእ ሰብ እዩ ተዳልዩ። ንስኹም ጥራይ እትፈልጥዎ ምረጹ። |  |
+| `pinNew` | New PIN | Choose / change PIN: label of the new PIN field. | PIN haaraa |  | ሓድሽ ፒን |  |
+| `pinNewAgain` | New PIN again | Choose / change PIN: label of the field that repeats the new PIN. | PIN haaraa irra deebi'ii |  | ሓድሽ ፒን እንደገና |  |
+| `pinRuleWaiter` | 4 to 6 digits | Choose / change PIN: the rule for a waiter's PIN. | lakkoofsa 4 hanga 6 |  | ካብ 4 ክሳብ 6 ኣሃዝ |  |
+| `pinRuleManager` | Exactly 6 digits | Choose / change PIN: the rule for a manager's PIN (it approves voids). | lakkoofsa 6 qofa |  | ልክዕ 6 ኣሃዝ |  |
+| `pinMismatch` | The two PINs are not the same. | Choose / change PIN: the new PIN and its repeat differ. | PIN lamaan wal hin fakkaatan. |  | እቶም ክልተ ፒናት ሓደ ኣይኮኑን። |  |
+| `pinSave` | Save | Choose / change PIN: the save button. | Olkaa'i |  | ዓቅብ |  |
+| `pinCurrent` | Current PIN | Change my PIN: label of the field for the PIN used now. | PIN ammaa |  | ናይ ሕጂ ፒን |  |
+| `floorChangePin` | Change my PIN | Floor map menu: change your own PIN. | PIN koo jijjiiri |  | ፒነይ ቀይር |  |
+| `pinChanged` | Your PIN was changed. | Change my PIN: shown after a successful change. | PIN kee jijjiirameera. |  | ፒንኩም ተቐይሩ። |  |
+| `errorSamePin` | Choose a PIN different from the one you were given. | Choose / change PIN: the new PIN is the same as the current one. | PIN siif kenname irraa adda kan ta'e filadhu. |  | ካብቲ ዝተዋህበኩም ፒን ዝተፈልየ ምረጹ። |  |
+| `errorPinChangeRequired` | Choose your own PIN first. | Any screen: the server needs the person to choose their own PIN first. | Dursa PIN mataa keetii filadhu. |  | ቅድም ናይ ባዕልኹም ፒን ምረጹ። |  |

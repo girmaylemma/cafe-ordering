@@ -44,6 +44,8 @@ String errorText(AppLocalizations t, String code, {Duration? retryAfter}) {
     'WRONG_STATION' => t.errorWrongStation,
     'ITEM_NOT_FOUND' => t.errorItemNotFound,
     'MENU_ITEM_NOT_FOUND' => t.errorMenuItemNotFound,
+    'SAME_PIN' => t.errorSamePin,
+    'PIN_CHANGE_REQUIRED' => t.errorPinChangeRequired,
     _ => t.errorUnknown(code),
   };
 }
