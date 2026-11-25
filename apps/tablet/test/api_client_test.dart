@@ -124,6 +124,12 @@ void main() {
     expect(((menu['items'] as List).single as Map)['nameAm'], 'ሽሮ ወጥ');
   });
 
+  test("M0 (D-97): a saved 'owner' role reads as 'manager' (signed in before the owner role went)", () {
+    final saved = StaffMember.fromJson({'id': 'abebe', 'name': 'Abebe', 'role': 'owner'});
+    expect(saved.role, 'manager');
+    expect(StaffMember.fromJson({'id': 'hana', 'name': 'Hana', 'role': 'waiter'}).role, 'waiter');
+  });
+
   group('languages (F4b)', () {
     test("staff() returns the café language and each person's", () async {
       final (api, _) = clientWith((_) async => jsonResponse(200, {

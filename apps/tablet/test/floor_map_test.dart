@@ -166,14 +166,16 @@ void main() {
     await unmountAndFlush(tester);
   });
 
-  testWidgets("M0 (D-97): a stale 'owner' role gets no manager power: another waiter's table stays closed", (tester) async {
-    await pumpFloor(tester, online: true, user: const StaffMember(id: 'boss', name: 'Boss', role: 'owner'));
+  testWidgets("M0 (D-97): an owner saved on the phone before the update keeps the manager's powers", (tester) async {
+    // Migration 8 made every owner a manager; the phone may still hold the old role from sign-in.
+    final saved = StaffMember.fromJson({'id': 'boss', 'name': 'Boss', 'role': 'owner'});
+    await pumpFloor(tester, online: true, user: saved);
 
     await tester.tap(find.byKey(const Key('table-t3')));
+    await tester.runAsync(settle);
     await tester.pumpAndSettle();
 
-    expect(find.byType(TableScreen), findsNothing);
-    expect(find.textContaining('Meron'), findsWidgets);
+    expect(find.byType(TableScreen), findsOneWidget);
 
     await unmountAndFlush(tester);
   });
