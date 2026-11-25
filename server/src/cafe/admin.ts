@@ -15,9 +15,14 @@ export type AdminError =
   | "ALREADY_PAIRED"
   | "DEVICE_REVOKED"
   | "VENUE_EXISTS"
-  | "TABLE_IN_USE";
+  | "TABLE_IN_USE"
+  | "INVALID_CREDENTIALS"
+  | "INVALID_PASSWORD"
+  | "SAME_PASSWORD"
+  | "LOCKED";
 
-export type AdminResult<T extends object = object> = ({ ok: true } & T) | { ok: false; error: AdminError };
+/** `retryAfterMs` comes with LOCKED (M1b). */
+export type AdminResult<T extends object = object> = ({ ok: true } & T) | { ok: false; error: AdminError; retryAfterMs?: number };
 
 export const fail = (error: AdminError): { ok: false; error: AdminError } => ({ ok: false, error });
 

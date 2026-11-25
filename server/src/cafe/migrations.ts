@@ -144,4 +144,15 @@ export const CAFE_MIGRATIONS: readonly Migration[] = [
       "ALTER TABLE staff ADD COLUMN pin_must_change INTEGER NOT NULL DEFAULT 0 CHECK (pin_must_change IN (0, 1))",
     ],
   },
+  {
+    version: 10,
+    description: "manager passwords: keyed hash and their own lockout (M1b, D-99)",
+    statements: [
+      // NULL = no password set yet.
+      "ALTER TABLE staff ADD COLUMN password_salt TEXT",
+      "ALTER TABLE staff ADD COLUMN password_hash TEXT",
+      "ALTER TABLE staff ADD COLUMN failed_password_attempts INTEGER NOT NULL DEFAULT 0",
+      "ALTER TABLE staff ADD COLUMN password_locked_until INTEGER",
+    ],
+  },
 ];

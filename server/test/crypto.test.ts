@@ -3,7 +3,7 @@
  * checks that also return 401 (found by planting bugs), so they are pinned down here.
  */
 import { describe, expect, it } from "vitest";
-import { makeDeviceToken, pinHash, venueOfDeviceToken } from "../src/auth/crypto";
+import { makeDeviceToken, passwordHash, pinHash, venueOfDeviceToken } from "../src/auth/crypto";
 import { stripInternalHeaders } from "../src/http";
 
 const SECRET = "secret-a";
@@ -47,6 +47,15 @@ describe("pinHash", () => {
     expect(await pinHash(SECRET, "salt-2", "1234")).not.toBe(base);
     // Without SERVER_SECRET, a leaked database can't be brute-forced (D-51).
     expect(await pinHash("secret-b", "salt-1", "1234")).not.toBe(base);
+  });
+});
+
+describe("passwordHash (M1b)", () => {
+  it("is stable for the same inputs and never equals the PIN hash of the same text (separate key)", async () => {
+    expect(await passwordHash(SECRET, "salt-1", "same-text-123")).toBe(await passwordHash(SECRET, "salt-1", "same-text-123"));
+    expect(await passwordHash(SECRET, "salt-1", "same-text-123")).not.toBe(await pinHash(SECRET, "salt-1", "same-text-123"));
+    expect(await passwordHash(SECRET, "salt-2", "same-text-123")).not.toBe(await passwordHash(SECRET, "salt-1", "same-text-123"));
+    expect(await passwordHash("secret-b", "salt-1", "same-text-123")).not.toBe(await passwordHash(SECRET, "salt-1", "same-text-123"));
   });
 });
 

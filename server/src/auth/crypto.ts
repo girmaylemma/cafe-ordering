@@ -32,7 +32,7 @@ export function timingSafeEqualText(a: string, b: string): boolean {
 // ---------- keys derived from SERVER_SECRET ----------
 
 /** One secret, separate keys per purpose, so a key used for one job can never be replayed in another. */
-type KeyPurpose = "pin" | "route";
+type KeyPurpose = "pin" | "route" | "password";
 
 async function hmacKey(serverSecret: string, purpose: KeyPurpose): Promise<CryptoKey> {
   const root = await crypto.subtle.importKey("raw", encoder.encode(serverSecret), { name: "HMAC", hash: "SHA-256" }, false, [
@@ -49,6 +49,15 @@ async function hmac(serverSecret: string, purpose: KeyPurpose, message: string):
 /** Hex HMAC of a PIN with its per-user salt (D-51). */
 export async function pinHash(serverSecret: string, salt: string, pin: string): Promise<string> {
   return hex(await hmac(serverSecret, "pin", `${salt}:${pin}`));
+}
+
+/**
+ * Hex HMAC of a manager's password with its per-user salt (M1b, D-99): its own derived key, so it
+ * never equals a PIN hash. Keyed, not slow: the free plan's CPU limit cannot fit a strong PBKDF2,
+ * so the server secret (never in the database) is what makes a stolen database useless.
+ */
+export async function passwordHash(serverSecret: string, salt: string, password: string): Promise<string> {
+  return hex(await hmac(serverSecret, "password", `${salt}:${password}`));
 }
 
 // ---------- device tokens: "<venueId>.<routeTag>.<secret>" (D-50) ----------
