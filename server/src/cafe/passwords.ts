@@ -11,10 +11,18 @@ import { timingSafeEqualText } from "../auth/crypto";
 import { LOCKOUT_MS, MAX_PIN_ATTEMPTS } from "./auth";
 import { insertEvent } from "./events";
 
-/** 10 to 128 characters, counted as Unicode code points (Amharic letters count as one each). */
+/**
+ * The rule (D-99, chosen by the project's owner): 8 to 128 characters counted as Unicode code points,
+ * with at least one letter (any script: Amharic letters count, and have no upper/lower case), one
+ * number, and one symbol (anything that is not a letter, a number or a space).
+ */
 export function isValidPassword(password: string): boolean {
-  const length = [...password].length;
-  return length >= 10 && length <= 128;
+  const characters = [...password];
+  if (characters.length < 8 || characters.length > 128) return false;
+  const letter = /\p{L}/u.test(password);
+  const number = /\p{Nd}/u.test(password);
+  const symbol = characters.some((c) => !/[\p{L}\p{Nd}\s]/u.test(c));
+  return letter && number && symbol;
 }
 
 type PasswordRow = { password_hash: string | null; failed_password_attempts: number; password_locked_until: number | null };

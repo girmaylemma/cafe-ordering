@@ -50,22 +50,35 @@ describe("manager passwords (M1b)", () => {
   });
 
   it.each([
-    ["9 characters", "123456789", "INVALID_PASSWORD"],
-    ["129 characters", "x".repeat(129), "INVALID_PASSWORD"],
-    ["the same as the current one", "first-password-1", "SAME_PASSWORD"],
-  ])("a new password of %s is refused and nothing changes", async (_label, newPassword, error) => {
+    ["only 7 characters", "ab1!cde"],
+    ["no number", "abcdefg!"],
+    ["no symbol", "abcdefg1"],
+    ["no letter", "1234567!"],
+    ["a space as the only non-letter, non-number", "abc def 12"],
+    ["129 characters", `a1!${"x".repeat(126)}`],
+  ])("a new password with %s is refused (INVALID_PASSWORD) and nothing changes", async (_label, newPassword) => {
     const { managerEmail } = await withPassword();
 
     const response = await setPassword(managerEmail, { currentPassword: "first-password-1", newPassword });
 
     expect(response.status).toBe(400);
-    expect(await json(response)).toEqual({ error });
+    expect(await json(response)).toEqual({ error: "INVALID_PASSWORD" });
     expect((await setPassword(managerEmail, { currentPassword: "first-password-1", newPassword: "still-the-first-1" })).status).toBe(200);
   });
 
-  it("letters are counted as characters, not bytes: 10 Amharic-and-digit characters are enough", async () => {
+  it("the same password as the current one is refused (SAME_PASSWORD)", async () => {
+    const { managerEmail } = await withPassword();
+    const response = await setPassword(managerEmail, { currentPassword: "first-password-1", newPassword: "first-password-1" });
+    expect(response.status).toBe(400);
+    expect(await json(response)).toEqual({ error: "SAME_PASSWORD" });
+  });
+
+  it.each([
+    ["8 characters with a letter, a number and a symbol", "abcde1!x"],
+    ["Amharic letters (no upper/lower case), a number and a symbol: 8 characters", "ሰላምሰላም1!"],
+  ])("accepted: %s", async (_label, newPassword) => {
     const { managerEmail } = await newCafe();
-    expect((await setPassword(managerEmail, { newPassword: "ሰላምሰላምሰላም1" })).status).toBe(200);
+    expect((await setPassword(managerEmail, { newPassword })).status).toBe(200);
   });
 
   it("5 wrong current passwords lock the password for 5 minutes, but not the PIN sign-in", async () => {
