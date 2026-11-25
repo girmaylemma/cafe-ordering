@@ -42,6 +42,9 @@ Working name in this document: **Ordering System**.
 
 ## 2. Users and roles
 
+> **D-97 (2026-11-25): there is no café owner role.** The developer creates cafés and their managers;
+> managers manage waiters. The owner rows below are historical. See `docs/superpowers/specs/2026-11-25-management-in-app-design.md`.
+
 Five roles use the system. The customer never touches a device: they talk to the waiter. Permissions are role-based (RBAC) and set per venue.
 
 | Role | Uses | Main jobs | Sign-in |
